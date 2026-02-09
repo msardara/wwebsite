@@ -1,0 +1,88 @@
+# Typos configuration for multilingual wedding website
+# This file tells typos to ignore valid French and Italian words
+
+[default]
+extend-ignore-re = [
+  # French articles, prepositions, and common words
+  "\\bde\\b",
+  "\\bdes\\b",
+  "\\bla\\b",
+  "\\ble\\b",
+  "\\bsur\\b",
+  "\\bavec\\b",
+  "\\ben\\b",
+  "\\bmer\\b",
+  "\\bvue\\b",
+  
+  # Multi-word French phrases (common expressions)
+  "Tableau de bord",
+  "en bord de mer",
+  "site de mariage",
+  
+  # Code and technical terms
+  "wasm",
+  "dist",
+  "Supabase",
+  "leptos",
+  "cdylib",
+  "wwebsite",
+]
+
+[default.extend-words]
+# French words that are not typos
+"Informations" = "Informations"    # French plural of "information" (correct in French)
+"informations" = "informations"
+"mariage" = "mariage"              # French for "wedding"
+"bord" = "bord"                    # French for "edge/shore/board"
+"chambres" = "chambres"            # French for "rooms"
+"sur" = "sur"                      # French for "on/upon"
+"Bienvenue" = "Bienvenue"          # French for "welcome"
+"notre" = "notre"                  # French for "our"
+"avec" = "avec"                    # French for "with"
+"vous" = "vous"                    # French for "you"
+"hôtels" = "hôtels"                # French for "hotels"
+"détails" = "détails"              # French for "details"
+"Veuillez" = "Veuillez"            # French for "please"
+"vérifier" = "vérifier"            # French for "verify"
+"vos" = "vos"                      # French for "your" (plural)
+"Invité" = "Invité"                # French for "guest"
+"trouvé" = "trouvé"                # French for "found"
+"Magnifique" = "Magnifique"        # French for "magnificent"
+"lieu" = "lieu"                    # French for "place"
+"réservé" = "réservé"              # French for "reserved"
+"plusieurs" = "plusieurs"          # French for "several"
+"proximité" = "proximité"          # French for "proximity"
+"Contactez" = "Contactez"          # French for "contact"
+"nous" = "nous"                    # French for "us/we"
+"pour" = "pour"                    # French for "for"
+"plus" = "plus"                    # French for "more"
+"groupe" = "groupe"                # French for "group"
+
+# Italian words that are not typos
+"foto" = "foto"                    # Italian for "photo"
+"Foto" = "Foto"                    # Italian (capitalized)
+"Nessuna" = "Nessuna"              # Italian for "no/none"
+"ancora" = "ancora"                # Italian for "yet/still"
+"Torna" = "Torna"                  # Italian for "return/come back"
+"presto" = "presto"                # Italian for "soon"
+"invitato" = "invitato"            # Italian for "invited"
+"verificato" = "verificato"        # Italian for "verified"
+"entrambi" = "entrambi"            # Italian for "both"
+
+# Rust/Technical identifiers
+"msardara" = "msardara"
+"leptos" = "leptos"
+"rlib" = "rlib"
+"wasm" = "wasm"
+
+[files]
+extend-exclude = [
+  "target/",
+  "dist/",
+  "node_modules/",
+  "*.min.js",
+  "*.min.css",
+  "package-lock.json",
+  "Cargo.lock",
+  ".git/",
+]

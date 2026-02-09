@@ -1,0 +1,45 @@
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Coverage
+lcov*
+
+# WASM / Trunk
+/dist
+/pkg
+*.wasm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local tools
+.tools/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Node (if using npm for tailwind)
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp.env
+
+# Supabase
+supabase/.temp

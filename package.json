@@ -1,0 +1,23 @@
+{
+  "name": "wedding-website",
+  "version": "0.1.0",
+  "description": "Wedding website built with Leptos and TailwindCSS",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./style/main.css -o ./style/output.css",
+    "watch:css": "tailwindcss -i ./style/main.css -o ./style/output.css --watch",
+    "build:css:prod": "tailwindcss -i ./style/main.css -o ./style/output.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  },
+  "keywords": [
+    "wedding",
+    "leptos",
+    "rust",
+    "wasm",
+    "tailwindcss"
+  ],
+  "author": "",
+  "license": "MIT"
+}

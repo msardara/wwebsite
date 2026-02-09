@@ -1,0 +1,60 @@
+[package]
+name = "wedding-website"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.cargo-machete]
+ignored = [
+    "postgrest",
+    # Will be used in Phase 3 for Supabase integration
+    "serde_json",
+    # Will be used for JSON serialization with Supabase
+    # Will be used for async operations with Supabase
+    "wasm-bindgen-futures",
+]
+
+[package.metadata.leptos]
+output-name = "wedding-website"
+site-root = "target/site"
+site-pkg-dir = "pkg"
+style-file = "style/main.css"
+assets-dir = "public"
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+browserquery = "defaults"
+watch = false
+env = "DEV"
+bin-features = []
+bin-default-features = false
+lib-features = ["csr"]
+lib-default-features = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# [[bin]]
+# name = "migrate"
+# path = "src/bin/migrate.rs"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde", "wasmbind"] }
+console_error_panic_hook = "0.1"
+gloo-file = { version = "0.3.0", features = ["futures"] }
+gloo-storage = "0.3"
+leptos = { version = "0.6", features = ["csr"] }
+leptos_meta = { version = "0.6", features = ["csr"] }
+leptos_router = { version = "0.6", features = ["csr"] }
+postgrest = "1.0"
+rand = { version = "0.8", features = ["getrandom"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde", "js"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["Window", "Location", "Navigator", "HtmlInputElement", "FileReader", "FileList", "File", "ProgressEvent", "Event", "EventTarget", "Blob"] }
+
+[profile.release]
+opt-level = 'z'
+lto = true
+codegen-units = 1
