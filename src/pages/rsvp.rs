@@ -38,12 +38,12 @@ pub fn RsvpPage() -> impl IntoView {
     });
 
     view! {
-        <div class="max-w-3xl mx-auto">
-            <div class="text-center mb-12 animate-fade-in">
-                <h1 class="text-4xl md:text-5xl font-serif font-bold text-primary-600 mb-4">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-8 sm:mb-12 animate-fade-in">
+                <h1 class="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-primary-600 mb-3 sm:mb-4">
                     {move || translations().t("rsvp.title")}
                 </h1>
-                <p class="text-lg text-gray-600">
+                <p class="text-base sm:text-lg text-gray-600">
                     {move || translations().t("rsvp.subtitle")}
                 </p>
             </div>
@@ -67,19 +67,19 @@ pub fn RsvpPage() -> impl IntoView {
 
                                 view! {
                                     <div>
-                                        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 animate-fade-in">
+                                        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 animate-fade-in">
                                             <div class="text-center">
-                                                <h2 class="text-3xl font-serif text-gray-800 mb-2">
+                                                <h2 class="text-2xl sm:text-3xl font-serif text-gray-800 mb-2">
                                                     {move || translations().t("rsvp.welcome")} ", "
                                                     <span class="text-primary-600">{guest.name.clone()}</span> "!"
                                                 </h2>
-                                                <p class="text-gray-600">
+                                                <p class="text-sm sm:text-base text-gray-600">
                                                     {move || translations().t("rsvp.both_events")}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div class="space-y-12">
+                                        <div class="space-y-8 sm:space-y-12">
                                             <LocationRsvpSection
                                                 guest=guest.clone()
                                                 location=Location::Sardinia
@@ -105,9 +105,9 @@ pub fn RsvpPage() -> impl IntoView {
                                 let sardinia_rsvp = rsvps.iter().find(|r| r.location == "sardinia").cloned();
                                 view! {
                                     <div>
-                                        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 animate-fade-in">
+                                        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 animate-fade-in">
                                             <div class="text-center">
-                                                <h2 class="text-3xl font-serif text-gray-800">
+                                                <h2 class="text-2xl sm:text-3xl font-serif text-gray-800">
                                                     {move || translations().t("rsvp.welcome")} ", "
                                                     <span class="text-primary-600">{guest.name.clone()}</span> "!"
                                                 </h2>
@@ -129,9 +129,9 @@ pub fn RsvpPage() -> impl IntoView {
                                 let tunisia_rsvp = rsvps.iter().find(|r| r.location == "tunisia").cloned();
                                 view! {
                                     <div>
-                                        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 animate-fade-in">
+                                        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 animate-fade-in">
                                             <div class="text-center">
-                                                <h2 class="text-3xl font-serif text-gray-800">
+                                                <h2 class="text-2xl sm:text-3xl font-serif text-gray-800">
                                                     {move || translations().t("rsvp.welcome")} ", "
                                                     <span class="text-primary-600">{guest.name.clone()}</span> "!"
                                                 </h2>
@@ -176,10 +176,10 @@ fn LocationRsvpSection(
     let guest_count = move || invitees_signal.get().len() as i32;
 
     view! {
-        <div class="bg-white rounded-lg shadow-lg p-8 animate-fade-in">
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 animate-fade-in">
             <div class="flex items-center mb-6">
-                <span class="text-5xl mr-4">{flag}</span>
-                <h2 class="text-3xl font-serif font-bold text-gray-800">
+                <span class="text-4xl sm:text-5xl mr-3 sm:mr-4">{flag}</span>
+                <h2 class="text-2xl sm:text-3xl font-serif font-bold text-gray-800">
                     {location_title}
                 </h2>
             </div>
@@ -256,8 +256,8 @@ fn GuestManager(
     };
 
     view! {
-        <div class="mb-8 p-6 bg-gray-50 rounded-lg">
-            <h3 class="text-2xl font-serif font-bold text-gray-800 mb-4">
+        <div class="mb-6 p-4 sm:p-6 bg-gray-50 rounded-lg">
+            <h3 class="text-xl sm:text-2xl font-serif font-bold text-gray-800 mb-4">
                 {move || translations().t("rsvp.invitees_title")}
             </h3>
 
@@ -273,7 +273,7 @@ fn GuestManager(
                     <div class="text-gray-600">{move || translations().t("common.loading")}</div>
                 }
             >
-                <div class="space-y-4 mb-4">
+                <div class="space-y-3 mb-4">
                     <For
                         each=move || invitees.get()
                         key=|invitee| invitee.id.clone()
@@ -308,12 +308,12 @@ fn GuestManager(
                     />
                 </div>
 
-                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
                     <span class="text-sm text-gray-600">
                         {move || invitees.get().len()} " " {move || if invitees.get().len() == 1 { "guest" } else { "guests" }}
                     </span>
                     <button
-                        class="px-4 py-2 bg-secondary-500 text-gray-900 rounded-lg hover:bg-secondary-600 transition-all font-semibold shadow-md border-2 border-secondary-700"
+                        class="w-full sm:w-auto px-4 py-2 bg-secondary-500 text-gray-900 rounded-lg hover:bg-secondary-600 transition-all font-semibold shadow-md border-2 border-secondary-700"
                         on:click=add_invitee
                     >
                         "+ " {move || translations().t("rsvp.add_invitee")}
@@ -437,19 +437,19 @@ fn InviteeCard(
     };
 
     view! {
-        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+        <div class="bg-white p-3 sm:p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div class="space-y-3">
-                <div class="flex items-center gap-2">
+                <div class="flex items-start sm:items-center gap-2 w-full">
                     <input
                         type="text"
-                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base"
                         placeholder=move || translations().t("rsvp.invitee_name")
                         prop:value=move || name.get()
                         on:input=move |ev| set_name.set(event_target_value(&ev))
                         on:blur=move |_| save_changes.with_value(|f| f())
                     />
                     <button
-                        class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        class="flex-shrink-0 w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         on:click=delete_invitee
                         title=move || translations().t("rsvp.delete_invitee")
                     >
@@ -457,11 +457,11 @@ fn InviteeCard(
                     </button>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
+                <div class="space-y-2.5">
+                    <label class="flex items-start sm:items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
-                            class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                            class="mt-0.5 sm:mt-0 w-4 h-4 flex-shrink-0 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
                             prop:checked=move || vegetarian.get()
                             on:change=move |ev| {
                                 set_vegetarian.set(event_target_checked(&ev));
@@ -471,10 +471,10 @@ fn InviteeCard(
                         <span class="text-sm text-gray-700">{move || translations().t("rsvp.vegetarian")}</span>
                     </label>
 
-                    <label class="flex items-center gap-2 cursor-pointer">
+                    <label class="flex items-start sm:items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
-                            class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                            class="mt-0.5 sm:mt-0 w-4 h-4 flex-shrink-0 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
                             prop:checked=move || vegan.get()
                             on:change=move |ev| {
                                 set_vegan.set(event_target_checked(&ev));
@@ -484,10 +484,10 @@ fn InviteeCard(
                         <span class="text-sm text-gray-700">{move || translations().t("rsvp.vegan")}</span>
                     </label>
 
-                    <label class="flex items-center gap-2 cursor-pointer">
+                    <label class="flex items-start sm:items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
-                            class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                            class="mt-0.5 sm:mt-0 w-4 h-4 flex-shrink-0 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
                             prop:checked=move || gluten_free.get()
                             on:change=move |ev| {
                                 set_gluten_free.set(event_target_checked(&ev));
@@ -689,7 +689,7 @@ fn RsvpForm(
                 <label class="block text-sm font-semibold text-gray-700 mb-3">
                     {move || translations().t("rsvp.attending")}
                 </label>
-                <div class="flex gap-4">
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <button
                         type="button"
                         class=move || {
@@ -725,7 +725,7 @@ fn RsvpForm(
 
             {/* Show guest list and additional notes only if attending */}
             <Show when=move || attending.get()>
-                <div class="bg-white rounded-lg shadow-lg p-8 space-y-6 animate-fade-in">
+                <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 space-y-6 animate-fade-in">
                     <GuestManager
                         guest_group=guest_group.clone()
                         translations=translations
@@ -738,7 +738,7 @@ fn RsvpForm(
                             {move || translations().t("rsvp.notes")}
                         </label>
                         <textarea
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all resize-none"
+                            class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all resize-none text-sm sm:text-base"
                             rows="4"
                             placeholder="Any special requests or messages?"
                             prop:value=notes

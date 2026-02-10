@@ -77,24 +77,28 @@ fn LocationSection(
                     icon="📅"
                     title=move || translations().t("events.schedule")
                     content_key=format!("schedule_{}", location)
+                    translations=translations
                 />
 
                 <InfoCard
                     icon="📍"
                     title=move || translations().t("events.venue")
                     content_key=format!("venue_{}", location)
+                    translations=translations
                 />
 
                 <InfoCard
                     icon="🏨"
                     title=move || translations().t("events.accommodation")
                     content_key=format!("accommodation_{}", location)
+                    translations=translations
                 />
 
                 <InfoCard
                     icon="✈️"
                     title=move || translations().t("events.travel")
                     content_key=format!("travel_{}", location)
+                    translations=translations
                 />
             </div>
         </div>
@@ -106,18 +110,25 @@ fn InfoCard(
     icon: &'static str,
     title: impl Fn() -> String + 'static,
     content_key: String,
+    translations: impl Fn() -> Translations + 'static + Copy,
 ) -> impl IntoView {
+    let is_venue = content_key.contains("venue");
+    let content_key = store_value(content_key);
+
     // Placeholder content - will be loaded from Supabase in Phase 5
-    let placeholder_content = match content_key.as_str() {
-        "schedule_sardinia" => "Ceremony at 4:00 PM, Reception to follow at 6:00 PM",
-        "venue_sardinia" => "Beautiful seaside venue in Costa Smeralda",
-        "accommodation_sardinia" => "Recommended hotels nearby with special rates for our guests",
-        "travel_sardinia" => "Olbia Airport (OLB) is the closest. We recommend renting a car.",
-        "schedule_tunisia" => "Ceremony at 5:00 PM, Reception to follow at 7:00 PM",
-        "venue_tunisia" => "Traditional venue in Tunis with stunning views",
-        "accommodation_tunisia" => "Selection of hotels and guest houses in Tunis",
-        "travel_tunisia" => "Tunis-Carthage International Airport (TUN) serves the area",
-        _ => "Details coming soon!",
+    let placeholder_content = move || {
+        let key = format!("events.{}", content_key.get_value());
+        translations().t(&key)
+    };
+
+    let venue_name = move || {
+        let key = format!("events.{}_name", content_key.get_value());
+        translations().t(&key)
+    };
+
+    let venue_link = move || {
+        let key = format!("events.{}_link", content_key.get_value());
+        translations().t(&key)
     };
 
     view! {
@@ -128,9 +139,34 @@ fn InfoCard(
                     {title}
                 </h3>
             </div>
-            <p class="text-gray-600 leading-relaxed">
-                {placeholder_content}
-            </p>
+
+            {move || {
+                if is_venue {
+                    view! {
+                        <div>
+                            <p class="text-gray-600 leading-relaxed mb-4">
+                                {venue_name}
+                            </p>
+                            <div class="flex justify-end mt-4">
+                                <a
+                                    href=venue_link
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm"
+                                >
+                                    "📍 " {move || translations().t("events.view_on_maps")} " ↗"
+                                </a>
+                            </div>
+                        </div>
+                    }.into_view()
+                } else {
+                    view! {
+                        <p class="text-gray-600 leading-relaxed">
+                            {placeholder_content}
+                        </p>
+                    }.into_view()
+                }
+            }}
         </div>
     }
 }

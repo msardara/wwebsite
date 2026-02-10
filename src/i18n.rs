@@ -37,12 +37,15 @@ impl Translations {
         map.insert("home.title", "We're Getting Married!");
         map.insert("home.subtitle", "Join us in celebrating our special day");
         map.insert("home.welcome", "Welcome");
-        map.insert("home.intro_p1", "We are so excited to celebrate our special day with you! Our wedding will take place in two beautiful locations - the stunning island of Sardinia and the enchanting country of Tunisia.");
+        map.insert(
+            "home.intro_p1",
+            "We are so excited to celebrate our special day with you!",
+        );
         map.insert("home.intro_p2", "Please explore our website to find all the information you need about the events, venues, and how to RSVP. We can't wait to see you there!");
         map.insert("home.sardinia_title", "Sardinia");
         map.insert(
             "home.sardinia_desc",
-            "Join us for a Mediterranean celebration on the beautiful island of Sardinia",
+            "Join us to celebrate our wedding in Sardinia!",
         );
         map.insert("home.tunisia_title", "Tunisia");
         map.insert(
@@ -58,6 +61,37 @@ impl Translations {
         map.insert("events.venue", "Venue");
         map.insert("events.accommodation", "Accommodation");
         map.insert("events.travel", "Travel Information");
+        map.insert("events.view_on_maps", "View on Google Maps");
+
+        // Event content placeholders
+        map.insert("events.schedule_sardinia", "Ceremony at 6:00 PM");
+        map.insert("events.venue_sardinia_name", "Sa Mola Hotel Ristorante");
+        map.insert(
+            "events.venue_sardinia_link",
+            "https://maps.app.goo.gl/yNLukc3C9V6bPL4DA",
+        );
+        map.insert(
+            "events.accommodation_sardinia",
+            "Recommended hotels in Oristano / Cabras.",
+        );
+        map.insert(
+            "events.travel_sardinia",
+            "Cagliari Airport (CA) is the closest. We recommend renting a car.",
+        );
+        map.insert(
+            "events.schedule_tunisia",
+            "Ceremony at 6:00 PM, Reception to follow at 7:00 PM",
+        );
+        map.insert("events.venue_tunisia_name", "Monastir");
+        map.insert(
+            "events.venue_tunisia_link",
+            "https://maps.app.goo.gl/qhCtxDfV1PYgczaG6",
+        );
+        map.insert("events.accommodation_tunisia", "Hotels in Monastir");
+        map.insert(
+            "events.travel_tunisia",
+            "Monastir Habib Bourguiba International Airport serves the area",
+        );
 
         // Gallery
         map.insert("gallery.title", "Photo Gallery");
@@ -211,10 +245,16 @@ impl Translations {
             "Rejoignez-nous pour célébrer notre jour spécial",
         );
         map.insert("home.welcome", "Bienvenue");
-        map.insert("home.intro_p1", "Nous sommes tellement excités de célébrer notre jour spécial avec vous ! Notre mariage aura lieu dans deux magnifiques endroits - la superbe île de Sardaigne et le pays enchanteur de la Tunisie.");
+        map.insert(
+            "home.intro_p1",
+            "Nous sommes tellement excités de célébrer notre jour spécial avec vous!",
+        );
         map.insert("home.intro_p2", "Veuillez explorer notre site Web pour trouver toutes les informations dont vous avez besoin sur les événements, les lieux et comment répondre. Nous avons hâte de vous y voir !");
         map.insert("home.sardinia_title", "Sardaigne");
-        map.insert("home.sardinia_desc", "Rejoignez-nous pour une célébration méditerranéenne sur la magnifique île de Sardaigne");
+        map.insert(
+            "home.sardinia_desc",
+            "Rejoignez-nous pour célébrer notre mariage en Sardaigne !",
+        );
         map.insert("home.tunisia_title", "Tunisie");
         map.insert(
             "home.tunisia_desc",
@@ -229,6 +269,34 @@ impl Translations {
         map.insert("events.venue", "Lieu");
         map.insert("events.accommodation", "Hébergement");
         map.insert("events.travel", "Informations de voyage");
+        map.insert("events.view_on_maps", "Voir sur Google Maps");
+
+        // Event content placeholders
+        map.insert("events.schedule_sardinia", "Cérémonie à 18h00");
+        map.insert("events.venue_sardinia_name", "Sa Mola Hotel Ristorante");
+        map.insert(
+            "events.venue_sardinia_link",
+            "https://maps.app.goo.gl/yNLukc3C9V6bPL4DA",
+        );
+        map.insert(
+            "events.accommodation_sardinia",
+            "Hôtels recommandés à Oristano / Cabras.",
+        );
+        map.insert("events.travel_sardinia", "L'aéroport de Cagliari (CA) est le plus proche. Nous recommandons de louer une voiture.");
+        map.insert(
+            "events.schedule_tunisia",
+            "Cérémonie à 18h00, Réception à 19h00",
+        );
+        map.insert("events.venue_tunisia_name", "Monastir");
+        map.insert(
+            "events.venue_tunisia_link",
+            "https://maps.app.goo.gl/qhCtxDfV1PYgczaG6",
+        );
+        map.insert("events.accommodation_tunisia", "Hôtels à Monastir");
+        map.insert(
+            "events.travel_tunisia",
+            "L'aéroport international Monastir Habib Bourguiba dessert la région",
+        );
 
         // Gallery
         map.insert("gallery.title", "Galerie photos");
@@ -366,10 +434,16 @@ impl Translations {
             "Unisciti a noi per celebrare il nostro giorno speciale",
         );
         map.insert("home.welcome", "Benvenuto");
-        map.insert("home.intro_p1", "Siamo così entusiasti di celebrare il nostro giorno speciale con te! Il nostro matrimonio si svolgerà in due bellissimi luoghi - la splendida isola della Sardegna e l'incantevole paese della Tunisia.");
+        map.insert(
+            "home.intro_p1",
+            "Siamo entusiasti di celebrare il nostro giorno speciale con voi!",
+        );
         map.insert("home.intro_p2", "Esplora il nostro sito web per trovare tutte le informazioni di cui hai bisogno sugli eventi, le location e come confermare la presenza. Non vediamo l'ora di vederti lì!");
         map.insert("home.sardinia_title", "Sardegna");
-        map.insert("home.sardinia_desc", "Unisciti a noi per una celebrazione mediterranea sulla bellissima isola della Sardegna");
+        map.insert(
+            "home.sardinia_desc",
+            "Unisciti a noi per festeggiare il nostro matrimonio in Sardegna!",
+        );
         map.insert("home.tunisia_title", "Tunisia");
         map.insert(
             "home.tunisia_desc",
@@ -384,6 +458,37 @@ impl Translations {
         map.insert("events.venue", "Luogo");
         map.insert("events.accommodation", "Alloggio");
         map.insert("events.travel", "Informazioni di viaggio");
+        map.insert("events.view_on_maps", "Visualizza su Google Maps");
+
+        // Event content placeholders
+        map.insert("events.schedule_sardinia", "Cerimonia alle 18:00");
+        map.insert("events.venue_sardinia_name", "Sa Mola Hotel Ristorante");
+        map.insert(
+            "events.venue_sardinia_link",
+            "https://maps.app.goo.gl/yNLukc3C9V6bPL4DA",
+        );
+        map.insert(
+            "events.accommodation_sardinia",
+            "Hotel consigliati nella zona di Oristano / Cabras.",
+        );
+        map.insert(
+            "events.travel_sardinia",
+            "L'aeroporto di Cagliari (CA) è il più vicino. Consigliamo di noleggiare un'auto.",
+        );
+        map.insert(
+            "events.schedule_tunisia",
+            "Cerimonia alle 18:00, Ricevimento alle 19:00",
+        );
+        map.insert("events.venue_tunisia_name", "Monastir");
+        map.insert(
+            "events.venue_tunisia_link",
+            "https://maps.app.goo.gl/qhCtxDfV1PYgczaG6",
+        );
+        map.insert("events.accommodation_tunisia", "Hotel a Monastir");
+        map.insert(
+            "events.travel_tunisia",
+            "L'aeroporto internazionale Monastir Habib Bourguiba serve la zona",
+        );
 
         // Gallery
         map.insert("gallery.title", "Galleria fotografica");
