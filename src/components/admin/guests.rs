@@ -5,6 +5,7 @@ use crate::types::{
     GuestInput, Location,
 };
 use leptos::*;
+use wasm_bindgen::JsCast;
 use web_sys::console;
 
 #[component]
@@ -268,9 +269,59 @@ pub fn GuestManagement() -> impl IntoView {
                                                             {/* Invitation Code */}
                                                             <div class="flex-1">
                                                                 <div class="text-sm font-extrabold text-gray-900 uppercase mb-2">"INVITATION CODE"</div>
-                                                                <div class="px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg inline-block border-2 border-gray-300">
-                                                                    {guest.invitation_code.clone()}
-                                                                </div>
+                                                                {
+                                                                    let (copied, set_copied) = create_signal(false);
+                                                                    let code_for_display = guest.invitation_code.clone();
+
+                                                                    view! {
+                                                                        <button
+                                                                            on:click={
+                                                                                let code = guest.invitation_code.clone();
+                                                                                move |_| {
+                                                                                    let win = window();
+                                                                                    if let Ok(origin) = win.location().origin() {
+                                                                                        let invitation_url = format!("{}/invitation?code={}", origin, code);
+
+                                                                                        // Use clipboard API via js_sys
+                                                                                        use wasm_bindgen::JsValue;
+                                                                                        let navigator = win.navigator();
+
+                                                                                        // Access clipboard through reflection
+                                                                                        if let Ok(clipboard) = js_sys::Reflect::get(&navigator, &JsValue::from_str("clipboard")) {
+                                                                                            if !clipboard.is_undefined() && !clipboard.is_null() {
+                                                                                                if let Ok(write_text_fn) = js_sys::Reflect::get(&clipboard, &JsValue::from_str("writeText")) {
+                                                                                                    if let Ok(func) = write_text_fn.dyn_into::<js_sys::Function>() {
+                                                                                                        let _ = func.call1(&clipboard, &JsValue::from_str(&invitation_url));
+
+                                                                                                        // Show visual feedback
+                                                                                                        set_copied.set(true);
+                                                                                                        set_timeout(move || {
+                                                                                                            set_copied.set(false);
+                                                                                                        }, std::time::Duration::from_secs(2));
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            class=move || {
+                                                                                if copied.get() {
+                                                                                    "px-5 py-3 bg-green-100 text-green-900 text-xl font-mono font-bold rounded-lg shadow-lg border-2 border-green-400 transition-all cursor-pointer inline-block w-[220px] text-center"
+                                                                                } else {
+                                                                                    "px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg border-2 border-gray-300 hover:bg-primary-100 hover:border-primary-400 transition-all cursor-pointer inline-block w-[220px] text-center"
+                                                                                }
+                                                                            }
+                                                                            title="Click to copy invitation link"
+                                                                        >
+                                                                            {move || if copied.get() {
+                                                                                "✓Copied!".to_string()
+                                                                            } else {
+                                                                                code_for_display.clone()
+                                                                            }}
+                                                                        </button>
+                                                                    }
+                                                                }
                                                             </div>
 
                                                             {/* Party Size */}
@@ -292,9 +343,9 @@ pub fn GuestManagement() -> impl IntoView {
                                                                     }
                                                                 )}>
                                                                     {match guest.location {
-                                                                        Location::Sardinia => "🇮🇹 Sardinia",
-                                                                        Location::Tunisia => "🇹🇳 Tunisia",
-                                                                        Location::Both => "✈️ Both",
+                                                                        Location::Sardinia => view! { <><img src="/public/sardinia-flag.png" alt="Sardinia" class="inline w-5 h-4 mr-1 object-cover rounded shadow-sm border border-gray-300"/> "Sardinia"</> }.into_view(),
+                                                                        Location::Tunisia => view! { <><img src="/public/tunisia-flag.png" alt="Tunisia" class="inline w-5 h-4 mr-1 object-cover rounded shadow-sm border border-gray-300"/> "Tunisia"</> }.into_view(),
+                                                                        Location::Both => view! { "✈️ Both" }.into_view(),
                                                                     }}
                                                                 </div>
                                                             </div>

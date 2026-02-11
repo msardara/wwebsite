@@ -28,7 +28,7 @@ pub fn EventsPage() -> impl IntoView {
                             <LocationSection
                                 location="sardinia"
                                 title=move || translations().t("events.sardinia")
-                                flag="🇮🇹"
+                                flag="/public/sardinia-flag.png"
                                 translations=translations
                             />
                         }.into_view()
@@ -43,7 +43,7 @@ pub fn EventsPage() -> impl IntoView {
                             <LocationSection
                                 location="tunisia"
                                 title=move || translations().t("events.tunisia")
-                                flag="🇹🇳"
+                                flag="/public/tunisia-flag.png"
                                 translations=translations
                             />
                         }.into_view()
@@ -66,7 +66,7 @@ fn LocationSection(
     view! {
         <div class="bg-white rounded-lg shadow-lg p-8 animate-fade-in">
             <div class="flex items-center mb-6">
-                <span class="text-5xl mr-4">{flag}</span>
+                <img src={flag} alt="Flag" class="w-16 h-12 mr-4 object-cover rounded shadow-md border border-gray-200"/>
                 <h2 class="text-3xl font-serif font-bold text-gray-800">
                     {title}
                 </h2>

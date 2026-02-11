@@ -84,7 +84,7 @@ pub fn RsvpPage() -> impl IntoView {
                                                 guest=guest.clone()
                                                 location=Location::Sardinia
                                                 location_title=move || translations().t("events.sardinia")
-                                                flag="🇮🇹"
+                                                flag="/public/sardinia-flag.png"
                                                 existing_rsvp=sardinia_rsvp
                                                 translations=translations
                                             />
@@ -93,7 +93,7 @@ pub fn RsvpPage() -> impl IntoView {
                                                 guest=guest.clone()
                                                 location=Location::Tunisia
                                                 location_title=move || translations().t("events.tunisia")
-                                                flag="🇹🇳"
+                                                flag="/public/tunisia-flag.png"
                                                 existing_rsvp=tunisia_rsvp
                                                 translations=translations
                                             />
@@ -118,7 +118,7 @@ pub fn RsvpPage() -> impl IntoView {
                                             guest=guest
                                             location=Location::Sardinia
                                             location_title=move || translations().t("events.sardinia")
-                                            flag="🇮🇹"
+                                            flag="/public/sardinia-flag.png"
                                             existing_rsvp=sardinia_rsvp
                                             translations=translations
                                         />
@@ -142,7 +142,7 @@ pub fn RsvpPage() -> impl IntoView {
                                             guest=guest
                                             location=Location::Tunisia
                                             location_title=move || translations().t("events.tunisia")
-                                            flag="🇹🇳"
+                                            flag="/public/tunisia-flag.png"
                                             existing_rsvp=tunisia_rsvp
                                             translations=translations
                                         />
@@ -178,7 +178,7 @@ fn LocationRsvpSection(
     view! {
         <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 animate-fade-in">
             <div class="flex items-center mb-6">
-                <span class="text-4xl sm:text-5xl mr-3 sm:mr-4">{flag}</span>
+                <img src={flag} alt="Flag" class="w-14 h-10 sm:w-16 sm:h-12 mr-3 sm:mr-4 object-cover rounded shadow-md border border-gray-200"/>
                 <h2 class="text-2xl sm:text-3xl font-serif font-bold text-gray-800">
                     {location_title}
                 </h2>

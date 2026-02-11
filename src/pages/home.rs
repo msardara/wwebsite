@@ -48,9 +48,8 @@ pub fn HomePage() -> impl IntoView {
                     <LocationCard
                         translations=translations
                         location_key="home.sardinia_title"
-                        flag="🇮🇹"
                         description_key="home.sardinia_desc"
-                        image_class="from-blue-300 to-green-300"
+                        image="/public/cala-luna.jpg"
                     />
                 </Show>
                 {
@@ -60,9 +59,8 @@ pub fn HomePage() -> impl IntoView {
                             <LocationCard
                                 translations=translations
                                 location_key="home.tunisia_title"
-                                flag="🇹🇳"
                                 description_key="home.tunisia_desc"
-                                image_class="from-yellow-300 to-red-300"
+                                image="/public/monastir.jpg"
                             />
                         </Show>
                     }
@@ -85,15 +83,23 @@ pub fn HomePage() -> impl IntoView {
 fn LocationCard(
     translations: impl Fn() -> Translations + 'static + Copy,
     location_key: &'static str,
-    flag: &'static str,
     description_key: &'static str,
-    image_class: &'static str,
+    image: &'static str,
 ) -> impl IntoView {
     view! {
         <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-200 animate-fade-in">
-            <div class=format!("w-full h-32 rounded-md bg-gradient-to-br {} flex items-center justify-center text-6xl mb-4", image_class)>
-                {flag}
-            </div>
+            {if !image.is_empty() {
+                view! {
+                    <div class="w-full h-72 rounded-md mb-4 overflow-hidden relative bg-gradient-to-br from-blue-300 to-green-300">
+                        <img src={image} alt="Location" class="w-full h-72 object-cover object-center" onError="this.style.display='none'"/>
+                    </div>
+                }.into_view()
+            } else {
+                view! {
+                    <div class="w-full h-32 rounded-md bg-gradient-to-br from-yellow-300 to-red-300 mb-4 overflow-hidden">
+                    </div>
+                }.into_view()
+            }}
             <h3 class="text-2xl font-serif font-bold text-gray-800 mb-2">
                 {move || translations().t(location_key)}
             </h3>

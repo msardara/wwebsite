@@ -5,6 +5,7 @@ use crate::types::Language;
 use crate::SupabaseError;
 use gloo_storage::{LocalStorage, Storage};
 use leptos::*;
+use leptos_router::*;
 
 use wasm_bindgen_futures::spawn_local;
 
@@ -14,11 +15,53 @@ pub fn InvitationPage() -> impl IntoView {
     let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
     let translations = move || Translations::new(language.get());
 
-    let (code, set_code) = create_signal(String::new());
+    // Get query parameters to check for pre-filled code
+    let query = use_query_map();
+    let initial_code = query.with(|params| {
+        params.get("code").cloned().unwrap_or_default().to_uppercase()
+    });
+
+    let (code, set_code) = create_signal(initial_code.clone());
     let (loading, set_loading) = create_signal(false);
     let (error, set_error) = create_signal::<Option<String>>(None);
 
     let guest_ctx = guest_context; // Copy for closures
+
+    // Auto-login if code is provided in URL
+    create_effect(move |_| {
+        let code_value = initial_code.clone();
+        if !code_value.is_empty() {
+            set_loading.set(true);
+            set_error.set(None);
+
+            let client = use_supabase_rpc();
+
+            spawn_local(async move {
+                match client.find_guest_by_code(&code_value).await {
+                    Ok(Some(guest)) => {
+                        set_loading.set(false);
+                        guest_ctx.login(guest);
+                        // Redirect to home page
+                        let navigate = leptos_router::use_navigate();
+                        navigate("/", Default::default());
+                    }
+                    Ok(None) => {
+                        set_loading.set(false);
+                        set_error.set(Some(translations().t("rsvp.error_code_invalid")));
+                    }
+                    Err(e) => {
+                        set_loading.set(false);
+                        let error_msg = match e {
+                            SupabaseError::NetworkError(_) => translations().t("rsvp.error_network"),
+                            SupabaseError::NotFound => translations().t("rsvp.not_found"),
+                            _ => translations().t("rsvp.error_generic"),
+                        };
+                        set_error.set(Some(error_msg));
+                    }
+                }
+            });
+        }
+    });
 
     let handle_submit = move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
@@ -130,8 +173,9 @@ pub fn InvitationPage() -> impl IntoView {
                     </form>
                 </div>
 
-                    <p class="text-center text-sm text-gray-500 mt-6">
-                        "🇮🇹 🇹🇳"
+                    <p class="text-center text-sm text-gray-500 mt-6 flex justify-center gap-3">
+                        <img src="/public/sardinia-flag.png" alt="Sardinia" class="w-8 h-6 object-cover rounded shadow-md border border-gray-300"/>
+                        <img src="/public/tunisia-flag.png" alt="Tunisia" class="w-8 h-6 object-cover rounded shadow-md border border-gray-300"/>
                     </p>
                 </div>
             </main>
