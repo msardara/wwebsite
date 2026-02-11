@@ -737,13 +737,14 @@ AS
 SELECT
   COUNT(*) FILTER (WHERE r.attending = true) as confirmed_count,
   COUNT(*) as total_rsvps,
-  SUM(r.dietary_vegetarian) FILTER (WHERE r.attending = true) as vegetarian_count,
-  SUM(r.dietary_vegan) FILTER (WHERE r.attending = true) as vegan_count,
+  COUNT(g.id) FILTER (WHERE r.attending = true AND g.dietary_preferences->>'vegetarian' = 'true') as vegetarian_count,
+  COUNT(g.id) FILTER (WHERE r.attending = true AND g.dietary_preferences->>'vegan' = 'true') as vegan_count,
   SUM(r.number_of_guests) FILTER (WHERE r.attending = true) as total_attending_guests,
   COUNT(*) FILTER (WHERE r.location = 'sardinia' AND r.attending = true) as sardinia_attending,
   COUNT(*) FILTER (WHERE r.location = 'tunisia' AND r.attending = true) as tunisia_attending
 FROM guest_groups gg
-LEFT JOIN rsvps r ON gg.id = r.guest_group_id;
+LEFT JOIN rsvps r ON gg.id = r.guest_group_id
+LEFT JOIN guests g ON gg.id = g.guest_group_id;
 
 -- Pending RSVPs view (guest groups without responses)
 CREATE VIEW pending_rsvps

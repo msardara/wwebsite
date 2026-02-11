@@ -18,7 +18,11 @@ pub fn InvitationPage() -> impl IntoView {
     // Get query parameters to check for pre-filled code
     let query = use_query_map();
     let initial_code = query.with(|params| {
-        params.get("code").cloned().unwrap_or_default().to_uppercase()
+        params
+            .get("code")
+            .cloned()
+            .unwrap_or_default()
+            .to_uppercase()
     });
 
     let (code, set_code) = create_signal(initial_code.clone());
@@ -52,7 +56,9 @@ pub fn InvitationPage() -> impl IntoView {
                     Err(e) => {
                         set_loading.set(false);
                         let error_msg = match e {
-                            SupabaseError::NetworkError(_) => translations().t("rsvp.error_network"),
+                            SupabaseError::NetworkError(_) => {
+                                translations().t("rsvp.error_network")
+                            }
                             SupabaseError::NotFound => translations().t("rsvp.not_found"),
                             _ => translations().t("rsvp.error_generic"),
                         };

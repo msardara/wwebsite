@@ -5,7 +5,6 @@ use crate::types::{
     GuestInput, Location,
 };
 use leptos::*;
-use wasm_bindgen::JsCast;
 use web_sys::console;
 
 #[component]
@@ -282,26 +281,15 @@ pub fn GuestManagement() -> impl IntoView {
                                                                                     if let Ok(origin) = win.location().origin() {
                                                                                         let invitation_url = format!("{}/invitation?code={}", origin, code);
 
-                                                                                        // Use clipboard API via js_sys
-                                                                                        use wasm_bindgen::JsValue;
-                                                                                        let navigator = win.navigator();
+                                                                                        // Use web-sys Clipboard API
+                                                                                        let clipboard = win.navigator().clipboard();
+                                                                                        let _ = clipboard.write_text(&invitation_url);
 
-                                                                                        // Access clipboard through reflection
-                                                                                        if let Ok(clipboard) = js_sys::Reflect::get(&navigator, &JsValue::from_str("clipboard")) {
-                                                                                            if !clipboard.is_undefined() && !clipboard.is_null() {
-                                                                                                if let Ok(write_text_fn) = js_sys::Reflect::get(&clipboard, &JsValue::from_str("writeText")) {
-                                                                                                    if let Ok(func) = write_text_fn.dyn_into::<js_sys::Function>() {
-                                                                                                        let _ = func.call1(&clipboard, &JsValue::from_str(&invitation_url));
-
-                                                                                                        // Show visual feedback
-                                                                                                        set_copied.set(true);
-                                                                                                        set_timeout(move || {
-                                                                                                            set_copied.set(false);
-                                                                                                        }, std::time::Duration::from_secs(2));
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                        }
+                                                                                        // Show visual feedback
+                                                                                        set_copied.set(true);
+                                                                                        set_timeout(move || {
+                                                                                            set_copied.set(false);
+                                                                                        }, std::time::Duration::from_secs(2));
                                                                                     }
                                                                                 }
                                                                             }
