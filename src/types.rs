@@ -8,6 +8,45 @@ pub enum Location {
     Tunisia,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub enum AgeCategory {
+    #[default]
+    #[serde(rename = "adult")]
+    Adult,
+    #[serde(rename = "child_under_3")]
+    ChildUnder3,
+    #[serde(rename = "child_under_10")]
+    ChildUnder10,
+}
+
+impl AgeCategory {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AgeCategory::Adult => "adult",
+            AgeCategory::ChildUnder3 => "child_under_3",
+            AgeCategory::ChildUnder10 => "child_under_10",
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "adult" => Some(AgeCategory::Adult),
+            "child_under_3" => Some(AgeCategory::ChildUnder3),
+            "child_under_10" => Some(AgeCategory::ChildUnder10),
+            _ => None,
+        }
+    }
+
+    pub fn display_name(&self) -> &str {
+        match self {
+            AgeCategory::Adult => "Adult",
+            AgeCategory::ChildUnder3 => "Child (< 3 years)",
+            AgeCategory::ChildUnder10 => "Child (< 10 years)",
+        }
+    }
+}
+
 #[allow(dead_code)]
 impl Location {
     pub fn as_str(&self) -> &str {
@@ -89,6 +128,8 @@ pub struct Guest {
     pub name: String,
     pub attending_locations: Vec<String>,
     pub dietary_preferences: DietaryPreferences,
+    #[serde(default)]
+    pub age_category: AgeCategory,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -99,6 +140,8 @@ pub struct GuestInput {
     pub name: String,
     pub attending_locations: Vec<String>,
     pub dietary_preferences: DietaryPreferences,
+    #[serde(default)]
+    pub age_category: AgeCategory,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,6 +150,7 @@ pub struct GuestUpdate {
     pub name: Option<String>,
     pub attending_locations: Option<Vec<String>>,
     pub dietary_preferences: Option<DietaryPreferences>,
+    pub age_category: Option<AgeCategory>,
 }
 
 #[allow(dead_code)]

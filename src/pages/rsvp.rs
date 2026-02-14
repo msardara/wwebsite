@@ -224,6 +224,7 @@ fn RsvpManager(
             name: String::new(),
             attending_locations: selected_locs.clone(),
             dietary_preferences: DietaryPreferences::default(),
+            age_category: crate::types::AgeCategory::default(),
             created_at: None,
             updated_at: None,
         };
@@ -328,6 +329,7 @@ fn RsvpManager(
                             &guest.name,
                             &attending_locs,
                             &guest.dietary_preferences,
+                            &guest.age_category,
                         )
                         .await
                     {
@@ -349,6 +351,7 @@ fn RsvpManager(
                         &guest.name,
                         &attending_locs,
                         &guest.dietary_preferences,
+                        &guest.age_category,
                     )
                     .await
                 {
@@ -562,6 +565,7 @@ fn GuestCard(
     let (no_pork, set_no_pork) = create_signal(guest.dietary_preferences.no_pork);
     let (gluten_free, set_gluten_free) = create_signal(guest.dietary_preferences.gluten_free);
     let (other, set_other) = create_signal(guest.dietary_preferences.other.clone());
+    let (age_category, set_age_category) = create_signal(guest.age_category.clone());
 
     let save_changes = store_value({
         let guest_id = guest_id.clone();
@@ -587,6 +591,7 @@ fn GuestCard(
                     gluten_free: gluten_free.get(),
                     other: other.get(),
                 },
+                age_category: age_category.get(),
                 created_at: None,
                 updated_at: None,
             };
@@ -610,6 +615,7 @@ fn GuestCard(
                             &guest_name,
                             &attending_locs,
                             &dietary_prefs,
+                            &age_category.get(),
                         )
                         .await
                     {
@@ -717,6 +723,52 @@ fn GuestCard(
                         </div>
                     </div>
                 </Show>
+
+                // Age category selection
+                <div class="bg-white p-3 rounded border border-gray-200">
+                    <p class="text-xs font-semibold text-gray-700 mb-2">"Age Category:"</p>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                            <input
+                                type="radio"
+                                name={format!("age_category_{}", guest_id)}
+                                class="w-4 h-4 text-primary-600"
+                                prop:checked=move || age_category.get().as_str() == "adult"
+                                on:change=move |_| {
+                                    set_age_category.set(crate::types::AgeCategory::Adult);
+                                    save_changes.with_value(|f| f());
+                                }
+                            />
+                            <span class="text-sm font-medium text-gray-700">"Adult"</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                            <input
+                                type="radio"
+                                name={format!("age_category_{}", guest_id)}
+                                class="w-4 h-4 text-primary-600"
+                                prop:checked=move || age_category.get().as_str() == "child_under_3"
+                                on:change=move |_| {
+                                    set_age_category.set(crate::types::AgeCategory::ChildUnder3);
+                                    save_changes.with_value(|f| f());
+                                }
+                            />
+                            <span class="text-sm font-medium text-gray-700">"< 3 years"</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                            <input
+                                type="radio"
+                                name={format!("age_category_{}", guest_id)}
+                                class="w-4 h-4 text-primary-600"
+                                prop:checked=move || age_category.get().as_str() == "child_under_10"
+                                on:change=move |_| {
+                                    set_age_category.set(crate::types::AgeCategory::ChildUnder10);
+                                    save_changes.with_value(|f| f());
+                                }
+                            />
+                            <span class="text-sm font-medium text-gray-700">"< 10 years"</span>
+                        </label>
+                    </div>
+                </div>
 
                 <div class="pl-2">
                     <p class="text-xs font-semibold text-gray-600 mb-2">"Dietary Restrictions:"</p>

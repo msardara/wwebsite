@@ -42,6 +42,7 @@ CREATE TABLE guests (
   name TEXT NOT NULL,
   attending_locations TEXT[] NOT NULL DEFAULT '{}',
   dietary_preferences JSONB DEFAULT '{"vegetarian": false, "vegan": false, "halal": false, "no_pork": false, "gluten_free": false, "other": ""}'::jsonb,
+  age_category TEXT DEFAULT 'adult' CHECK (age_category IN ('adult', 'child_under_3', 'child_under_10')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT guests_name_not_empty CHECK (length(trim(name)) > 0)
@@ -50,6 +51,7 @@ CREATE TABLE guests (
 -- Indexes for guests table
 CREATE INDEX idx_guests_guest_group_id ON guests(guest_group_id);
 CREATE INDEX idx_guests_attending_locations ON guests USING GIN(attending_locations);
+CREATE INDEX idx_guests_age_category ON guests(age_category);
 
 
 
@@ -227,7 +229,8 @@ CREATE OR REPLACE FUNCTION create_guest_for_group(
   p_invitation_code TEXT,
   p_name TEXT,
   p_attending_locations TEXT[],
-  p_dietary_preferences JSONB
+  p_dietary_preferences JSONB,
+  p_age_category TEXT DEFAULT 'adult'
 )
 RETURNS guests
 LANGUAGE plpgsql
@@ -252,8 +255,8 @@ BEGIN
   END IF;
 
   -- Insert guest (no party size limit check)
-  INSERT INTO guests (guest_group_id, name, attending_locations, dietary_preferences)
-  VALUES (p_guest_group_id, p_name, p_attending_locations, p_dietary_preferences)
+  INSERT INTO guests (guest_group_id, name, attending_locations, dietary_preferences, age_category)
+  VALUES (p_guest_group_id, p_name, p_attending_locations, p_dietary_preferences, p_age_category)
   RETURNING * INTO v_guest;
 
   RETURN v_guest;
@@ -267,7 +270,8 @@ CREATE OR REPLACE FUNCTION update_guest_for_group(
   p_invitation_code TEXT,
   p_name TEXT,
   p_attending_locations TEXT[],
-  p_dietary_preferences JSONB
+  p_dietary_preferences JSONB,
+  p_age_category TEXT DEFAULT 'adult'
 )
 RETURNS guests
 LANGUAGE plpgsql
@@ -305,6 +309,7 @@ BEGIN
   SET name = p_name,
       attending_locations = p_attending_locations,
       dietary_preferences = p_dietary_preferences,
+      age_category = p_age_category,
       updated_at = NOW()
   WHERE id = p_guest_id
   RETURNING * INTO v_guest;
@@ -353,8 +358,8 @@ $$;
 
 -- Grant execute permissions on guest functions
 GRANT EXECUTE ON FUNCTION get_guests_for_group(UUID, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION create_guest_for_group(UUID, TEXT, TEXT, TEXT[], JSONB) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, TEXT, TEXT, TEXT[], JSONB) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION create_guest_for_group(UUID, TEXT, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, TEXT, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, TEXT) TO anon, authenticated;
 
 -- ============================================================================

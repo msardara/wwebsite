@@ -458,6 +458,7 @@ impl SupabaseRpcClient {
     }
 
     /// Create a new guest with invitation code validation (RPC)
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_guest_secure(
         &self,
         guest_group_id: &str,
@@ -465,6 +466,7 @@ impl SupabaseRpcClient {
         name: &str,
         attending_locations: &[String],
         dietary_preferences: &DietaryPreferences,
+        age_category: &crate::types::AgeCategory,
     ) -> SupabaseResult<Guest> {
         let params = serde_json::json!({
             "p_guest_group_id": guest_group_id,
@@ -472,7 +474,8 @@ impl SupabaseRpcClient {
             "p_name": name,
             "p_attending_locations": attending_locations,
             "p_dietary_preferences": serde_json::to_value(dietary_preferences)
-                .map_err(|e| SupabaseError::ParseError(e.to_string()))?
+                .map_err(|e| SupabaseError::ParseError(e.to_string()))?,
+            "p_age_category": age_category.as_str()
         });
 
         execute_rpc_with_logging(
@@ -485,6 +488,7 @@ impl SupabaseRpcClient {
     }
 
     /// Update a guest with invitation code validation (RPC)
+    #[allow(clippy::too_many_arguments)]
     pub async fn update_guest_secure(
         &self,
         guest_id: &str,
@@ -493,6 +497,7 @@ impl SupabaseRpcClient {
         name: &str,
         attending_locations: &[String],
         dietary_preferences: &DietaryPreferences,
+        age_category: &crate::types::AgeCategory,
     ) -> SupabaseResult<Guest> {
         let params = serde_json::json!({
             "p_guest_id": guest_id,
@@ -501,7 +506,8 @@ impl SupabaseRpcClient {
             "p_name": name,
             "p_attending_locations": attending_locations,
             "p_dietary_preferences": serde_json::to_value(dietary_preferences)
-                .map_err(|e| SupabaseError::ParseError(e.to_string()))?
+                .map_err(|e| SupabaseError::ParseError(e.to_string()))?,
+            "p_age_category": age_category.as_str()
         });
 
         execute_rpc_with_flexible_parsing(

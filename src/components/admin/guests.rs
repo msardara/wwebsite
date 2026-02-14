@@ -389,6 +389,7 @@ pub fn GuestManagement() -> impl IntoView {
 
                                                                                 let attending_locs = invitee.attending_locations.clone();
                                                                                 let has_attending = !attending_locs.is_empty();
+                                                                                let age_display = invitee.age_category.display_name().to_string();
 
                                                                                 view! {
                                                                                     <div class="bg-white rounded-lg border-2 border-secondary-200 p-4 hover:shadow-lg transition-all duration-200">
@@ -398,7 +399,12 @@ pub fn GuestManagement() -> impl IntoView {
                                                                                                 <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-secondary-500 to-secondary-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md">
                                                                                                     {invitee.name.chars().next().unwrap_or('?').to_uppercase().to_string()}
                                                                                                 </div>
-                                                                                                <p class="text-base font-bold text-gray-900">{invitee.name}</p>
+                                                                                                <div class="flex-1">
+                                                                                                    <p class="text-base font-bold text-gray-900">{invitee.name}</p>
+                                                                                                    <p class="text-xs text-gray-500">
+                                                                                                        {age_display}
+                                                                                                    </p>
+                                                                                                </div>
                                                                                             </div>
 
                                                                                             {/* Attending Locations */}
@@ -557,6 +563,7 @@ struct GuestRow {
     id: usize,
     first_name: String,
     last_name: String,
+    age_category: crate::types::AgeCategory,
 }
 
 impl GuestRow {
@@ -565,6 +572,7 @@ impl GuestRow {
             id,
             first_name: String::new(),
             last_name: String::new(),
+            age_category: crate::types::AgeCategory::default(),
         }
     }
 
@@ -674,6 +682,7 @@ fn GuestgroupModal(
                             id,
                             first_name: first,
                             last_name: last,
+                            age_category: guest.age_category.clone(),
                         });
                         max_id = id + 1;
                     }
@@ -708,6 +717,15 @@ fn GuestgroupModal(
         set_invitees.update(|list| {
             if let Some(invitee) = list.iter_mut().find(|i| i.id == id) {
                 invitee.last_name = value;
+            }
+        });
+    };
+
+    // Update invitee age category
+    let update_invitee_age_category = move |id: usize, age_cat: crate::types::AgeCategory| {
+        set_invitees.update(|list| {
+            if let Some(invitee) = list.iter_mut().find(|i| i.id == id) {
+                invitee.age_category = age_cat;
             }
         });
     };
@@ -787,6 +805,7 @@ fn GuestgroupModal(
                                 name: invitee_row.full_name(),
                                 attending_locations: vec![],
                                 dietary_preferences: DietaryPreferences::default(),
+                                age_category: invitee_row.age_category.clone(),
                             };
 
                             if let Err(e) = client.create_guest(&guest_input).await {
@@ -847,6 +866,7 @@ fn GuestgroupModal(
                                     name: invitee_row.full_name(),
                                     attending_locations: vec![],
                                     dietary_preferences: DietaryPreferences::default(),
+                                    age_category: invitee_row.age_category.clone(),
                                 };
 
                                 console::log_1(
@@ -1007,10 +1027,12 @@ fn GuestgroupModal(
                                         let invitee_id = invitee_row.id;
                                         let first_name_value = invitee_row.first_name.clone();
                                         let last_name_value = invitee_row.last_name.clone();
+                                        let age_cat = store_value(invitee_row.age_category.clone());
                                         let can_remove = invitees.get().len() > 1;
 
                                         view! {
-                                            <div class="flex items-center gap-2 bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-secondary-300 transition-colors shadow-sm">
+                                            <div class="bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-secondary-300 transition-colors shadow-sm">
+                                                <div class="flex items-center gap-2 mb-2">
                                                 <div class="flex-shrink-0 w-8 h-8 bg-secondary-100 text-secondary-700 rounded-full flex items-center justify-center font-bold text-xs">
                                                     {invitee_id + 1}
                                                 </div>
@@ -1032,7 +1054,7 @@ fn GuestgroupModal(
                                                         update_invitee_last_name(invitee_id, event_target_value(&ev));
                                                     }
                                                 />
-                                            {if can_remove {
+                                                {if can_remove {
                                                 view! {
                                                     <button
                                                         type="button"
@@ -1046,6 +1068,48 @@ fn GuestgroupModal(
                                             } else {
                                                 view! { <div class="w-8"></div> }.into_view()
                                             }}
+                                            </div>
+
+                                            {/* Age Category Selection */}
+                                            <div class="flex items-center gap-2 pl-10">
+                                                <span class="text-xs font-semibold text-gray-600 mr-2">"Age:"</span>
+                                                <label class="flex items-center gap-1 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name={format!("age_cat_{}", invitee_id)}
+                                                        class="w-3 h-3 text-secondary-600"
+                                                        prop:checked=move || age_cat.get_value().as_str() == "adult"
+                                                        on:change=move |_| {
+                                                            update_invitee_age_category(invitee_id, crate::types::AgeCategory::Adult);
+                                                        }
+                                                    />
+                                                    <span class="text-xs text-gray-700">"Adult"</span>
+                                                </label>
+                                                <label class="flex items-center gap-1 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name={format!("age_cat_{}", invitee_id)}
+                                                        class="w-3 h-3 text-secondary-600"
+                                                        prop:checked=move || age_cat.get_value().as_str() == "child_under_3"
+                                                        on:change=move |_| {
+                                                            update_invitee_age_category(invitee_id, crate::types::AgeCategory::ChildUnder3);
+                                                        }
+                                                    />
+                                                    <span class="text-xs text-gray-700">"< 3yo"</span>
+                                                </label>
+                                                <label class="flex items-center gap-1 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name={format!("age_cat_{}", invitee_id)}
+                                                        class="w-3 h-3 text-secondary-600"
+                                                        prop:checked=move || age_cat.get_value().as_str() == "child_under_10"
+                                                        on:change=move |_| {
+                                                            update_invitee_age_category(invitee_id, crate::types::AgeCategory::ChildUnder10);
+                                                        }
+                                                    />
+                                                    <span class="text-xs text-gray-700">"< 10yo"</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     }
                                 }
