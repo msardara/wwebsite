@@ -39,7 +39,7 @@ CREATE TABLE guests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   guest_group_id UUID NOT NULL REFERENCES guest_groups(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  dietary_preferences JSONB DEFAULT '{"vegetarian": false, "vegan": false, "gluten_free": false, "other": ""}'::jsonb,
+  dietary_preferences JSONB DEFAULT '{"vegetarian": false, "vegan": false, "halal": false, "no_pork": false, "gluten_free": false, "other": ""}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT guests_name_not_empty CHECK (length(trim(name)) > 0)

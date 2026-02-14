@@ -144,6 +144,21 @@ pub fn AdminDashboard() -> impl IntoView {
                                         count=s.vegan_count
                                     />
                                     <DietaryCard
+                                        icon="☪️"
+                                        label="Halal"
+                                        count=s.halal_count
+                                    />
+                                    <DietaryCard
+                                        icon="🚫🐷"
+                                        label="No Pork"
+                                        count=s.no_pork_count
+                                    />
+                                    <DietaryCard
+                                        icon="🌾"
+                                        label="Gluten-Free"
+                                        count=s.gluten_free_count
+                                    />
+                                    <DietaryCard
                                         icon="🍽️"
                                         label="Other Dietary"
                                         count=s.other_dietary_count

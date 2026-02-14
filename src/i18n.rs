@@ -117,6 +117,8 @@ impl Translations {
         map.insert("rsvp.dietary", "Dietary Restrictions");
         map.insert("rsvp.vegetarian", "Vegetarian");
         map.insert("rsvp.vegan", "Vegan");
+        map.insert("rsvp.halal", "Halal");
+        map.insert("rsvp.no_pork", "No Pork");
         map.insert("rsvp.other", "Other (Allergies, etc.)");
         map.insert(
             "rsvp.other_dietary",
@@ -325,6 +327,8 @@ impl Translations {
         map.insert("rsvp.dietary", "Restrictions alimentaires");
         map.insert("rsvp.vegetarian", "Végétarien");
         map.insert("rsvp.vegan", "Végétalien");
+        map.insert("rsvp.halal", "Halal");
+        map.insert("rsvp.no_pork", "Sans porc");
         map.insert("rsvp.other", "Autre (Allergies, etc.)");
         map.insert(
             "rsvp.other_dietary",
@@ -514,6 +518,8 @@ impl Translations {
         map.insert("rsvp.dietary", "Restrizioni dietetiche");
         map.insert("rsvp.vegetarian", "Vegetariano");
         map.insert("rsvp.vegan", "Vegano");
+        map.insert("rsvp.halal", "Halal");
+        map.insert("rsvp.no_pork", "Senza maiale");
         map.insert("rsvp.other", "Altro (Allergie, ecc.)");
         map.insert(
             "rsvp.other_dietary",

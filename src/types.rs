@@ -94,6 +94,8 @@ pub struct RsvpWithDietaryCounts {
     pub rsvp: Rsvp,
     pub dietary_vegetarian: i32,
     pub dietary_vegan: i32,
+    pub dietary_halal: i32,
+    pub dietary_no_pork: i32,
     pub dietary_gluten_free: i32,
     pub dietary_other: Vec<String>,
 }
@@ -107,15 +109,17 @@ pub struct RsvpInput {
     pub additional_notes: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct DietaryPreferences {
     pub vegetarian: bool,
     pub vegan: bool,
+    pub halal: bool,
+    pub no_pork: bool,
     pub gluten_free: bool,
     pub other: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Guest {
     pub id: String,
     pub guest_group_id: String,
@@ -191,6 +195,8 @@ pub struct AdminStats {
     pub both_locations_guests: i32,
     pub vegetarian_count: i32,
     pub vegan_count: i32,
+    pub halal_count: i32,
+    pub no_pork_count: i32,
     pub gluten_free_count: i32,
     pub other_dietary_count: i32,
     /// Total attending (same as total_confirmed)

@@ -1061,6 +1061,8 @@ impl SupabaseAdminClient {
 
             let mut vegetarian_count = 0;
             let mut vegan_count = 0;
+            let mut halal_count = 0;
+            let mut no_pork_count = 0;
             let mut gluten_free_count = 0;
             let mut other_list = Vec::new();
 
@@ -1070,6 +1072,12 @@ impl SupabaseAdminClient {
                 }
                 if guest.dietary_preferences.vegan {
                     vegan_count += 1;
+                }
+                if guest.dietary_preferences.halal {
+                    halal_count += 1;
+                }
+                if guest.dietary_preferences.no_pork {
+                    no_pork_count += 1;
                 }
                 if guest.dietary_preferences.gluten_free {
                     gluten_free_count += 1;
@@ -1083,6 +1091,8 @@ impl SupabaseAdminClient {
                 rsvp,
                 dietary_vegetarian: vegetarian_count,
                 dietary_vegan: vegan_count,
+                dietary_halal: halal_count,
+                dietary_no_pork: no_pork_count,
                 dietary_gluten_free: gluten_free_count,
                 dietary_other: other_list,
             });
@@ -1246,6 +1256,8 @@ impl SupabaseAdminClient {
         // Dietary restrictions - count from actual guests who RSVP'd attending
         let mut vegetarian_count = 0i32;
         let mut vegan_count = 0i32;
+        let mut halal_count = 0i32;
+        let mut no_pork_count = 0i32;
         let mut gluten_free_count = 0i32;
         let mut other_dietary_count = 0i32;
 
@@ -1259,6 +1271,12 @@ impl SupabaseAdminClient {
                             }
                             if guest.dietary_preferences.vegan {
                                 vegan_count += 1;
+                            }
+                            if guest.dietary_preferences.halal {
+                                halal_count += 1;
+                            }
+                            if guest.dietary_preferences.no_pork {
+                                no_pork_count += 1;
                             }
                             if guest.dietary_preferences.gluten_free {
                                 gluten_free_count += 1;
@@ -1290,6 +1308,8 @@ impl SupabaseAdminClient {
             both_locations_guests: pending_guest_group_invitations,
             vegetarian_count,
             vegan_count,
+            halal_count,
+            no_pork_count,
             gluten_free_count,
             other_dietary_count,
             total_attending,

@@ -372,6 +372,8 @@ pub fn GuestManagement() -> impl IntoView {
                                                                             {invitees_list.into_iter().map(|invitee| {
                                                                                 let has_dietary = invitee.dietary_preferences.vegetarian
                                                                                     || invitee.dietary_preferences.vegan
+                                                                                    || invitee.dietary_preferences.halal
+                                                                                    || invitee.dietary_preferences.no_pork
                                                                                     || invitee.dietary_preferences.gluten_free
                                                                                     || !invitee.dietary_preferences.other.is_empty();
 
@@ -391,6 +393,12 @@ pub fn GuestManagement() -> impl IntoView {
                                                                                                             })}
                                                                                                             {invitee.dietary_preferences.vegan.then(|| view! {
                                                                                                                 <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300">"🥬 Vegan"</span>
+                                                                                                            })}
+                                                                                                            {invitee.dietary_preferences.halal.then(|| view! {
+                                                                                                                <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full border border-purple-300">"☪️ Halal"</span>
+                                                                                                            })}
+                                                                                                            {invitee.dietary_preferences.no_pork.then(|| view! {
+                                                                                                                <span class="px-2 py-1 bg-pink-100 text-pink-800 text-xs font-semibold rounded-full border border-pink-300">"🚫🐷 No Pork"</span>
                                                                                                             })}
                                                                                                             {invitee.dietary_preferences.gluten_free.then(|| view! {
                                                                                                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full border border-yellow-300">"🌾 Gluten-Free"</span>

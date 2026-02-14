@@ -119,6 +119,16 @@ pub fn RsvpManagement() -> impl IntoView {
             .filter(|r| r.rsvp.attending)
             .map(|r| r.dietary_vegan)
             .sum();
+        let halal: i32 = filtered
+            .iter()
+            .filter(|r| r.rsvp.attending)
+            .map(|r| r.dietary_halal)
+            .sum();
+        let no_pork: i32 = filtered
+            .iter()
+            .filter(|r| r.rsvp.attending)
+            .map(|r| r.dietary_no_pork)
+            .sum();
         let gluten_free: i32 = filtered
             .iter()
             .filter(|r| r.rsvp.attending)
@@ -134,6 +144,8 @@ pub fn RsvpManagement() -> impl IntoView {
             guests_count,
             vegetarian,
             vegan,
+            halal,
+            no_pork,
             gluten_free,
             other_dietary,
         )
@@ -160,7 +172,7 @@ pub fn RsvpManagement() -> impl IntoView {
             })}
 
             {/* Summary Cards */}
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
                 <SummaryCard
                     icon="✅"
                     label="Attending"
@@ -186,15 +198,27 @@ pub fn RsvpManagement() -> impl IntoView {
                     color="purple"
                 />
                 <SummaryCard
+                    icon="☪️"
+                    label="Halal"
+                    value=move || totals().4
+                    color="indigo"
+                />
+                <SummaryCard
+                    icon="🚫🐷"
+                    label="No Pork"
+                    value=move || totals().5
+                    color="pink"
+                />
+                <SummaryCard
                     icon="🌾"
                     label="Gluten-Free"
-                    value=move || totals().4
+                    value=move || totals().6
                     color="amber"
                 />
                 <SummaryCard
                     icon="🍽️"
                     label="Other Dietary"
-                    value=move || totals().5
+                    value=move || totals().7
                     color="orange"
                 />
             </div>
@@ -405,6 +429,9 @@ fn SummaryCard(
         "blue" => "bg-blue-50",
         "yellow" => "bg-yellow-50",
         "purple" => "bg-purple-50",
+        "indigo" => "bg-indigo-50",
+        "pink" => "bg-pink-50",
+        "amber" => "bg-amber-50",
         "orange" => "bg-orange-50",
         _ => "bg-gray-50",
     };
@@ -414,6 +441,9 @@ fn SummaryCard(
         "blue" => "text-blue-600",
         "yellow" => "text-yellow-600",
         "purple" => "text-purple-600",
+        "indigo" => "text-indigo-600",
+        "pink" => "text-pink-600",
+        "amber" => "text-amber-600",
         "orange" => "text-orange-600",
         _ => "text-gray-600",
     };
@@ -444,6 +474,14 @@ fn format_dietary(rsvp: &RsvpWithDietaryCounts) -> String {
 
     if rsvp.dietary_vegan > 0 {
         parts.push(format!("🌱 {} vegan", rsvp.dietary_vegan));
+    }
+
+    if rsvp.dietary_halal > 0 {
+        parts.push(format!("☪️ {} halal", rsvp.dietary_halal));
+    }
+
+    if rsvp.dietary_no_pork > 0 {
+        parts.push(format!("🚫🐷 {} no pork", rsvp.dietary_no_pork));
     }
 
     if rsvp.dietary_gluten_free > 0 {
