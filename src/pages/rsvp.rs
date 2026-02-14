@@ -120,7 +120,16 @@ fn RsvpManager(
                 let mut guest_loc_map: HashMap<String, HashSet<String>> = HashMap::new();
                 for guest in &invitees_list {
                     let locs: HashSet<String> = guest.attending_locations.iter().cloned().collect();
-                    guest_loc_map.insert(guest.id.clone(), locs);
+                    // If guest has no locations, auto-select all available locations
+                    if locs.is_empty() {
+                        let mut auto_locs = HashSet::new();
+                        for loc in available_locations.get_untracked() {
+                            auto_locs.insert(loc.as_str().to_string());
+                        }
+                        guest_loc_map.insert(guest.id.clone(), auto_locs);
+                    } else {
+                        guest_loc_map.insert(guest.id.clone(), locs);
+                    }
                 }
 
                 set_guests.set(invitees_list.clone());
@@ -293,15 +302,31 @@ fn RsvpManager(
         spawn_local(async move {
             // Save all guests first (both temporary and existing)
             let mut id_mapping: HashMap<String, String> = HashMap::new();
+            let current_location_map = guest_location_map.get_untracked();
 
             for guest in all_guests.iter() {
+                // Get attending locations from the map
+                let attending_locs: Vec<String> = current_location_map
+                    .get(&guest.id)
+                    .map(|locs| locs.iter().cloned().collect())
+                    .unwrap_or_default();
+
+                // Debug log to verify locations are being saved
+                web_sys::console::log_1(
+                    &format!(
+                        "Saving guest '{}' with locations: {:?}",
+                        guest.name, attending_locs
+                    )
+                    .into(),
+                );
+
                 if guest.id.starts_with("temp_") {
                     match client
                         .create_guest_secure(
                             &guest.guest_group_id,
                             &inv_code,
                             &guest.name,
-                            &guest.attending_locations,
+                            &attending_locs,
                             &guest.dietary_preferences,
                         )
                         .await
@@ -322,7 +347,7 @@ fn RsvpManager(
                         &guest.guest_group_id,
                         &inv_code,
                         &guest.name,
-                        &guest.attending_locations,
+                        &attending_locs,
                         &guest.dietary_preferences,
                     )
                     .await
