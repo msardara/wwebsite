@@ -46,9 +46,6 @@ pub const TABLE_GUEST_GROUPS: &str = "guest_groups";
 /// Guests table name
 pub const TABLE_GUESTS: &str = "guests";
 
-/// RSVPs table name
-pub const TABLE_RSVPS: &str = "rsvps";
-
 /// Photos table name
 pub const TABLE_PHOTOS: &str = "photos";
 
@@ -105,9 +102,6 @@ pub const LOCATION_SARDINIA: &str = "sardinia";
 
 /// Tunisia location identifier
 pub const LOCATION_TUNISIA: &str = "tunisia";
-
-/// Both locations identifier
-pub const LOCATION_BOTH: &str = "both";
 
 // ============================================================================
 // Error Messages (English defaults)

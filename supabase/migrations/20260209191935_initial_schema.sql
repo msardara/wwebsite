@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Wedding Website - Initial Database Schema
 -- Created: 2026-02-10
--- Tables: guest_groups, guests, rsvps, content, photos, config
+-- Tables: guest_groups, guests, content, photos, config
 --
 -- Security Model:
 -- - Guest authentication required via invitation codes (frontend GuestContext)
@@ -22,15 +22,16 @@ CREATE TABLE guest_groups (
   email TEXT,
   invitation_code TEXT UNIQUE NOT NULL,
   party_size INTEGER NOT NULL DEFAULT 1 CHECK (party_size > 0),
-  location TEXT NOT NULL CHECK (location IN ('sardinia', 'tunisia', 'both')),
+  locations TEXT[] NOT NULL DEFAULT '{}',
   default_language TEXT NOT NULL DEFAULT 'en' CHECK (default_language IN ('en', 'fr', 'it')),
+  additional_notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Indexes for guest_groups table
 CREATE INDEX idx_guest_groups_invitation_code ON guest_groups(invitation_code);
-CREATE INDEX idx_guest_groups_location ON guest_groups(location);
+CREATE INDEX idx_guest_groups_locations ON guest_groups USING GIN(locations);
 CREATE INDEX idx_guest_groups_default_language ON guest_groups(default_language);
 
 -- Guests table
@@ -39,40 +40,25 @@ CREATE TABLE guests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   guest_group_id UUID NOT NULL REFERENCES guest_groups(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  attending_locations TEXT[] NOT NULL DEFAULT '{}',
   dietary_preferences JSONB DEFAULT '{"vegetarian": false, "vegan": false, "halal": false, "no_pork": false, "gluten_free": false, "other": ""}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT guests_name_not_empty CHECK (length(trim(name)) > 0)
 );
 
--- Index for fast lookups by guest group
+-- Indexes for guests table
 CREATE INDEX idx_guests_guest_group_id ON guests(guest_group_id);
+CREATE INDEX idx_guests_attending_locations ON guests USING GIN(attending_locations);
 
--- RSVPs table
--- Note: Dietary preferences are counted from the guests table, not stored here
-CREATE TABLE rsvps (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  guest_group_id UUID NOT NULL REFERENCES guest_groups(id) ON DELETE CASCADE,
-  location TEXT NOT NULL CHECK (location IN ('sardinia', 'tunisia')),
-  attending BOOLEAN NOT NULL,
-  number_of_guests INTEGER NOT NULL CHECK (number_of_guests >= 0),
-  additional_notes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  CONSTRAINT rsvps_guest_location_unique UNIQUE (guest_group_id, location)
-);
 
--- Indexes for rsvps table
-CREATE INDEX idx_rsvps_guest_group_id ON rsvps(guest_group_id);
-CREATE INDEX idx_rsvps_location ON rsvps(location);
-CREATE INDEX idx_rsvps_attending ON rsvps(attending);
 
 -- Content table (multilingual website content)
 CREATE TABLE content (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   key TEXT NOT NULL,
   language TEXT NOT NULL CHECK (language IN ('en', 'fr', 'it')),
-  location TEXT CHECK (location IN ('sardinia', 'tunisia', 'both')),
+  location TEXT,
   value TEXT NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT content_key_lang_loc_unique UNIQUE (key, language, location)
@@ -128,10 +114,7 @@ CREATE TRIGGER update_guests_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_rsvps_updated_at
-  BEFORE UPDATE ON rsvps
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+
 
 CREATE TRIGGER update_content_updated_at
   BEFORE UPDATE ON content
@@ -155,7 +138,7 @@ RETURNS TABLE (
   email TEXT,
   invitation_code TEXT,
   party_size INTEGER,
-  location TEXT,
+  locations TEXT[],
   default_language TEXT,
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE
@@ -172,7 +155,7 @@ BEGIN
     gg.email,
     gg.invitation_code,
     gg.party_size,
-    gg.location,
+    gg.locations,
     gg.default_language,
     gg.created_at,
     gg.updated_at
@@ -243,6 +226,7 @@ CREATE OR REPLACE FUNCTION create_guest_for_group(
   p_guest_group_id UUID,
   p_invitation_code TEXT,
   p_name TEXT,
+  p_attending_locations TEXT[],
   p_dietary_preferences JSONB
 )
 RETURNS guests
@@ -268,20 +252,21 @@ BEGIN
   END IF;
 
   -- Insert guest (no party size limit check)
-  INSERT INTO guests (guest_group_id, name, dietary_preferences)
-  VALUES (p_guest_group_id, p_name, p_dietary_preferences)
+  INSERT INTO guests (guest_group_id, name, attending_locations, dietary_preferences)
+  VALUES (p_guest_group_id, p_name, p_attending_locations, p_dietary_preferences)
   RETURNING * INTO v_guest;
 
   RETURN v_guest;
 END;
 $$;
 
--- Update a guest with invitation code validation
+-- Update guest with invitation code validation
 CREATE OR REPLACE FUNCTION update_guest_for_group(
   p_guest_id UUID,
   p_guest_group_id UUID,
   p_invitation_code TEXT,
   p_name TEXT,
+  p_attending_locations TEXT[],
   p_dietary_preferences JSONB
 )
 RETURNS guests
@@ -318,6 +303,7 @@ BEGIN
   -- Update guest
   UPDATE guests
   SET name = p_name,
+      attending_locations = p_attending_locations,
       dietary_preferences = p_dietary_preferences,
       updated_at = NOW()
   WHERE id = p_guest_id
@@ -367,8 +353,8 @@ $$;
 
 -- Grant execute permissions on guest functions
 GRANT EXECUTE ON FUNCTION get_guests_for_group(UUID, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION create_guest_for_group(UUID, TEXT, TEXT, JSONB) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, TEXT, TEXT, JSONB) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION create_guest_for_group(UUID, TEXT, TEXT, TEXT[], JSONB) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, TEXT, TEXT, TEXT[], JSONB) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, TEXT) TO anon, authenticated;
 
 -- ============================================================================
@@ -378,7 +364,6 @@ GRANT EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, TEXT) TO anon, auth
 -- Enable RLS on all tables
 ALTER TABLE guest_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE rsvps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config ENABLE ROW LEVEL SECURITY;
@@ -503,50 +488,59 @@ GRANT EXECUTE ON FUNCTION update_guest_group_party_size(UUID, TEXT, INTEGER) TO 
 
 -- Add a comment explaining the function
 COMMENT ON FUNCTION update_guest_group_party_size(UUID, TEXT, INTEGER) IS
-  'Securely updates party_size for a guest_group by validating the invitation code. This allows guests to increase their party size when RSVPing without compromising security.';
+  'Securely updates party_size for a guest_group by validating the invitation code.';
 
--- ============================================================================
--- RLS POLICIES - RSVPs Table
--- ============================================================================
-
--- Admins can view all RSVPs
-CREATE POLICY "rsvps_select_admin"
-  ON rsvps FOR SELECT
-  TO authenticated
-  USING (auth.role() = 'authenticated');
-
--- Admins can create RSVPs
-CREATE POLICY "rsvps_insert_admin"
-  ON rsvps FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.role() = 'authenticated');
-
--- Admins can update RSVPs
-CREATE POLICY "rsvps_update_admin"
-  ON rsvps FOR UPDATE
-  TO authenticated
-  USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
-
--- NOTE: Anonymous users access RSVPs through secure RPC functions below
--- Direct table access is blocked for security
-
--- Only admins can delete RSVPs
-CREATE POLICY "rsvps_delete_admin"
-  ON rsvps FOR DELETE
-  TO authenticated
-  USING (auth.role() = 'authenticated');
-
--- ============================================================================
--- SECURE RPC FUNCTIONS - RSVPs Table
--- ============================================================================
-
--- Get RSVPs for a specific guest group with invitation code validation
-CREATE OR REPLACE FUNCTION get_rsvps_for_group(
+-- Update additional_notes for a guest group with invitation code validation
+CREATE OR REPLACE FUNCTION update_guest_group_notes(
   p_guest_group_id UUID,
-  p_invitation_code TEXT
+  p_invitation_code TEXT,
+  p_additional_notes TEXT
 )
-RETURNS SETOF rsvps
+RETURNS guest_groups
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_guest_group guest_groups;
+BEGIN
+  -- Validate invitation code
+  IF NOT EXISTS (
+    SELECT 1 FROM guest_groups
+    WHERE id = p_guest_group_id
+    AND invitation_code = p_invitation_code
+  ) THEN
+    RAISE EXCEPTION 'Invalid guest group or invitation code';
+  END IF;
+
+  -- Update the additional_notes
+  UPDATE guest_groups
+  SET additional_notes = p_additional_notes,
+      updated_at = NOW()
+  WHERE id = p_guest_group_id
+  RETURNING * INTO v_guest_group;
+
+  RETURN v_guest_group;
+END;
+$$;
+
+-- Grant EXECUTE permission to anon and authenticated roles
+GRANT EXECUTE ON FUNCTION update_guest_group_notes(UUID, TEXT, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION update_guest_group_notes(UUID, TEXT, TEXT) TO authenticated;
+
+-- ============================================================================
+-- GUEST LOCATION ATTENDANCE FUNCTIONS
+-- ============================================================================
+
+-- Set guest attendance for a location (with invitation code validation)
+CREATE OR REPLACE FUNCTION set_guest_location_attendance(
+  p_guest_id UUID,
+  p_guest_group_id UUID,
+  p_invitation_code TEXT,
+  p_location TEXT,
+  p_attending BOOLEAN
+)
+RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -561,27 +555,50 @@ BEGIN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
-  -- Return RSVPs only for validated group
-  RETURN QUERY
-  SELECT * FROM rsvps
-  WHERE guest_group_id = p_guest_group_id
-  ORDER BY location;
+  -- Validate guest belongs to the group
+  IF NOT EXISTS (
+    SELECT 1 FROM guests
+    WHERE id = p_guest_id
+    AND guest_group_id = p_guest_group_id
+  ) THEN
+    RAISE EXCEPTION 'Guest does not belong to this group';
+  END IF;
+
+  -- Validate location
+  IF p_location NOT IN ('sardinia', 'tunisia') THEN
+    RAISE EXCEPTION 'Invalid location. Must be sardinia or tunisia';
+  END IF;
+
+  IF p_attending THEN
+    -- Add location to array if not already present
+    UPDATE guests
+    SET attending_locations = array_append(attending_locations, p_location)
+    WHERE id = p_guest_id
+    AND NOT (p_location = ANY(attending_locations));
+  ELSE
+    -- Remove location from array
+    UPDATE guests
+    SET attending_locations = array_remove(attending_locations, p_location)
+    WHERE id = p_guest_id;
+  END IF;
 END;
 $$;
 
--- Get a specific RSVP by guest group and location with validation
-CREATE OR REPLACE FUNCTION get_rsvp_by_location(
+-- Get attending guests for a location (with invitation code validation)
+CREATE OR REPLACE FUNCTION get_attending_guests_for_location(
   p_guest_group_id UUID,
   p_invitation_code TEXT,
   p_location TEXT
 )
-RETURNS rsvps
+RETURNS TABLE (
+  guest_id UUID,
+  guest_name TEXT,
+  dietary_preferences JSONB
+)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_rsvp rsvps;
 BEGIN
   -- Validate invitation code
   IF NOT EXISTS (
@@ -597,41 +614,37 @@ BEGIN
     RAISE EXCEPTION 'Invalid location. Must be sardinia or tunisia';
   END IF;
 
-  -- Get RSVP
-  SELECT * INTO v_rsvp
-  FROM rsvps
-  WHERE guest_group_id = p_guest_group_id
-  AND location = p_location;
-
-  RETURN v_rsvp;
+  RETURN QUERY
+  SELECT 
+    g.id as guest_id,
+    g.name as guest_name,
+    g.dietary_preferences
+  FROM guests g
+  WHERE g.guest_group_id = p_guest_group_id
+  AND p_location = ANY(g.attending_locations)
+  ORDER BY g.name;
 END;
 $$;
 
--- Create or update RSVP for a guest group with invitation code validation
-CREATE OR REPLACE FUNCTION upsert_rsvp_for_group(
+-- Bulk update guest attendance for a location (with invitation code validation)
+CREATE OR REPLACE FUNCTION bulk_update_guest_location_attendance(
   p_guest_group_id UUID,
   p_invitation_code TEXT,
   p_location TEXT,
-  p_attending BOOLEAN,
-  p_number_of_guests INTEGER,
-  p_additional_notes TEXT
+  p_guest_ids UUID[]
 )
-RETURNS rsvps
+RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_rsvp rsvps;
-  v_party_size INTEGER;
 BEGIN
-  -- Validate invitation code and get party size
-  SELECT party_size INTO v_party_size
-  FROM guest_groups
-  WHERE id = p_guest_group_id
-  AND invitation_code = p_invitation_code;
-
-  IF NOT FOUND THEN
+  -- Validate invitation code
+  IF NOT EXISTS (
+    SELECT 1 FROM guest_groups
+    WHERE id = p_guest_group_id
+    AND invitation_code = p_invitation_code
+  ) THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
@@ -640,46 +653,23 @@ BEGIN
     RAISE EXCEPTION 'Invalid location. Must be sardinia or tunisia';
   END IF;
 
-  -- Validate number_of_guests
-  IF p_number_of_guests < 0 THEN
-    RAISE EXCEPTION 'Number of guests cannot be negative';
-  END IF;
+  -- Remove location from all guests in this group
+  UPDATE guests
+  SET attending_locations = array_remove(attending_locations, p_location)
+  WHERE guest_group_id = p_guest_group_id;
 
-  IF p_number_of_guests > v_party_size THEN
-    RAISE EXCEPTION 'Number of guests (%) exceeds party size (%)', p_number_of_guests, v_party_size;
-  END IF;
-
-  -- Upsert RSVP (dietary preferences are tracked per guest, not in RSVP)
-  INSERT INTO rsvps (
-    guest_group_id,
-    location,
-    attending,
-    number_of_guests,
-    additional_notes
-  )
-  VALUES (
-    p_guest_group_id,
-    p_location,
-    p_attending,
-    p_number_of_guests,
-    p_additional_notes
-  )
-  ON CONFLICT (guest_group_id, location)
-  DO UPDATE SET
-    attending = EXCLUDED.attending,
-    number_of_guests = EXCLUDED.number_of_guests,
-    additional_notes = EXCLUDED.additional_notes,
-    updated_at = NOW()
-  RETURNING * INTO v_rsvp;
-
-  RETURN v_rsvp;
+  -- Add location to specified guests
+  UPDATE guests
+  SET attending_locations = array_append(attending_locations, p_location)
+  WHERE id = ANY(p_guest_ids)
+  AND NOT (p_location = ANY(attending_locations));
 END;
 $$;
 
--- Grant execute permissions on RSVP functions
-GRANT EXECUTE ON FUNCTION get_rsvps_for_group(UUID, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION get_rsvp_by_location(UUID, TEXT, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION upsert_rsvp_for_group(UUID, TEXT, TEXT, BOOLEAN, INTEGER, TEXT) TO anon, authenticated;
+-- Grant execute permissions on guest location attendance functions
+GRANT EXECUTE ON FUNCTION set_guest_location_attendance(UUID, UUID, TEXT, TEXT, BOOLEAN) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_attending_guests_for_location(UUID, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION bulk_update_guest_location_attendance(UUID, TEXT, TEXT, UUID[]) TO anon, authenticated;
 
 -- ============================================================================
 -- RLS POLICIES - Content Table
@@ -734,31 +724,7 @@ CREATE POLICY "config_all_admin"
 -- VIEWS - Statistics and Reports
 -- ============================================================================
 
--- RSVP statistics view
-CREATE VIEW rsvp_stats
-WITH (security_invoker = true)
-AS
-SELECT
-  COUNT(*) FILTER (WHERE r.attending = true) as confirmed_count,
-  COUNT(*) as total_rsvps,
-  COUNT(g.id) FILTER (WHERE r.attending = true AND g.dietary_preferences->>'vegetarian' = 'true') as vegetarian_count,
-  COUNT(g.id) FILTER (WHERE r.attending = true AND g.dietary_preferences->>'vegan' = 'true') as vegan_count,
-  SUM(r.number_of_guests) FILTER (WHERE r.attending = true) as total_attending_guests,
-  COUNT(*) FILTER (WHERE r.location = 'sardinia' AND r.attending = true) as sardinia_attending,
-  COUNT(*) FILTER (WHERE r.location = 'tunisia' AND r.attending = true) as tunisia_attending
-FROM guest_groups gg
-LEFT JOIN rsvps r ON gg.id = r.guest_group_id
-LEFT JOIN guests g ON gg.id = g.guest_group_id;
 
--- Pending RSVPs view (guest groups without responses)
-CREATE VIEW pending_rsvps
-WITH (security_invoker = true)
-AS
-SELECT gg.*
-FROM guest_groups gg
-WHERE NOT EXISTS (
-  SELECT 1 FROM rsvps r WHERE r.guest_group_id = gg.id
-);
 
 -- ============================================================================
 -- SEED DATA - Configuration
@@ -769,7 +735,6 @@ INSERT INTO config (key, value) VALUES
   ('wedding_date_tunisia', '2026-06-27'),
   ('venue_address_sardinia', 'Costa Smeralda, Sardinia, Italy'),
   ('venue_address_tunisia', 'Tunis, Tunisia'),
-  ('rsvp_enabled', 'true'),
   ('default_language', 'en');
 
 -- ============================================================================
@@ -827,8 +792,7 @@ BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '📊 Tables Created:';
   RAISE NOTICE '  • guest_groups (invitation groups/households)';
-  RAISE NOTICE '  • guests (individual invitees)';
-  RAISE NOTICE '  • rsvps (with per-location responses)';
+  RAISE NOTICE '  • guests (individual invitees with location attendance)';
   RAISE NOTICE '  • content (multilingual: EN/FR/IT)';
   RAISE NOTICE '  • photos (gallery management)';
   RAISE NOTICE '  • config (site configuration)';

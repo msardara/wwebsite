@@ -2,7 +2,7 @@ use crate::contexts::AdminContext;
 use crate::styles::*;
 use crate::types::{
     DietaryPreferences, Guest, GuestGroup, GuestGroupInput, GuestGroupUpdate, GuestGroupWithCount,
-    GuestInput, Location,
+    GuestInput,
 };
 use leptos::*;
 use web_sys::console;
@@ -70,7 +70,7 @@ pub fn GuestManagement() -> impl IntoView {
 
                 let matches_location = loc_filter
                     .as_ref()
-                    .is_none_or(|loc| guest.location.as_str() == loc);
+                    .is_none_or(|loc| guest.locations.join(", ") == *loc);
 
                 matches_search && matches_location
             })
@@ -192,7 +192,7 @@ pub fn GuestManagement() -> impl IntoView {
                         view! {
                             <div class="space-y-4">
                                 {guests_list.into_iter().map(|guest_with_count| {
-                                    let guest = &guest_with_count.guest_group;
+                                    let guest = guest_with_count.guest_group.clone();
                                     let guest_count = guest_with_count.guest_count;
                                     let guest_id = guest.id.clone();
                                     let guest_id_for_expand = guest.id.clone();
@@ -323,18 +323,8 @@ pub fn GuestManagement() -> impl IntoView {
                                                             {/* Location */}
                                                             <div class="flex-1">
                                                                 <div class="text-sm font-extrabold text-gray-900 uppercase mb-2">"LOCATION"</div>
-                                                                <div class={format!("px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg inline-block border-2 border-gray-300 {}",
-                                                                    match guest.location {
-                                                                        Location::Sardinia => "bg-blue-600",
-                                                                        Location::Tunisia => "bg-green-600",
-                                                                        Location::Both => "bg-purple-600",
-                                                                    }
-                                                                )}>
-                                                                    {match guest.location {
-                                                                        Location::Sardinia => view! { <><img src="/public/sardinia-flag.png" alt="Sardinia" class="inline w-5 h-4 mr-1 object-cover rounded shadow-sm border border-gray-300"/> "Sardinia"</> }.into_view(),
-                                                                        Location::Tunisia => view! { <><img src="/public/tunisia-flag.png" alt="Tunisia" class="inline w-5 h-4 mr-1 object-cover rounded shadow-sm border border-gray-300"/> "Tunisia"</> }.into_view(),
-                                                                        Location::Both => view! { "✈️ Both" }.into_view(),
-                                                                    }}
+                                                                <div class="px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg inline-block border-2 border-gray-300">
+                                                                    {guest.locations.join(", ")}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -344,11 +334,31 @@ pub fn GuestManagement() -> impl IntoView {
 
                                             {/* Expanded Guest List */}
                                             {move || if expanded_guest.get().as_ref() == Some(&guest_id_for_expand2) {
+                                                let guest_notes = guest.additional_notes.clone();
                                                 view! {
                                                     <div class="bg-gradient-to-br from-secondary-50 to-secondary-100 border-t-2 border-secondary-200 p-6">
+                                                        {/* Additional Notes Section */}
+                                                        {guest_notes.as_ref().and_then(|notes| {
+                                                            if !notes.trim().is_empty() {
+                                                                Some(view! {
+                                                                    <div class="bg-amber-50 rounded-xl shadow-lg p-5 mb-6 border-2 border-amber-200">
+                                                                        <div class="flex items-start gap-3">
+                                                                            <span class="flex-shrink-0 text-2xl">"📝"</span>
+                                                                            <div class="flex-1">
+                                                                                <h5 class="text-sm font-bold text-amber-900 uppercase tracking-wide mb-2">"Additional Notes"</h5>
+                                                                                <p class="text-sm text-amber-900 whitespace-pre-wrap leading-relaxed">{notes.clone()}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                })
+                                                            } else {
+                                                                None
+                                                            }
+                                                        })}
+
                                                         <div class="bg-white rounded-xl shadow-lg p-6 border-2 border-secondary-200">
                                                             <h4 class="text-lg font-bold text-secondary-800 mb-5 flex items-center gap-3 pb-4 border-b-2 border-secondary-200">
-                                                                // <span class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-secondary-500 to-secondary-700 rounded-full text-white text-xl shadow-md">"👥"</span>
+                                                                <span class="text-2xl">"👥"</span>
                                                                 <span>"Guest List"</span>
                                                             </h4>
                                                             {move || if loading_invitees.get() {
@@ -377,17 +387,53 @@ pub fn GuestManagement() -> impl IntoView {
                                                                                     || invitee.dietary_preferences.gluten_free
                                                                                     || !invitee.dietary_preferences.other.is_empty();
 
+                                                                                let attending_locs = invitee.attending_locations.clone();
+                                                                                let has_attending = !attending_locs.is_empty();
+
                                                                                 view! {
                                                                                     <div class="bg-white rounded-lg border-2 border-secondary-200 p-4 hover:shadow-lg transition-all duration-200">
-                                                                                        <div class="flex items-start gap-3">
-                                                                                            // <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-secondary-500 to-secondary-700 text-white rounded-full flex items-center justify-center font-bold text-base shadow-md">
-                                                                                            //     {invitee.name.chars().next().unwrap_or('?').to_uppercase().to_string()}
-                                                                                            // </div>
-                                                                                            <div class="flex-1 min-w-0">
-                                                                                                <p class="gap-8 text-base font-bold text-gray-900 mb-2">{invitee.name}</p>
+                                                                                        <div class="flex flex-col gap-3">
+                                                                                            {/* Guest Name */}
+                                                                                            <div class="flex items-center gap-2">
+                                                                                                <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-secondary-500 to-secondary-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md">
+                                                                                                    {invitee.name.chars().next().unwrap_or('?').to_uppercase().to_string()}
+                                                                                                </div>
+                                                                                                <p class="text-base font-bold text-gray-900">{invitee.name}</p>
+                                                                                            </div>
+
+                                                                                            {/* Attending Locations */}
+                                                                                            <div class="border-t border-gray-100 pt-2">
+                                                                                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">"Attending"</p>
+                                                                                                {if has_attending {
+                                                                                                    view! {
+                                                                                                        <div class="flex flex-wrap gap-1.5">
+                                                                                                            {attending_locs.iter().map(|loc| {
+                                                                                                                let (icon, color) = match loc.as_str() {
+                                                                                                                    "sardinia" => ("🇮🇹", "bg-blue-100 text-blue-800 border-blue-300"),
+                                                                                                                    "tunisia" => ("🇹🇳", "bg-red-100 text-red-800 border-red-300"),
+                                                                                                                    _ => ("📍", "bg-gray-100 text-gray-800 border-gray-300"),
+                                                                                                                };
+                                                                                                                view! {
+                                                                                                                    <span class={format!("px-2 py-1 text-xs font-semibold rounded-full border {}", color)}>
+                                                                                                                        {format!("{} {}", icon, loc)}
+                                                                                                                    </span>
+                                                                                                                }
+                                                                                                            }).collect::<Vec<_>>()}
+                                                                                                        </div>
+                                                                                                    }.into_view()
+                                                                                                } else {
+                                                                                                    view! {
+                                                                                                        <p class="text-xs text-gray-400 italic">"Not confirmed yet"</p>
+                                                                                                    }.into_view()
+                                                                                                }}
+                                                                                            </div>
+
+                                                                                            {/* Dietary Preferences */}
+                                                                                            <div class="border-t border-gray-100 pt-2">
+                                                                                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">"Dietary Preferences"</p>
                                                                                                 {if has_dietary {
                                                                                                     view! {
-                                                                                                        <div class="flex flex-wrap gap-2">
+                                                                                                        <div class="flex flex-wrap gap-1.5">
                                                                                                             {invitee.dietary_preferences.vegetarian.then(|| view! {
                                                                                                                 <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300">"🌱 Vegetarian"</span>
                                                                                                             })}
@@ -404,13 +450,13 @@ pub fn GuestManagement() -> impl IntoView {
                                                                                                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full border border-yellow-300">"🌾 Gluten-Free"</span>
                                                                                                             })}
                                                                                                             {(!invitee.dietary_preferences.other.is_empty()).then(|| view! {
-                                                                                                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full border border-blue-300">{invitee.dietary_preferences.other.clone()}</span>
+                                                                                                                <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full border border-orange-300">{format!("ℹ️ {}", invitee.dietary_preferences.other.clone())}</span>
                                                                                                             })}
                                                                                                         </div>
                                                                                                     }.into_view()
                                                                                                 } else {
                                                                                                     view! {
-                                                                                                        <p class="text-xs text-gray-400 italic">"No dietary preferences"</p>
+                                                                                                        <p class="text-xs text-gray-400 italic">"None specified"</p>
                                                                                                     }.into_view()
                                                                                                 }}
                                                                                             </div>
@@ -551,25 +597,37 @@ fn GuestgroupModal(
             .map_or_else(generate_invitation_code, |g| g.invitation_code.clone()),
     );
     let (_party_size, _set_party_size) = create_signal(guest.as_ref().map_or(1, |g| g.party_size));
-    let (location, set_location) = create_signal(
-        guest
-            .as_ref()
-            .map_or("sardinia".to_string(), |g| g.location.as_str().to_string()),
-    );
+    // Parse initial location(s) from Vec<String>
+    let initial_locations = guest
+        .as_ref()
+        .map(|g| g.locations.clone())
+        .unwrap_or_else(|| vec!["sardinia".to_string()]);
 
-    let location_select_ref = create_node_ref::<html::Select>();
+    let (sardinia_selected, set_sardinia_selected) =
+        create_signal(initial_locations.contains(&"sardinia".to_string()));
+    let (tunisia_selected, set_tunisia_selected) =
+        create_signal(initial_locations.contains(&"tunisia".to_string()));
 
-    // Set the select value after the element is mounted
-    create_effect(move |_| {
-        if let Some(select_el) = location_select_ref.get() {
-            select_el.set_value(&location.get());
-        }
-    });
     let (default_language, set_default_language) = create_signal(
         guest
             .as_ref()
             .map_or("en".to_string(), |g| g.default_language.clone()),
     );
+
+    // Compute locations array from checkboxes
+    let get_locations_value = move || -> Vec<String> {
+        let mut locs = Vec::new();
+        if sardinia_selected.get() {
+            locs.push("sardinia".to_string());
+        }
+        if tunisia_selected.get() {
+            locs.push("tunisia".to_string());
+        }
+        if locs.is_empty() {
+            locs.push("sardinia".to_string()); // Default
+        }
+        locs
+    };
 
     let language_select_ref = create_node_ref::<html::Select>();
 
@@ -699,8 +757,9 @@ fn GuestgroupModal(
                             Some(email.get())
                         },
                         party_size: Some(actual_party_size),
-                        location: Some(location.get()),
+                        locations: Some(get_locations_value()),
                         default_language: Some(default_language.get()),
+                        additional_notes: None,
                     };
 
                     // Update guest group
@@ -726,6 +785,7 @@ fn GuestgroupModal(
                             let guest_input = GuestInput {
                                 guest_group_id: id.clone(),
                                 name: invitee_row.full_name(),
+                                attending_locations: vec![],
                                 dietary_preferences: DietaryPreferences::default(),
                             };
 
@@ -765,8 +825,9 @@ fn GuestgroupModal(
                         },
                         invitation_code: invitation_code.get(),
                         party_size: actual_party_size,
-                        location: location.get(),
+                        locations: get_locations_value(),
                         default_language: default_language.get(),
+                        additional_notes: None,
                     };
 
                     // Create the guest group
@@ -784,6 +845,7 @@ fn GuestgroupModal(
                                 let guest_input = GuestInput {
                                     guest_group_id: created_group.id.clone(),
                                     name: invitee_row.full_name(),
+                                    attending_locations: vec![],
                                     dietary_preferences: DietaryPreferences::default(),
                                 };
 
@@ -1002,19 +1064,30 @@ fn GuestgroupModal(
                         </div>
 
                         <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                "Wedding Location" <span class="text-red-500">"*"</span>
+                            <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                "Wedding Location(s)" <span class="text-red-500">"*"</span>
                             </label>
-                            <select
-                                node_ref=location_select_ref
-                                required
-                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 font-semibold text-base bg-white"
-                                on:change=move |ev| set_location.set(event_target_value(&ev))
-                            >
-                                <option value="sardinia">"🏖️ Sardinia"</option>
-                                <option value="tunisia">"🌴 Tunisia"</option>
-                                <option value="both">"✈️ Both Locations"</option>
-                            </select>
+                            <p class="text-xs text-gray-600 mb-3">"Select which location(s) this group is invited to:"</p>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 hover:border-secondary-500 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        class="w-5 h-5 text-secondary-600 rounded focus:ring-2 focus:ring-secondary-500"
+                                        prop:checked=move || sardinia_selected.get()
+                                        on:change=move |ev| set_sardinia_selected.set(event_target_checked(&ev))
+                                    />
+                                    <span class="font-semibold text-gray-800">"🏖️ Sardinia"</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 hover:border-secondary-500 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        class="w-5 h-5 text-secondary-600 rounded focus:ring-2 focus:ring-secondary-500"
+                                        prop:checked=move || tunisia_selected.get()
+                                        on:change=move |ev| set_tunisia_selected.set(event_target_checked(&ev))
+                                    />
+                                    <span class="font-semibold text-gray-800">"🌴 Tunisia"</span>
+                                </label>
+                            </div>
                         </div>
 
                         <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">

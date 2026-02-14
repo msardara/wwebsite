@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 pub enum Location {
     Sardinia,
     Tunisia,
-    Both,
 }
 
 #[allow(dead_code)]
@@ -15,7 +14,6 @@ impl Location {
         match self {
             Location::Sardinia => "sardinia",
             Location::Tunisia => "tunisia",
-            Location::Both => "both",
         }
     }
 
@@ -23,17 +21,12 @@ impl Location {
         match s.to_lowercase().as_str() {
             "sardinia" => Some(Location::Sardinia),
             "tunisia" => Some(Location::Tunisia),
-            "both" => Some(Location::Both),
             _ => None,
         }
     }
 
     pub fn includes(&self, other: &Location) -> bool {
-        match (self, other) {
-            (Location::Both, _) => true,
-            (a, b) if a == b => true,
-            _ => false,
-        }
+        self == other
     }
 }
 
@@ -44,8 +37,9 @@ pub struct GuestGroup {
     pub email: Option<String>,
     pub invitation_code: String,
     pub party_size: i32,
-    pub location: Location,
+    pub locations: Vec<String>,
     pub default_language: String,
+    pub additional_notes: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -63,8 +57,9 @@ pub struct GuestGroupInput {
     pub email: Option<String>,
     pub invitation_code: String,
     pub party_size: i32,
-    pub location: String,
+    pub locations: Vec<String>,
     pub default_language: String,
+    pub additional_notes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,40 +67,8 @@ pub struct GuestGroupUpdate {
     pub name: Option<String>,
     pub email: Option<String>,
     pub party_size: Option<i32>,
-    pub location: Option<String>,
+    pub locations: Option<Vec<String>>,
     pub default_language: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Rsvp {
-    pub id: String,
-    pub guest_group_id: String,
-    pub location: String, // 'sardinia' or 'tunisia'
-    pub attending: bool,
-    pub number_of_guests: i32,
-    pub additional_notes: Option<String>,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RsvpWithDietaryCounts {
-    #[serde(flatten)]
-    pub rsvp: Rsvp,
-    pub dietary_vegetarian: i32,
-    pub dietary_vegan: i32,
-    pub dietary_halal: i32,
-    pub dietary_no_pork: i32,
-    pub dietary_gluten_free: i32,
-    pub dietary_other: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RsvpInput {
-    pub guest_group_id: String,
-    pub location: String, // 'sardinia' or 'tunisia'
-    pub attending: bool,
-    pub number_of_guests: i32,
     pub additional_notes: Option<String>,
 }
 
@@ -124,6 +87,7 @@ pub struct Guest {
     pub id: String,
     pub guest_group_id: String,
     pub name: String,
+    pub attending_locations: Vec<String>,
     pub dietary_preferences: DietaryPreferences,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
@@ -133,6 +97,7 @@ pub struct Guest {
 pub struct GuestInput {
     pub guest_group_id: String,
     pub name: String,
+    pub attending_locations: Vec<String>,
     pub dietary_preferences: DietaryPreferences,
 }
 
@@ -140,6 +105,7 @@ pub struct GuestInput {
 #[allow(dead_code)]
 pub struct GuestUpdate {
     pub name: Option<String>,
+    pub attending_locations: Option<Vec<String>>,
     pub dietary_preferences: Option<DietaryPreferences>,
 }
 
@@ -183,15 +149,15 @@ pub struct Config {
 pub struct AdminStats {
     /// Total number of invited guests (count of actual guests in the guests table)
     pub total_guests: i32,
-    /// Total number of guests who confirmed attendance (sum of number_of_guests from attending RSVPs)
+    /// Total number of guests who confirmed attendance (guests with location selections)
     pub total_confirmed: i32,
-    /// Total number of pending guests (count of guests from groups that haven't RSVP'd)
+    /// Total number of pending guests (guests with no location selections)
     pub pending_rsvps: i32,
-    /// Total guests invited to Sardinia (count from guests table, includes guests attending Both locations)
+    /// Total guests attending Sardinia
     pub sardinia_guests: i32,
-    /// Total guests invited to Tunisia (count from guests table, includes guests attending Both locations)
+    /// Total guests attending Tunisia
     pub tunisia_guests: i32,
-    /// Total number of pending guest group invitations (groups that haven't RSVP'd)
+    /// Total guests invited to both locations
     pub both_locations_guests: i32,
     pub vegetarian_count: i32,
     pub vegan_count: i32,
@@ -199,8 +165,6 @@ pub struct AdminStats {
     pub no_pork_count: i32,
     pub gluten_free_count: i32,
     pub other_dietary_count: i32,
-    /// Total attending (same as total_confirmed)
-    pub total_attending: i32,
 }
 
 #[allow(dead_code)]

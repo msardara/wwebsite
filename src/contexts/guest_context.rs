@@ -1,5 +1,5 @@
 use crate::constants::{AUTHENTICATED_GUEST_KEY, LANGUAGE_KEY};
-use crate::types::{GuestGroup, Language, Location};
+use crate::types::{GuestGroup, Language};
 use gloo_storage::{LocalStorage, Storage};
 use leptos::*;
 
@@ -57,20 +57,19 @@ impl GuestContext {
         self.guest.get().is_some()
     }
 
-    /// Get the current guest's location
+    /// Get the current guest's locations
     #[allow(dead_code)]
-    pub fn get_location(&self) -> Option<Location> {
-        self.guest.get().map(|g| g.location)
+    pub fn get_locations(&self) -> Option<Vec<String>> {
+        self.guest.get().map(|g| g.locations)
     }
 
     /// Check if the guest can see content for a specific location
     pub fn can_see_location(&self, location: &str) -> bool {
         match self.guest.get() {
-            Some(guest) => match guest.location {
-                Location::Both => true,
-                Location::Sardinia => location.eq_ignore_ascii_case("sardinia"),
-                Location::Tunisia => location.eq_ignore_ascii_case("tunisia"),
-            },
+            Some(guest) => guest
+                .locations
+                .iter()
+                .any(|loc| loc.eq_ignore_ascii_case(location)),
             None => false, // No guest authenticated, can't see any location
         }
     }

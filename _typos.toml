@@ -69,6 +69,7 @@ extend-ignore-re = [
 "verificato" = "verificato"        # Italian for "verified"
 "entrambi" = "entrambi"            # Italian for "both"
 "alle" = "alle"                    # Italian for "at/at the" (preposition + article)
+"preferenze" = "preferenze"        # Italian for "preferences" (plural)
 
 # Rust/Technical identifiers
 "msardara" = "msardara"

@@ -115,6 +115,8 @@ impl Translations {
         map.insert("rsvp.no", "No");
         map.insert("rsvp.guests", "Number of Guests");
         map.insert("rsvp.dietary", "Dietary Restrictions");
+        map.insert("rsvp.guest_list_title", "Guest List & Dietary Preferences");
+        map.insert("rsvp.guest_list_description", "Manage your guest list and dietary restrictions here. You can then select which guests attend each location below.");
         map.insert("rsvp.vegetarian", "Vegetarian");
         map.insert("rsvp.vegan", "Vegan");
         map.insert("rsvp.halal", "Halal");
@@ -325,6 +327,11 @@ impl Translations {
         map.insert("rsvp.no", "Non");
         map.insert("rsvp.guests", "Nombre d'invités");
         map.insert("rsvp.dietary", "Restrictions alimentaires");
+        map.insert(
+            "rsvp.guest_list_title",
+            "Liste des invités et préférences alimentaires",
+        );
+        map.insert("rsvp.guest_list_description", "Gérez votre liste d'invités et leurs restrictions alimentaires ici. Vous pourrez ensuite sélectionner quels invités assisteront à chaque événement ci-dessous.");
         map.insert("rsvp.vegetarian", "Végétarien");
         map.insert("rsvp.vegan", "Végétalien");
         map.insert("rsvp.halal", "Halal");
@@ -516,6 +523,11 @@ impl Translations {
         map.insert("rsvp.no", "No");
         map.insert("rsvp.guests", "Numero di ospiti");
         map.insert("rsvp.dietary", "Restrizioni dietetiche");
+        map.insert(
+            "rsvp.guest_list_title",
+            "Lista degli ospiti e preferenze alimentari",
+        );
+        map.insert("rsvp.guest_list_description", "Gestisci la lista degli ospiti e le restrizioni alimentari qui. Potrai quindi selezionare quali ospiti parteciperanno a ciascuna location qui sotto.");
         map.insert("rsvp.vegetarian", "Vegetariano");
         map.insert("rsvp.vegan", "Vegano");
         map.insert("rsvp.halal", "Halal");

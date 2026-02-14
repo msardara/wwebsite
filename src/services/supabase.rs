@@ -564,6 +564,84 @@ impl SupabaseRpcClient {
     }
 
     // ========================================================================
+    // GUEST LOCATION ATTENDANCE OPERATIONS
+    // ========================================================================
+
+    /// Get attending guests for a specific location
+    pub async fn get_attending_guests_for_location(
+        &self,
+        guest_group_id: &str,
+        invitation_code: &str,
+        location: &str,
+    ) -> SupabaseResult<Vec<Guest>> {
+        let params = serde_json::json!({
+            "p_guest_group_id": guest_group_id,
+            "p_invitation_code": invitation_code,
+            "p_location": location
+        });
+
+        // The RPC returns a table with guest_id, guest_name, dietary_preferences
+        // We need to map it to Guest objects
+        let response = execute_rpc_raw(
+            &self.client,
+            "get_attending_guests_for_location",
+            params.to_string(),
+        )
+        .await?;
+
+        #[derive(serde::Deserialize)]
+        struct AttendingGuestRow {
+            guest_id: String,
+            guest_name: String,
+            dietary_preferences: serde_json::Value,
+        }
+
+        let rows: Vec<AttendingGuestRow> = serde_json::from_str(&response)
+            .map_err(|e| SupabaseError::ParseError(e.to_string()))?;
+
+        // Convert to Guest objects
+        let guests = rows
+            .into_iter()
+            .map(|row| Guest {
+                id: row.guest_id,
+                guest_group_id: guest_group_id.to_string(),
+                name: row.guest_name,
+                dietary_preferences: serde_json::from_value(row.dietary_preferences)
+                    .unwrap_or_default(),
+                created_at: None,
+                updated_at: None,
+            })
+            .collect();
+
+        Ok(guests)
+    }
+
+    /// Bulk update guest attendance for a location
+    pub async fn bulk_update_guest_location_attendance(
+        &self,
+        guest_group_id: &str,
+        invitation_code: &str,
+        location: &str,
+        guest_ids: &[String],
+    ) -> SupabaseResult<()> {
+        let params = serde_json::json!({
+            "p_guest_group_id": guest_group_id,
+            "p_invitation_code": invitation_code,
+            "p_location": location,
+            "p_guest_ids": guest_ids
+        });
+
+        execute_rpc_raw(
+            &self.client,
+            "bulk_update_guest_location_attendance",
+            params.to_string(),
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    // ========================================================================
     // PHOTO OPERATIONS (Read-only for guests)
     // ========================================================================
 
@@ -824,7 +902,7 @@ impl SupabaseAdminClient {
             email: Option<String>,
             invitation_code: String,
             party_size: i32,
-            location: String,
+            locations: Vec<String>,
             created_at: Option<String>,
             updated_at: Option<String>,
             guests: Vec<GuestCountInfo>,
@@ -846,12 +924,8 @@ impl SupabaseAdminClient {
                         email: raw.email,
                         invitation_code: raw.invitation_code,
                         party_size: raw.party_size,
-                        location: match raw.location.as_str() {
-                            "sardinia" => Location::Sardinia,
-                            "tunisia" => Location::Tunisia,
-                            "both" => Location::Both,
-                            _ => Location::Sardinia,
-                        },
+                        locations: raw.locations,
+                        default_language: raw.default_language,
                         created_at: raw.created_at.and_then(|s| {
                             DateTime::parse_from_rfc3339(&s)
                                 .ok()
@@ -1204,12 +1278,12 @@ impl SupabaseAdminClient {
             match self.get_guests_admin(&guest_group.id).await {
                 Ok(guests) => {
                     let guest_count = guests.len() as i32;
-                    match guest_group.location {
-                        crate::types::Location::Sardinia => sardinia_guests += guest_count,
-                        crate::types::Location::Tunisia => tunisia_guests += guest_count,
-                        crate::types::Location::Both => {
-                            sardinia_guests += guest_count;
-                            tunisia_guests += guest_count;
+                    // Count guests for each location they're invited to
+                    for loc_str in &guest_group.locations {
+                        match loc_str.as_str() {
+                            "sardinia" => sardinia_guests += guest_count,
+                            "tunisia" => tunisia_guests += guest_count,
+                            _ => {}
                         }
                     }
                 }

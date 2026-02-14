@@ -6,12 +6,12 @@
 
 use crate::constants::{
     SUPABASE_AUTH_PATH, SUPABASE_REST_PATH, SUPABASE_STORAGE_PATH, TABLE_GUESTS,
-    TABLE_GUEST_GROUPS, TABLE_PHOTOS, TABLE_RSVPS, WEDDING_PHOTOS_BUCKET,
+    TABLE_GUEST_GROUPS, TABLE_PHOTOS, WEDDING_PHOTOS_BUCKET,
 };
 use crate::types::{
     AdminStats, AuthResponse, AuthSession, DietaryPreferences, Guest, GuestGroup, GuestGroupInput,
-    GuestGroupUpdate, GuestGroupWithCount, GuestInput, GuestUpdate, Location, LoginCredentials,
-    Photo, PhotoInput, Rsvp, RsvpWithDietaryCounts,
+    GuestGroupUpdate, GuestGroupWithCount, GuestInput, GuestUpdate, LoginCredentials, Photo,
+    PhotoInput,
 };
 use chrono::{DateTime, Utc};
 use postgrest::Postgrest;
@@ -419,6 +419,22 @@ impl SupabaseRpcClient {
         .await
     }
 
+    /// Update additional_notes for a guest group with invitation code validation (RPC)
+    pub async fn update_guest_group_notes(
+        &self,
+        guest_group_id: &str,
+        invitation_code: &str,
+        additional_notes: &str,
+    ) -> SupabaseResult<GuestGroup> {
+        let params = serde_json::json!({
+            "p_guest_group_id": guest_group_id,
+            "p_invitation_code": invitation_code,
+            "p_additional_notes": additional_notes
+        });
+
+        execute_rpc(&self.client, "update_guest_group_notes", params.to_string()).await
+    }
+
     // ========================================================================
     // GUEST OPERATIONS (RPC)
     // ========================================================================
@@ -447,12 +463,14 @@ impl SupabaseRpcClient {
         guest_group_id: &str,
         invitation_code: &str,
         name: &str,
+        attending_locations: &[String],
         dietary_preferences: &DietaryPreferences,
     ) -> SupabaseResult<Guest> {
         let params = serde_json::json!({
             "p_guest_group_id": guest_group_id,
             "p_invitation_code": invitation_code,
             "p_name": name,
+            "p_attending_locations": attending_locations,
             "p_dietary_preferences": serde_json::to_value(dietary_preferences)
                 .map_err(|e| SupabaseError::ParseError(e.to_string()))?
         });
@@ -473,6 +491,7 @@ impl SupabaseRpcClient {
         guest_group_id: &str,
         invitation_code: &str,
         name: &str,
+        attending_locations: &[String],
         dietary_preferences: &DietaryPreferences,
     ) -> SupabaseResult<Guest> {
         let params = serde_json::json!({
@@ -480,6 +499,7 @@ impl SupabaseRpcClient {
             "p_guest_group_id": guest_group_id,
             "p_invitation_code": invitation_code,
             "p_name": name,
+            "p_attending_locations": attending_locations,
             "p_dietary_preferences": serde_json::to_value(dietary_preferences)
                 .map_err(|e| SupabaseError::ParseError(e.to_string()))?
         });
@@ -510,54 +530,6 @@ impl SupabaseRpcClient {
             "delete_guest_for_group",
             params.to_string(),
             "✅ Guest deleted successfully",
-        )
-        .await
-    }
-
-    // ========================================================================
-    // RSVP OPERATIONS (Direct - needs RPC for security)
-    // ========================================================================
-
-    /// Get all RSVPs for a specific guest group
-    pub async fn get_rsvps_by_guest(&self, guest_group_id: &str) -> SupabaseResult<Vec<Rsvp>> {
-        let response = self
-            .client
-            .from(TABLE_RSVPS)
-            .select("*")
-            .eq("guest_group_id", guest_group_id)
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_and_parse_vec(response).await
-    }
-
-    /// Create or update RSVP with invitation code validation (RPC)
-    /// This replaces both create_rsvp and update_rsvp for guest users
-    /// Note: Dietary preferences are tracked per guest in the guests table, not in RSVP
-    pub async fn upsert_rsvp_secure(
-        &self,
-        guest_group_id: &str,
-        invitation_code: &str,
-        location: &str,
-        attending: bool,
-        number_of_guests: i32,
-        additional_notes: Option<String>,
-    ) -> SupabaseResult<Rsvp> {
-        let params = serde_json::json!({
-            "p_guest_group_id": guest_group_id,
-            "p_invitation_code": invitation_code,
-            "p_location": location,
-            "p_attending": attending,
-            "p_number_of_guests": number_of_guests,
-            "p_additional_notes": additional_notes
-        });
-
-        execute_rpc_with_logging(
-            &self.client,
-            "upsert_rsvp_for_group",
-            params.to_string(),
-            "upsert_rsvp_for_group",
         )
         .await
     }
@@ -821,7 +793,7 @@ impl SupabaseAdminClient {
             email: Option<String>,
             invitation_code: String,
             party_size: i32,
-            location: String,
+            locations: Vec<String>,
             default_language: String,
             created_at: Option<String>,
             updated_at: Option<String>,
@@ -844,13 +816,9 @@ impl SupabaseAdminClient {
                         email: raw.email,
                         invitation_code: raw.invitation_code,
                         party_size: raw.party_size,
-                        location: match raw.location.as_str() {
-                            "sardinia" => Location::Sardinia,
-                            "tunisia" => Location::Tunisia,
-                            "both" => Location::Both,
-                            _ => Location::Sardinia,
-                        },
+                        locations: raw.locations,
                         default_language: raw.default_language,
+                        additional_notes: None,
                         created_at: raw.created_at.and_then(|s| {
                             DateTime::parse_from_rfc3339(&s)
                                 .ok()
@@ -1024,122 +992,36 @@ impl SupabaseAdminClient {
     }
 
     // ========================================================================
-    // RSVP OPERATIONS (Admin - Direct Table Access)
+    // GUEST LIST OPERATIONS (Admin)
     // ========================================================================
 
-    /// Get all RSVPs (admin only)
-    pub async fn get_all_rsvps(&self) -> SupabaseResult<Vec<Rsvp>> {
+    /// Get all guests attending a specific location (admin only)
+    pub async fn get_all_guests_for_location(&self, location: &str) -> SupabaseResult<Vec<Guest>> {
+        web_sys::console::log_1(
+            &format!("🔍 Fetching all guests for location: {}", location).into(),
+        );
+
         let response = self
             .client
-            .from(TABLE_RSVPS)
+            .from(TABLE_GUESTS)
             .select("*")
-            .order("created_at")
+            .cs("attending_locations", format!("{{{}}}", location))
             .execute()
             .await
             .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
 
-        execute_and_parse(response).await
-    }
-
-    /// Get all RSVPs with dietary counts from guests table (admin only)
-    pub async fn get_all_rsvps_with_dietary_counts(
-        &self,
-    ) -> SupabaseResult<Vec<RsvpWithDietaryCounts>> {
-        web_sys::console::log_1(&"🔍 Fetching RSVPs with dietary counts...".into());
-
-        // First, get all RSVPs
-        let rsvps = self.get_all_rsvps().await?;
-
-        let mut rsvps_with_counts = Vec::new();
-
-        // For each RSVP, get the guests and count dietary preferences
-        for rsvp in rsvps {
-            let guests = self
-                .get_guests_admin(&rsvp.guest_group_id)
-                .await
-                .unwrap_or_default();
-
-            let mut vegetarian_count = 0;
-            let mut vegan_count = 0;
-            let mut halal_count = 0;
-            let mut no_pork_count = 0;
-            let mut gluten_free_count = 0;
-            let mut other_list = Vec::new();
-
-            for guest in guests {
-                if guest.dietary_preferences.vegetarian {
-                    vegetarian_count += 1;
-                }
-                if guest.dietary_preferences.vegan {
-                    vegan_count += 1;
-                }
-                if guest.dietary_preferences.halal {
-                    halal_count += 1;
-                }
-                if guest.dietary_preferences.no_pork {
-                    no_pork_count += 1;
-                }
-                if guest.dietary_preferences.gluten_free {
-                    gluten_free_count += 1;
-                }
-                if !guest.dietary_preferences.other.is_empty() {
-                    other_list.push(guest.dietary_preferences.other);
-                }
-            }
-
-            rsvps_with_counts.push(RsvpWithDietaryCounts {
-                rsvp,
-                dietary_vegetarian: vegetarian_count,
-                dietary_vegan: vegan_count,
-                dietary_halal: halal_count,
-                dietary_no_pork: no_pork_count,
-                dietary_gluten_free: gluten_free_count,
-                dietary_other: other_list,
-            });
-        }
+        let guests: Vec<Guest> = execute_and_parse(response).await?;
 
         web_sys::console::log_1(
             &format!(
-                "✅ Loaded {} RSVPs with dietary counts",
-                rsvps_with_counts.len()
+                "✅ Loaded {} guests for location {}",
+                guests.len(),
+                location
             )
             .into(),
         );
-        Ok(rsvps_with_counts)
-    }
 
-    /// Get RSVP for a specific guest group and location (admin only)
-    #[allow(dead_code)]
-    pub async fn get_rsvp_by_guest_and_location(
-        &self,
-        guest_group_id: &str,
-        location: &str,
-    ) -> SupabaseResult<Option<Rsvp>> {
-        let response = self
-            .client
-            .from(TABLE_RSVPS)
-            .select("*")
-            .eq("guest_group_id", guest_group_id)
-            .eq("location", location)
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_and_parse_option(response).await
-    }
-
-    /// Delete an RSVP (admin only)
-    pub async fn delete_rsvp(&self, rsvp_id: &str) -> SupabaseResult<()> {
-        let response = self
-            .client
-            .from(TABLE_RSVPS)
-            .eq("id", rsvp_id)
-            .delete()
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_delete(response).await
+        Ok(guests)
     }
 
     // ========================================================================
@@ -1153,8 +1035,10 @@ impl SupabaseAdminClient {
         );
 
         let guest_groups = self.get_all_guest_groups().await?;
-        let rsvps = self.get_all_rsvps().await?;
-        web_sys::console::log_1(&format!("✅ Loaded {} RSVPs", rsvps.len()).into());
+
+        // Get all guests
+        let sardinia_guests_list = self.get_all_guests_for_location("sardinia").await?;
+        let tunisia_guests_list = self.get_all_guests_for_location("tunisia").await?;
 
         // Count actual individual guests in the guests table (total invited guests)
         let mut total_guests = 0i32;
@@ -1170,90 +1054,45 @@ impl SupabaseAdminClient {
             }
         }
 
-        // Count guests who confirmed (actual guests from groups that RSVP'd YES)
-        let rsvp_groups_attending: std::collections::HashSet<_> = rsvps
-            .iter()
-            .filter(|r| r.attending)
-            .map(|r| r.guest_group_id.clone())
-            .collect();
-
-        let mut total_confirmed = 0i32;
-        for guest_group in guest_groups.iter() {
-            if rsvp_groups_attending.contains(&guest_group.id) {
-                match self.get_guests_admin(&guest_group.id).await {
-                    Ok(guests) => total_confirmed += guests.len() as i32,
-                    Err(e) => {
-                        web_sys::console::warn_1(
-                            &format!(
-                                "Failed to fetch confirmed guests for group {}: {}",
-                                guest_group.id, e
-                            )
-                            .into(),
-                        );
-                    }
-                }
-            }
-        }
-
-        // Count guests by location (using actual guests from guests table)
-        let mut sardinia_guests = 0i32;
-        let mut tunisia_guests = 0i32;
-
+        // Count guests who have selected at least one location (confirmed attending)
+        let mut guests_with_locations = std::collections::HashSet::new();
         for guest_group in guest_groups.iter() {
             match self.get_guests_admin(&guest_group.id).await {
                 Ok(guests) => {
-                    let guest_count = guests.len() as i32;
-                    match guest_group.location {
-                        crate::types::Location::Sardinia => sardinia_guests += guest_count,
-                        crate::types::Location::Tunisia => tunisia_guests += guest_count,
-                        crate::types::Location::Both => {
-                            sardinia_guests += guest_count;
-                            tunisia_guests += guest_count;
+                    for guest in guests {
+                        if !guest.attending_locations.is_empty() {
+                            guests_with_locations.insert(guest.id);
                         }
                     }
                 }
                 Err(e) => {
                     web_sys::console::warn_1(
-                        &format!(
-                            "Failed to fetch guests for location count for group {}: {}",
-                            guest_group.id, e
-                        )
-                        .into(),
+                        &format!("Failed to fetch guests for group {}: {}", guest_group.id, e)
+                            .into(),
                     );
                 }
             }
         }
+        let total_confirmed = guests_with_locations.len() as i32;
 
-        // Guest groups who haven't RSVP'd yet (pending invitations)
-        let guests_with_rsvp: std::collections::HashSet<_> =
-            rsvps.iter().map(|r| r.guest_group_id.clone()).collect();
-        let pending_guest_group_invitations = guest_groups
+        // Count guests by location
+        let sardinia_guests = sardinia_guests_list.len() as i32;
+        let tunisia_guests = tunisia_guests_list.len() as i32;
+
+        // Calculate guests invited to both locations
+        let both_locations_guests = guest_groups
             .iter()
-            .filter(|g| !guests_with_rsvp.contains(&g.id))
-            .count() as i32;
+            .filter(|g| {
+                g.locations.contains(&"sardinia".to_string())
+                    && g.locations.contains(&"tunisia".to_string())
+            })
+            .map(|g| g.party_size)
+            .sum::<i32>();
 
-        // Pending guests = count of actual guests for groups that haven't RSVP'd
-        let mut pending_guests = 0i32;
-        for guest_group in guest_groups.iter() {
-            if !guests_with_rsvp.contains(&guest_group.id) {
-                match self.get_guests_admin(&guest_group.id).await {
-                    Ok(guests) => pending_guests += guests.len() as i32,
-                    Err(e) => {
-                        web_sys::console::warn_1(
-                            &format!(
-                                "Failed to fetch pending guests for group {}: {}",
-                                guest_group.id, e
-                            )
-                            .into(),
-                        );
-                    }
-                }
-            }
-        }
+        // Count pending guests (guests with no location selections)
+        let pending_guests = total_guests - total_confirmed;
 
-        let total_attending = total_confirmed;
-
-        // Dietary restrictions - count from actual guests who RSVP'd attending
+        // Count dietary preferences (from all guests with location selections)
         let mut vegetarian_count = 0i32;
         let mut vegan_count = 0i32;
         let mut halal_count = 0i32;
@@ -1262,10 +1101,10 @@ impl SupabaseAdminClient {
         let mut other_dietary_count = 0i32;
 
         for guest_group in guest_groups.iter() {
-            if rsvp_groups_attending.contains(&guest_group.id) {
-                match self.get_guests_admin(&guest_group.id).await {
-                    Ok(guests) => {
-                        for guest in guests {
+            match self.get_guests_admin(&guest_group.id).await {
+                Ok(guests) => {
+                    for guest in guests {
+                        if !guest.attending_locations.is_empty() {
                             if guest.dietary_preferences.vegetarian {
                                 vegetarian_count += 1;
                             }
@@ -1286,15 +1125,15 @@ impl SupabaseAdminClient {
                             }
                         }
                     }
-                    Err(e) => {
-                        web_sys::console::warn_1(
-                            &format!(
-                                "Failed to fetch guests for dietary count for group {}: {}",
-                                guest_group.id, e
-                            )
-                            .into(),
-                        );
-                    }
+                }
+                Err(e) => {
+                    web_sys::console::warn_1(
+                        &format!(
+                            "Failed to fetch dietary info for group {}: {}",
+                            guest_group.id, e
+                        )
+                        .into(),
+                    );
                 }
             }
         }
@@ -1305,14 +1144,13 @@ impl SupabaseAdminClient {
             pending_rsvps: pending_guests,
             sardinia_guests,
             tunisia_guests,
-            both_locations_guests: pending_guest_group_invitations,
+            both_locations_guests,
             vegetarian_count,
             vegan_count,
             halal_count,
             no_pork_count,
             gluten_free_count,
             other_dietary_count,
-            total_attending,
         })
     }
 
