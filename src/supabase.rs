@@ -808,8 +808,6 @@ impl SupabaseAdminClient {
             .await
             .map_err(|e| SupabaseError::ParseError(e.to_string()))?;
 
-        web_sys::console::log_1(&format!("📦 Raw response: {}", text).into());
-
         // Parse the response - Supabase returns count as an array with one object
         #[derive(Deserialize)]
         struct GuestCountInfo {
@@ -824,6 +822,7 @@ impl SupabaseAdminClient {
             invitation_code: String,
             party_size: i32,
             location: String,
+            default_language: String,
             created_at: Option<String>,
             updated_at: Option<String>,
             guests: Vec<GuestCountInfo>,
@@ -851,6 +850,7 @@ impl SupabaseAdminClient {
                             "both" => Location::Both,
                             _ => Location::Sardinia,
                         },
+                        default_language: raw.default_language,
                         created_at: raw.created_at.and_then(|s| {
                             DateTime::parse_from_rfc3339(&s)
                                 .ok()

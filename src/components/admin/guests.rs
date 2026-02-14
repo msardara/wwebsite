@@ -549,6 +549,29 @@ fn GuestgroupModal(
             .map_or("sardinia".to_string(), |g| g.location.as_str().to_string()),
     );
 
+    let location_select_ref = create_node_ref::<html::Select>();
+
+    // Set the select value after the element is mounted
+    create_effect(move |_| {
+        if let Some(select_el) = location_select_ref.get() {
+            select_el.set_value(&location.get());
+        }
+    });
+    let (default_language, set_default_language) = create_signal(
+        guest
+            .as_ref()
+            .map_or("en".to_string(), |g| g.default_language.clone()),
+    );
+
+    let language_select_ref = create_node_ref::<html::Select>();
+
+    // Set the select value after the element is mounted
+    create_effect(move |_| {
+        if let Some(select_el) = language_select_ref.get() {
+            select_el.set_value(&default_language.get());
+        }
+    });
+
     // Dynamic invitee list
     let (invitees, set_invitees) = create_signal::<Vec<GuestRow>>(vec![GuestRow::new(0)]);
     let (next_id, set_next_id) = create_signal(1_usize);
@@ -669,6 +692,7 @@ fn GuestgroupModal(
                         },
                         party_size: Some(actual_party_size),
                         location: Some(location.get()),
+                        default_language: Some(default_language.get()),
                     };
 
                     // Update guest group
@@ -734,6 +758,7 @@ fn GuestgroupModal(
                         invitation_code: invitation_code.get(),
                         party_size: actual_party_size,
                         location: location.get(),
+                        default_language: default_language.get(),
                     };
 
                     // Create the guest group
@@ -973,13 +998,30 @@ fn GuestgroupModal(
                                 "Wedding Location" <span class="text-red-500">"*"</span>
                             </label>
                             <select
+                                node_ref=location_select_ref
                                 required
                                 class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 font-semibold text-base bg-white"
                                 on:change=move |ev| set_location.set(event_target_value(&ev))
                             >
-                                <option value="sardinia" selected=move || location.get() == "sardinia">"🏖️ Sardinia"</option>
-                                <option value="tunisia" selected=move || location.get() == "tunisia">"🌴 Tunisia"</option>
-                                <option value="both" selected=move || location.get() == "both">"✈️ Both Locations"</option>
+                                <option value="sardinia">"🏖️ Sardinia"</option>
+                                <option value="tunisia">"🌴 Tunisia"</option>
+                                <option value="both">"✈️ Both Locations"</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                "Default Language" <span class="text-red-500">"*"</span>
+                            </label>
+                            <select
+                                node_ref=language_select_ref
+                                required
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 font-semibold text-base bg-white"
+                                on:change=move |ev| set_default_language.set(event_target_value(&ev))
+                            >
+                                <option value="en">"🇬🇧 English"</option>
+                                <option value="fr">"🇫🇷 Français"</option>
+                                <option value="it">"🇮🇹 Italiano"</option>
                             </select>
                         </div>
 

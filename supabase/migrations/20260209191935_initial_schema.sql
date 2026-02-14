@@ -23,6 +23,7 @@ CREATE TABLE guest_groups (
   invitation_code TEXT UNIQUE NOT NULL,
   party_size INTEGER NOT NULL DEFAULT 1 CHECK (party_size > 0),
   location TEXT NOT NULL CHECK (location IN ('sardinia', 'tunisia', 'both')),
+  default_language TEXT NOT NULL DEFAULT 'en' CHECK (default_language IN ('en', 'fr', 'it')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -30,6 +31,7 @@ CREATE TABLE guest_groups (
 -- Indexes for guest_groups table
 CREATE INDEX idx_guest_groups_invitation_code ON guest_groups(invitation_code);
 CREATE INDEX idx_guest_groups_location ON guest_groups(location);
+CREATE INDEX idx_guest_groups_default_language ON guest_groups(default_language);
 
 -- Guests table
 -- Individual guests/invitees within a guest group
@@ -154,6 +156,7 @@ RETURNS TABLE (
   invitation_code TEXT,
   party_size INTEGER,
   location TEXT,
+  default_language TEXT,
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE
 )
@@ -170,6 +173,7 @@ BEGIN
     gg.invitation_code,
     gg.party_size,
     gg.location,
+    gg.default_language,
     gg.created_at,
     gg.updated_at
   FROM guest_groups gg

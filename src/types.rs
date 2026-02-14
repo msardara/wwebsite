@@ -45,6 +45,7 @@ pub struct GuestGroup {
     pub invitation_code: String,
     pub party_size: i32,
     pub location: Location,
+    pub default_language: String,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -63,6 +64,7 @@ pub struct GuestGroupInput {
     pub invitation_code: String,
     pub party_size: i32,
     pub location: String,
+    pub default_language: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,6 +73,7 @@ pub struct GuestGroupUpdate {
     pub email: Option<String>,
     pub party_size: Option<i32>,
     pub location: Option<String>,
+    pub default_language: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

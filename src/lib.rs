@@ -31,12 +31,12 @@ pub fn App() -> impl IntoView {
     let supabase_context = SupabaseContext::new();
     provide_context(supabase_context);
 
-    // Initialize guest context
-    let guest_context = GuestContext::new();
-    provide_context(guest_context);
-
     // Initialize language context at app level
     let (language, set_language) = create_signal(types::Language::from_browser());
+
+    // Initialize guest context (needs set_language to auto-set guest's default language)
+    let guest_context = GuestContext::new(set_language);
+    provide_context(guest_context);
 
     // Try to load saved language preference
     use gloo_storage::{LocalStorage, Storage};
