@@ -11,6 +11,7 @@ pub fn RsvpManagement() -> impl IntoView {
     let (all_guests, set_all_guests) = create_signal::<Vec<Guest>>(Vec::new());
     let (sardinia_guests, set_sardinia_guests) = create_signal::<Vec<Guest>>(Vec::new());
     let (tunisia_guests, set_tunisia_guests) = create_signal::<Vec<Guest>>(Vec::new());
+    let (nice_guests, set_nice_guests) = create_signal::<Vec<Guest>>(Vec::new());
     let (loading, set_loading) = create_signal(true);
     let (error, set_error) = create_signal::<Option<String>>(None);
 
@@ -36,17 +37,24 @@ pub fn RsvpManagement() -> impl IntoView {
             .get_all_guests_for_location("tunisia")
             .await;
 
-        match (groups_result, sardinia_result, tunisia_result) {
-            (Ok(groups), Ok(sardinia_list), Ok(tunisia_list)) => {
+        let nice_result = admin_context
+            .authenticated_client()
+            .get_all_guests_for_location("nice")
+            .await;
+
+        match (groups_result, sardinia_result, tunisia_result, nice_result) {
+            (Ok(groups), Ok(sardinia_list), Ok(tunisia_list), Ok(nice_list)) => {
                 set_guest_groups.set(groups);
 
-                // Combine sardinia and tunisia guests for total counts
+                // Combine all location guests for total counts
                 let mut all = sardinia_list.clone();
                 all.extend(tunisia_list.clone());
+                all.extend(nice_list.clone());
                 set_all_guests.set(all);
 
                 set_sardinia_guests.set(sardinia_list);
                 set_tunisia_guests.set(tunisia_list);
+                set_nice_guests.set(nice_list);
                 set_loading.set(false);
             }
             _ => {
@@ -66,10 +74,12 @@ pub fn RsvpManagement() -> impl IntoView {
         let guests = all_guests.get();
         let sardinia = sardinia_guests.get();
         let tunisia = tunisia_guests.get();
+        let nice = nice_guests.get();
 
         let total_guests = guests.len() as i32;
         let sardinia_count = sardinia.len() as i32;
         let tunisia_count = tunisia.len() as i32;
+        let nice_count = nice.len() as i32;
 
         let vegetarian: i32 = guests
             .iter()
@@ -100,6 +110,7 @@ pub fn RsvpManagement() -> impl IntoView {
             total_guests,
             sardinia_count,
             tunisia_count,
+            nice_count,
             vegetarian,
             vegan,
             halal,
@@ -147,7 +158,13 @@ pub fn RsvpManagement() -> impl IntoView {
                     icon="🇹🇳"
                     label="Tunisia"
                     value=move || totals().2
-                    color="green"
+                    color="blue"
+                />
+                <SummaryCard
+                    icon="🇫🇷"
+                    label="Nice"
+                    value=move || totals().3
+                    color="blue"
                 />
                 <SummaryCard
                     icon="🥗"
@@ -190,7 +207,7 @@ pub fn RsvpManagement() -> impl IntoView {
                     }.into_view()
                 } else {
                     view! {
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-8">
                             {/* Sardinia Guests */}
                             <div class="bg-white rounded-lg shadow-md overflow-hidden">
                                 <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
@@ -276,6 +293,44 @@ pub fn RsvpManagement() -> impl IntoView {
                                             </tbody>
                                         </table>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Nice Guests */}
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                                <div class="bg-purple-50 px-6 py-4 border-b border-purple-200">
+                                    <h3 class="text-lg font-semibold text-purple-900 flex items-center gap-2">
+                                        "🇫🇷 Nice Guests"
+                                        <span class="text-sm font-normal text-purple-700">
+                                            "(" {move || nice_guests.get().len()} " guests)"
+                                        </span>
+                                    </h3>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">"Name"</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">"Dietary"</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            {move || nice_guests.get().into_iter().map(|guest| {
+                                                let dietary = format_dietary(&guest);
+
+                                                view! {
+                                                    <tr class="hover:bg-gray-50">
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            {guest.name}
+                                                        </td>
+                                                        <td class="px-6 py-4 text-sm text-gray-500">
+                                                            {dietary}
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            }).collect::<Vec<_>>()}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>

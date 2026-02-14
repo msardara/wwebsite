@@ -570,8 +570,8 @@ BEGIN
   END IF;
 
   -- Validate location
-  IF p_location NOT IN ('sardinia', 'tunisia') THEN
-    RAISE EXCEPTION 'Invalid location. Must be sardinia or tunisia';
+  IF p_location NOT IN ('sardinia', 'tunisia', 'nice') THEN
+    RAISE EXCEPTION 'Invalid location. Must be sardinia, tunisia, or nice';
   END IF;
 
   IF p_attending THEN
@@ -615,8 +615,8 @@ BEGIN
   END IF;
 
   -- Validate location
-  IF p_location NOT IN ('sardinia', 'tunisia') THEN
-    RAISE EXCEPTION 'Invalid location. Must be sardinia or tunisia';
+  IF p_location NOT IN ('sardinia', 'tunisia', 'nice') THEN
+    RAISE EXCEPTION 'Invalid location. Must be sardinia, tunisia, or nice';
   END IF;
 
   RETURN QUERY
@@ -654,8 +654,8 @@ BEGIN
   END IF;
 
   -- Validate location
-  IF p_location NOT IN ('sardinia', 'tunisia') THEN
-    RAISE EXCEPTION 'Invalid location. Must be sardinia or tunisia';
+  IF p_location NOT IN ('sardinia', 'tunisia', 'nice') THEN
+    RAISE EXCEPTION 'Invalid location. Must be sardinia, tunisia, or nice';
   END IF;
 
   -- Remove location from all guests in this group
@@ -738,8 +738,10 @@ CREATE POLICY "config_all_admin"
 INSERT INTO config (key, value) VALUES
   ('wedding_date_sardinia', '2026-09-19'),
   ('wedding_date_tunisia', '2026-06-27'),
+  ('wedding_date_nice', '2026-07-15'),
   ('venue_address_sardinia', 'Costa Smeralda, Sardinia, Italy'),
   ('venue_address_tunisia', 'Tunis, Tunisia'),
+  ('venue_address_nice', 'Nice, France'),
   ('default_language', 'en');
 
 -- ============================================================================
@@ -757,7 +759,11 @@ INSERT INTO content (key, language, location, value) VALUES
   ('schedule_tunisia', 'en', 'tunisia', 'Ceremony: 5:00 PM\nReception: 7:00 PM\nDinner: 9:00 PM'),
   ('venue_tunisia', 'en', 'tunisia', 'Traditional venue in Tunis with stunning architecture and gardens.'),
   ('accommodation_tunisia', 'en', 'tunisia', 'Recommended hotels and guest houses in Tunis city center.'),
-  ('travel_tunisia', 'en', 'tunisia', 'Fly into Tunis-Carthage International Airport (TUN). Taxis and transport readily available.');
+  ('travel_tunisia', 'en', 'tunisia', 'Fly into Tunis-Carthage International Airport (TUN). Taxis and transport readily available.'),
+  ('schedule_nice', 'en', 'nice', 'Ceremony: 3:00 PM\nReception: 5:00 PM\nDinner: 7:00 PM'),
+  ('venue_nice', 'en', 'nice', 'Beautiful venue on the French Riviera with stunning views of the Mediterranean Sea.'),
+  ('accommodation_nice', 'en', 'nice', 'Recommended hotels along the Promenade des Anglais and Old Town. Contact us for details.'),
+  ('travel_nice', 'en', 'nice', 'Fly into Nice Côte d''Azur Airport (NCE). Tram and bus services available to the city center.');
 
 -- French content
 INSERT INTO content (key, language, location, value) VALUES
@@ -770,7 +776,11 @@ INSERT INTO content (key, language, location, value) VALUES
   ('schedule_tunisia', 'fr', 'tunisia', 'Cérémonie : 17h00\nRéception : 19h00\nDîner : 21h00'),
   ('venue_tunisia', 'fr', 'tunisia', 'Lieu traditionnel à Tunis avec une architecture et des jardins magnifiques.'),
   ('accommodation_tunisia', 'fr', 'tunisia', 'Hôtels et maisons d''hôtes recommandés dans le centre-ville de Tunis.'),
-  ('travel_tunisia', 'fr', 'tunisia', 'Voler à l''aéroport international de Tunis-Carthage (TUN). Taxis et transports facilement disponibles.');
+  ('travel_tunisia', 'fr', 'tunisia', 'Voler à l''aéroport international de Tunis-Carthage (TUN). Taxis et transports facilement disponibles.'),
+  ('schedule_nice', 'fr', 'nice', 'Cérémonie : 15h00\nRéception : 17h00\nDîner : 19h00'),
+  ('venue_nice', 'fr', 'nice', 'Magnifique lieu sur la Côte d''Azur avec une vue imprenable sur la mer Méditerranée.'),
+  ('accommodation_nice', 'fr', 'nice', 'Hôtels recommandés le long de la Promenade des Anglais et dans la Vieille Ville. Contactez-nous pour plus de détails.'),
+  ('travel_nice', 'fr', 'nice', 'Voler à l''aéroport de Nice Côte d''Azur (NCE). Services de tram et bus disponibles vers le centre-ville.');
 
 -- Italian content
 INSERT INTO content (key, language, location, value) VALUES
@@ -783,7 +793,11 @@ INSERT INTO content (key, language, location, value) VALUES
   ('schedule_tunisia', 'it', 'tunisia', 'Cerimonia: 17:00\nRicevimento: 19:00\nCena: 21:00'),
   ('venue_tunisia', 'it', 'tunisia', 'Location tradizionale a Tunisi con splendida architettura e giardini.'),
   ('accommodation_tunisia', 'it', 'tunisia', 'Hotel e pensioni consigliati nel centro di Tunisi.'),
-  ('travel_tunisia', 'it', 'tunisia', 'Volare all''aeroporto internazionale di Tunisi-Cartagine (TUN). Taxi e trasporti prontamente disponibili.');
+  ('travel_tunisia', 'it', 'tunisia', 'Volare all''aeroporto internazionale di Tunisi-Cartagine (TUN). Taxi e trasporti prontamente disponibili.'),
+  ('schedule_nice', 'it', 'nice', 'Cerimonia: 15:00\nRicevimento: 17:00\nCena: 19:00'),
+  ('venue_nice', 'it', 'nice', 'Splendida location sulla Costa Azzurra con vista mozzafiato sul Mar Mediterraneo.'),
+  ('accommodation_nice', 'it', 'nice', 'Hotel consigliati lungo la Promenade des Anglais e nel centro storico. Contattateci per i dettagli.'),
+  ('travel_nice', 'it', 'nice', 'Volare all''aeroporto di Nizza Costa Azzurra (NCE). Servizi di tram e autobus disponibili per il centro città.');
 
 -- ============================================================================
 -- COMPLETION MESSAGE

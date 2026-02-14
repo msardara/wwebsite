@@ -701,6 +701,7 @@ fn GuestCard(
                                     let (display_name, flag) = match location {
                                         Location::Sardinia => ("Sardinia", "🇮🇹"),
                                         Location::Tunisia => ("Tunisia", "🇹🇳"),
+                                        Location::Nice => ("Nice", "🇫🇷"),
                                     };
 
                                     view! {

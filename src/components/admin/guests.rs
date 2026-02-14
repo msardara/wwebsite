@@ -417,6 +417,7 @@ pub fn GuestManagement() -> impl IntoView {
                                                                                                                 let (icon, color) = match loc.as_str() {
                                                                                                                     "sardinia" => ("🇮🇹", "bg-blue-100 text-blue-800 border-blue-300"),
                                                                                                                     "tunisia" => ("🇹🇳", "bg-red-100 text-red-800 border-red-300"),
+                                                                                                                    "nice" => ("🇫🇷", "bg-purple-100 text-purple-800 border-purple-300"),
                                                                                                                     _ => ("📍", "bg-gray-100 text-gray-800 border-gray-300"),
                                                                                                                 };
                                                                                                                 view! {
@@ -615,6 +616,8 @@ fn GuestgroupModal(
         create_signal(initial_locations.contains(&"sardinia".to_string()));
     let (tunisia_selected, set_tunisia_selected) =
         create_signal(initial_locations.contains(&"tunisia".to_string()));
+    let (nice_selected, set_nice_selected) =
+        create_signal(initial_locations.contains(&"nice".to_string()));
 
     let (default_language, set_default_language) = create_signal(
         guest
@@ -630,6 +633,9 @@ fn GuestgroupModal(
         }
         if tunisia_selected.get() {
             locs.push("tunisia".to_string());
+        }
+        if nice_selected.get() {
+            locs.push("nice".to_string());
         }
         if locs.is_empty() {
             locs.push("sardinia".to_string()); // Default
@@ -1150,6 +1156,15 @@ fn GuestgroupModal(
                                         on:change=move |ev| set_tunisia_selected.set(event_target_checked(&ev))
                                     />
                                     <span class="font-semibold text-gray-800">"🌴 Tunisia"</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-secondary-400 hover:bg-secondary-50 transition-all cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        class="w-5 h-5 text-secondary-600 rounded focus:ring-2 focus:ring-secondary-500"
+                                        prop:checked=move || nice_selected.get()
+                                        on:change=move |ev| set_nice_selected.set(event_target_checked(&ev))
+                                    />
+                                    <span class="font-semibold text-gray-800">"🇫🇷 Nice"</span>
                                 </label>
                             </div>
                         </div>

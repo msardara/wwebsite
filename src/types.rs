@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub enum Location {
     Sardinia,
     Tunisia,
+    Nice,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -53,6 +54,7 @@ impl Location {
         match self {
             Location::Sardinia => "sardinia",
             Location::Tunisia => "tunisia",
+            Location::Nice => "nice",
         }
     }
 
@@ -60,6 +62,7 @@ impl Location {
         match s.to_lowercase().as_str() {
             "sardinia" => Some(Location::Sardinia),
             "tunisia" => Some(Location::Tunisia),
+            "nice" => Some(Location::Nice),
             _ => None,
         }
     }
