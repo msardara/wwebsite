@@ -114,7 +114,7 @@ pub fn HomePage() -> impl IntoView {
                     // Text Overlay
                     <div style="position: absolute; bottom: 3%; right: 5%; z-index: 10;" class="text-center">
                         <p style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 600; font-size: clamp(1.8rem, 5vw, 5.5rem); color: #1E2A1C; letter-spacing: 0.02em; text-shadow: 1px 2px 6px rgba(0,0,0,0.3); margin-bottom: 0;">
-                            "See you there!"
+                            {move || translations().t("home.see_you_there")}
                         </p>
                         <a
                             href="/events"

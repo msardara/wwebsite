@@ -57,6 +57,7 @@ extend-ignore-re = [
 "pour" = "pour"                    # French for "for"
 "plus" = "plus"                    # French for "more"
 "groupe" = "groupe"                # French for "group"
+"demandes" = "demandes"            # French for "requests"
 
 # Italian words that are not typos
 "foto" = "foto"                    # Italian for "photo"

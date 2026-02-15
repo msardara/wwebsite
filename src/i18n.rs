@@ -69,6 +69,7 @@ impl Translations {
             "home.couple_story",
             "The year was 2017. We had both just arrived in Paris; Mouna was finishing her studies and Mauro was starting his PhD. It all began with a dinner, then a friendship, a connection. What was meant to be a simple meeting marked the beginning of our story.",
         );
+        map.insert("home.see_you_there", "See you there!");
 
         // Events page
         map.insert("events.subtitle_single", "Join us in celebrating our love");
@@ -214,6 +215,27 @@ impl Translations {
         map.insert("rsvp.add_invitee", "Add Guest");
         map.insert("rsvp.delete_invitee", "Remove Guest");
         map.insert("rsvp.gluten_free", "Gluten Free");
+        map.insert("rsvp.guest_list", "Guest List");
+        map.insert(
+            "rsvp.guest_list_help",
+            "Add all guests in your party and their dietary preferences",
+        );
+        map.insert("rsvp.add_another_guest", "+ Add Another Guest");
+        map.insert(
+            "rsvp.notes_help",
+            "Any special requests, dietary restrictions, or messages for us?",
+        );
+        map.insert(
+            "rsvp.notes_placeholder",
+            "Any special requests or messages?",
+        );
+        map.insert("rsvp.attending_label", "Attending:");
+        map.insert("rsvp.age_category", "Age Category:");
+        map.insert("rsvp.adult", "Adult");
+        map.insert("rsvp.child_under_3", "< 3 years");
+        map.insert("rsvp.child_under_10", "< 10 years");
+        map.insert("rsvp.dietary_restrictions_label", "Dietary Restrictions:");
+        map.insert("rsvp.guest_not_found", "Guest not found");
 
         // Admin
         map.insert("admin.title", "Admin Dashboard");
@@ -318,6 +340,7 @@ impl Translations {
             "home.couple_story",
             "L'année était 2017. Nous venions tous les deux d'arriver à Paris ; Mouna finissait ses études et Mauro commençait son doctorat. Tout a commencé par un dîner, puis une amitié, une complicité. Ce qui devait être une simple rencontre a marqué le début de notre histoire.",
         );
+        map.insert("home.see_you_there", "À bientôt !");
 
         // Events page
         map.insert(
@@ -472,6 +495,30 @@ impl Translations {
         map.insert("rsvp.add_invitee", "Ajouter un Invité");
         map.insert("rsvp.delete_invitee", "Retirer l'Invité");
         map.insert("rsvp.gluten_free", "Sans Gluten");
+        map.insert("rsvp.guest_list", "Liste des invités");
+        map.insert(
+            "rsvp.guest_list_help",
+            "Ajoutez tous les invités de votre groupe et leurs préférences alimentaires",
+        );
+        map.insert("rsvp.add_another_guest", "+ Ajouter un autre invité");
+        map.insert(
+            "rsvp.notes_help",
+            "Des demandes spéciales, restrictions alimentaires ou messages pour nous ?",
+        );
+        map.insert(
+            "rsvp.notes_placeholder",
+            "Des demandes spéciales ou messages ?",
+        );
+        map.insert("rsvp.attending_label", "Présent(e) à :");
+        map.insert("rsvp.age_category", "Catégorie d'âge :");
+        map.insert("rsvp.adult", "Adulte");
+        map.insert("rsvp.child_under_3", "< 3 ans");
+        map.insert("rsvp.child_under_10", "< 10 ans");
+        map.insert(
+            "rsvp.dietary_restrictions_label",
+            "Restrictions alimentaires :",
+        );
+        map.insert("rsvp.guest_not_found", "Invité non trouvé");
 
         // Admin
         map.insert("admin.title", "Tableau de bord Admin");
@@ -554,6 +601,7 @@ impl Translations {
             "home.couple_story",
             "Era il 2017. Eravamo entrambi appena arrivati a Parigi; Mouna stava finendo i suoi studi e Mauro stava iniziando il suo dottorato. Tutto è iniziato con una cena, poi un'amicizia, una complicità. Quello che doveva essere un semplice incontro ha segnato l'inizio della nostra storia.",
         );
+        map.insert("home.see_you_there", "Ci vediamo lì!");
 
         // Events page
         map.insert(
@@ -699,6 +747,24 @@ impl Translations {
         map.insert("rsvp.add_invitee", "Aggiungi Ospite");
         map.insert("rsvp.delete_invitee", "Rimuovi Ospite");
         map.insert("rsvp.gluten_free", "Senza Glutine");
+        map.insert("rsvp.guest_list", "Lista degli ospiti");
+        map.insert(
+            "rsvp.guest_list_help",
+            "Aggiungi tutti gli ospiti del tuo gruppo e le loro preferenze alimentari",
+        );
+        map.insert("rsvp.add_another_guest", "+ Aggiungi un altro ospite");
+        map.insert(
+            "rsvp.notes_help",
+            "Richieste speciali, restrizioni alimentari o messaggi per noi?",
+        );
+        map.insert("rsvp.notes_placeholder", "Richieste speciali o messaggi?");
+        map.insert("rsvp.attending_label", "Partecipa a:");
+        map.insert("rsvp.age_category", "Categoria di età:");
+        map.insert("rsvp.adult", "Adulto");
+        map.insert("rsvp.child_under_3", "< 3 anni");
+        map.insert("rsvp.child_under_10", "< 10 anni");
+        map.insert("rsvp.dietary_restrictions_label", "Restrizioni alimentari:");
+        map.insert("rsvp.guest_not_found", "Ospite non trovato");
 
         // Admin
         map.insert("admin.title", "Dashboard Admin");

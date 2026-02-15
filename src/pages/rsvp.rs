@@ -38,7 +38,7 @@ pub fn RsvpPage() -> impl IntoView {
                 } else {
                     view! {
                         <div class="text-center text-secondary-600 py-12">
-                            <p class="text-xl font-light">"Guest not found"</p>
+                            <p class="text-xl font-light">{move || translations().t("rsvp.guest_not_found")}</p>
                         </div>
                     }.into_view()
                 }
@@ -430,11 +430,11 @@ fn RsvpManager(
                         <div class="flex items-center justify-between mb-8">
                             <div>
                                 <h2 class="text-2xl md:text-3xl font-serif font-light text-secondary-800">
-                                    "Guest List"
+                                    {move || translations().t("rsvp.guest_list")}
                                     <span class="text-red-600">"*"</span>
                                 </h2>
                                 <p class="text-sm text-secondary-600 mt-2 font-light">
-                                    "Add all guests in your party and their dietary preferences"
+                                    {move || translations().t("rsvp.guest_list_help")}
                                 </p>
                             </div>
                         </div>
@@ -467,7 +467,7 @@ fn RsvpManager(
                             on:click=move |ev| add_guest.with_value(|f| f(ev))
                             disabled=move || saving.get()
                         >
-                            "+ Add Another Guest"
+                            {move || translations().t("rsvp.add_another_guest")}
                         </button>
                     </div>
 
@@ -477,12 +477,12 @@ fn RsvpManager(
                             {move || translations().t("rsvp.notes")}
                         </h2>
                         <p class="text-sm text-secondary-600 mb-6 font-light">
-                            "Any special requests, dietary restrictions, or messages for us?"
+                            {move || translations().t("rsvp.notes_help")}
                         </p>
                         <textarea
                             class="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all resize-none text-sm sm:text-base bg-primary-50/30 text-secondary-700 font-light"
                             rows="5"
-                            placeholder="Any special requests or messages?"
+                            placeholder=move || translations().t("rsvp.notes_placeholder")
                             prop:value=move || notes.get()
                             on:input=move |ev| set_notes.set(event_target_value(&ev))
                             disabled=move || saving.get()
@@ -674,7 +674,7 @@ fn GuestCard(
                 // Location selection (only show if multiple locations)
                 <Show when=move || show_locations>
                     <div class="bg-gradient-to-br from-primary-50/50 to-accent-50/50 p-4 rounded-lg border border-primary-200">
-                        <p class="text-xs font-medium text-secondary-700 mb-3">"Attending:"</p>
+                        <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.attending_label")}</p>
                         <div class="flex flex-wrap gap-2">
                             <For
                                 each=move || available_locations_stored.with_value(|v| v.clone())
@@ -721,7 +721,7 @@ fn GuestCard(
 
                 // Age category selection
                 <div class="bg-gradient-to-br from-primary-50/50 to-accent-50/50 p-4 rounded-lg border border-primary-200">
-                    <p class="text-xs font-medium text-secondary-700 mb-3">"Age Category:"</p>
+                    <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.age_category")}</p>
                     <div class="flex flex-wrap gap-2">
                         <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
                             <input
@@ -734,7 +734,7 @@ fn GuestCard(
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-sm font-light text-secondary-700">"Adult"</span>
+                            <span class="text-sm font-light text-secondary-700">{move || translations().t("rsvp.adult")}</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
                             <input
@@ -747,7 +747,7 @@ fn GuestCard(
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-sm font-light text-secondary-700">"< 3 years"</span>
+                            <span class="text-sm font-light text-secondary-700">{move || translations().t("rsvp.child_under_3")}</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
                             <input
@@ -760,13 +760,13 @@ fn GuestCard(
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-sm font-light text-secondary-700">"< 10 years"</span>
+                            <span class="text-sm font-light text-secondary-700">{move || translations().t("rsvp.child_under_10")}</span>
                         </label>
                     </div>
                 </div>
 
                 <div class="pl-1">
-                    <p class="text-xs font-medium text-secondary-700 mb-3">"Dietary Restrictions:"</p>
+                    <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.dietary_restrictions_label")}</p>
                     <div class="grid grid-cols-2 gap-2">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input
