@@ -11,11 +11,11 @@ pub fn HomePage() -> impl IntoView {
     view! {
         <div class="w-full -mt-8">
             // Hero Banner Image - Full Width
-            <div class="relative w-full h-[33vh] md:h-[75vh] overflow-hidden animate-fade-in">
+            <div class="relative w-full h-[50vh] md:h-[80vh] overflow-hidden animate-fade-in">
                 <img
                     src="/public/decoration-1.png"
                     alt="Hero"
-                    class="w-full h-full object-cover object-top md:object-center"
+                    class="w-full h-full object-cover object-center"
                 />
                 <div class="absolute inset-0 bg-gradient-to-b from-secondary-900/20 via-transparent to-secondary-900/50"></div>
 
