@@ -112,10 +112,16 @@ pub fn HomePage() -> impl IntoView {
                     />
 
                     // Text Overlay
-                    <div style="position: absolute; bottom: 5%; right: 5%; z-index: 10;">
-                        <p style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 600; font-size: clamp(2.2rem, 6vw, 7rem); color: #1E2A1C; letter-spacing: 0.02em; text-shadow: 1px 2px 6px rgba(0,0,0,0.3);">
+                    <div style="position: absolute; bottom: 3%; right: 5%; z-index: 10;" class="text-center">
+                        <p style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 600; font-size: clamp(1.8rem, 5vw, 5.5rem); color: #1E2A1C; letter-spacing: 0.02em; text-shadow: 1px 2px 6px rgba(0,0,0,0.3); margin-bottom: 0;">
                             "See you there!"
                         </p>
+                        <a
+                            href="/events"
+                            class="inline-block bg-primary-500 hover:bg-primary-500 text-white font-light tracking-wide py-2 px-4 sm:py-3 sm:px-6 md:py-3.5 md:px-12 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 text-sm sm:text-base md:text-lg"
+                        >
+                            {move || translations().t("nav.events")} " →"
+                        </a>
                     </div>
                 </div>
             </div>

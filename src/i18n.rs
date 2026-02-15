@@ -28,7 +28,7 @@ impl Translations {
 
         // Navigation
         map.insert("nav.home", "Home");
-        map.insert("nav.events", "Events");
+        map.insert("nav.events", "Program");
         map.insert("nav.gallery", "Gallery");
         map.insert("nav.rsvp", "RSVP");
         map.insert("nav.admin", "Admin");
@@ -277,7 +277,7 @@ impl Translations {
 
         // Navigation
         map.insert("nav.home", "Accueil");
-        map.insert("nav.events", "Événements");
+        map.insert("nav.events", "Programme");
         map.insert("nav.gallery", "Galerie");
         map.insert("nav.rsvp", "RSVP");
         map.insert("nav.admin", "Admin");
@@ -513,7 +513,7 @@ impl Translations {
 
         // Navigation
         map.insert("nav.home", "Home");
-        map.insert("nav.events", "Eventi");
+        map.insert("nav.events", "Programma");
         map.insert("nav.gallery", "Galleria");
         map.insert("nav.rsvp", "RSVP");
         map.insert("nav.admin", "Admin");
