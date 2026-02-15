@@ -70,6 +70,14 @@ extend-ignore-re = [
 "entrambi" = "entrambi"            # Italian for "both"
 "alle" = "alle"                    # Italian for "at/at the" (preposition + article)
 "preferenze" = "preferenze"        # Italian for "preferences" (plural)
+"momento" = "momento"              # Italian for "moment"
+"studi" = "studi"                  # Italian for "studies"
+
+# French proper nouns and place names
+"Espace" = "Espace"                # French word meaning "space", used in venue names
+
+# Airport codes (IATA)
+"NCE" = "NCE"                      # Nice Côte d'Azur Airport code
 
 # Rust/Technical identifiers
 "msardara" = "msardara"

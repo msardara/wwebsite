@@ -223,7 +223,7 @@ END;
 $$;
 
 -- Create a new guest for a guest group with invitation code validation
--- Note: No party size limit check - we count actual guests dynamically in the UI
+-- Security: Maximum 20 guests per group to prevent abuse
 CREATE OR REPLACE FUNCTION create_guest_for_group(
   p_guest_group_id UUID,
   p_invitation_code TEXT,
@@ -239,6 +239,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_guest guests;
+  v_current_guest_count INTEGER;
 BEGIN
   -- Validate invitation code
   IF NOT EXISTS (
@@ -249,12 +250,21 @@ BEGIN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
+  -- Check current guest count (security limit: 20 guests max)
+  SELECT COUNT(*) INTO v_current_guest_count
+  FROM guests
+  WHERE guest_group_id = p_guest_group_id;
+
+  IF v_current_guest_count >= 20 THEN
+    RAISE EXCEPTION 'Maximum of 20 guests per group allowed';
+  END IF;
+
   -- Validate name
   IF length(trim(p_name)) = 0 THEN
     RAISE EXCEPTION 'Guest name cannot be empty';
   END IF;
 
-  -- Insert guest (no party size limit check)
+  -- Insert guest
   INSERT INTO guests (guest_group_id, name, attending_locations, dietary_preferences, age_category)
   VALUES (p_guest_group_id, p_name, p_attending_locations, p_dietary_preferences, p_age_category)
   RETURNING * INTO v_guest;
