@@ -103,17 +103,23 @@ pub fn HomePage() -> impl IntoView {
 
             // Mirror Photo Section
             <div class="bg-primary-50 py-20 md:py-28">
-                <div class="relative w-full shadow-2xl overflow-hidden" style="position: relative; height: 60vh;">
+                <style>
+                    {".mirror-photo-container { position: relative; width: 100%; overflow: hidden; height: auto; }
+                    @media (min-width: 768px) {
+                        .mirror-photo-container { height: 60vh; }
+                        .mirror-photo-img { height: 100%; object-fit: cover; object-position: center 65%; }
+                    }"}
+                </style>
+                <div class="mirror-photo-container shadow-2xl">
                     <img
                         src="/public/decoration-2.png"
                         alt="Mirror reflection"
-                        class="w-full h-full object-cover block"
-                        style="display: block; object-position: center top;"
+                        class="mirror-photo-img w-full h-auto object-contain block"
                     />
 
                     // Text Overlay
-                    <div style="position: absolute; bottom: 2rem; right: 2rem; z-index: 10;" class="px-8 py-4">
-                        <p class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-secondary-900" style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive;">
+                    <div style="position: absolute; bottom: 1rem; right: 1rem; z-index: 10;" class="px-4 py-2 md:px-8 md:py-4">
+                        <p class="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold" style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 700; font-size: clamp(3rem, 8vw, 9rem); color: #1E2A1C;">
                             "See you there!"
                         </p>
                     </div>
