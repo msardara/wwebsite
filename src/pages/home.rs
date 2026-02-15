@@ -102,15 +102,20 @@ pub fn HomePage() -> impl IntoView {
             </div>
 
             // Mirror Photo Section
-            <div class="bg-primary-50 py-12 md:py-16 px-6 mt-16 md:mt-24">
-                <div class="max-w-6xl mx-auto flex justify-center">
-                    <div class="relative w-full max-w-4xl">
-                        <img
-                            src="/public/decoration-2.png"
-                            alt="Mirror reflection"
-                            class="w-full h-auto object-contain"
-                            style="user-select: none; -webkit-tap-highlight-color: transparent; box-shadow: 0px 0px 0px 0.5px rgba(64,87,109,0.06), 0px 2px 4px 0px rgba(24,44,89,0.14), 0px 6px 12px 0px rgba(24,44,89,0.07);"
-                        />
+            <div class="bg-primary-50 py-20 md:py-28">
+                <div class="relative w-full shadow-2xl overflow-hidden" style="position: relative; height: 60vh;">
+                    <img
+                        src="/public/decoration-2.png"
+                        alt="Mirror reflection"
+                        class="w-full h-full object-cover block"
+                        style="display: block; object-position: center top;"
+                    />
+
+                    // Text Overlay
+                    <div style="position: absolute; bottom: 2rem; right: 2rem; z-index: 10;" class="px-8 py-4">
+                        <p class="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-secondary-900" style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive;">
+                            "See you there!"
+                        </p>
                     </div>
                 </div>
             </div>
