@@ -35,7 +35,7 @@ pub fn HomePage() -> impl IntoView {
             </div>
 
             // RSVP Call to Action - Dark Section with Background Image
-            <div class="relative py-20 md:py-28 px-6 mt-16 md:mt-24 overflow-hidden">
+            <div class="relative py-12 md:py-16 px-6 mt-8 md:mt-12 overflow-hidden">
                 <div class="absolute inset-0 bg-black/85" style="background-image: url('/public/rings.jpg'); background-size: cover; background-position: center center; filter: blur(2px);"></div>
                 <div class="relative max-w-3xl mx-auto text-center">
                     <h2 class="text-2xl md:text-3xl lg:text-4xl font-serif text-white mb-10 font-light tracking-wide leading-relaxed" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
@@ -57,7 +57,7 @@ pub fn HomePage() -> impl IntoView {
             </div>
 
             // Couple Photo Section with Side Text - Dark Background
-            <div class="bg-secondary-900 py-20 md:py-28 px-6 mt-16 md:mt-24">
+            <div class="bg-secondary-900 py-12 md:py-16 px-6 mt-8 md:mt-12">
                 <div class="max-w-6xl mx-auto">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 items-center">
                         // Left Text
@@ -102,7 +102,7 @@ pub fn HomePage() -> impl IntoView {
             </div>
 
             // Mirror Photo Section
-            <div class="bg-primary-50 mt-16 md:mt-24">
+            <div class="bg-primary-50 mt-8 md:mt-12">
                 <div class="relative w-full shadow-2xl" style="position: relative;">
                     <img
                         src="/public/decoration-2.png"
