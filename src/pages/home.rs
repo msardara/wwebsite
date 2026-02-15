@@ -118,8 +118,8 @@ pub fn HomePage() -> impl IntoView {
                     />
 
                     // Text Overlay
-                    <div style="position: absolute; bottom: 3rem; right: 1rem; z-index: 10;" class="px-4 py-2 md:px-8 md:py-4">
-                        <p class="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold" style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 700; font-size: clamp(3rem, 8vw, 9rem); color: #1E2A1C;">
+                    <div style="position: absolute; bottom: 3rem; right: 1rem; z-index: 10;" class="px-4 py-2 md:px-8 md:py-4 md:bottom-[3rem]">
+                        <p class="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-light" style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 700; font-size: clamp(3rem, 8vw, 9rem); color: #1E2A1C;">
                             "See you there!"
                         </p>
                     </div>
