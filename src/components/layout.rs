@@ -88,7 +88,10 @@ fn Header(
         if is_active(path) {
             format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
         } else {
-            format!("{}text-secondary-800 hover:bg-secondary-200/50 hover:text-secondary-900", base)
+            format!(
+                "{}text-secondary-800 hover:bg-secondary-200/50 hover:text-secondary-900",
+                base
+            )
         }
     };
 

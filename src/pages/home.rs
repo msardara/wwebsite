@@ -1,4 +1,3 @@
-use crate::contexts::GuestContext;
 use crate::i18n::Translations;
 use crate::types::Language;
 use leptos::*;
@@ -6,7 +5,6 @@ use leptos::*;
 #[component]
 pub fn HomePage() -> impl IntoView {
     let language = use_context::<ReadSignal<Language>>().expect("Language context not found");
-    let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
 
     let translations = move || Translations::new(language.get());
 
@@ -36,21 +34,22 @@ pub fn HomePage() -> impl IntoView {
                 </div>
             </div>
 
-            // RSVP Call to Action - Dark Section
-            <div class="bg-secondary-800 py-20 md:py-28 px-6 mt-16 md:mt-24">
-                <div class="max-w-3xl mx-auto text-center">
-                    <h2 class="text-2xl md:text-3xl lg:text-4xl font-serif text-primary-50 mb-10 font-light tracking-wide leading-relaxed">
+            // RSVP Call to Action - Dark Section with Background Image
+            <div class="relative py-20 md:py-28 px-6 mt-16 md:mt-24 overflow-hidden">
+                <div class="absolute inset-0 bg-black/85" style="background-image: url('/public/rings.jpg'); background-size: cover; background-position: center center; filter: blur(2px);"></div>
+                <div class="relative max-w-3xl mx-auto text-center">
+                    <h2 class="text-2xl md:text-3xl lg:text-4xl font-serif text-white mb-10 font-light tracking-wide leading-relaxed" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
                         {move || translations().t("home.gift_message")}
                     </h2>
-                    <p class="text-primary-100/90 text-sm md:text-base lg:text-lg mb-6 max-w-2xl mx-auto font-light leading-relaxed">
+                    <p class="text-white text-sm md:text-base lg:text-lg mb-6 max-w-2xl mx-auto font-light leading-relaxed" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.9);">
                         {move || translations().t("home.contribution_text")}
                     </p>
-                    <p class="text-primary-100/90 text-sm md:text-base lg:text-lg mb-12 max-w-2xl mx-auto font-light leading-relaxed">
+                    <p class="text-white text-sm md:text-base lg:text-lg mb-12 max-w-2xl mx-auto font-light leading-relaxed" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.9);">
                         {move || translations().t("home.rsvp_instruction")}
                     </p>
                     <a
                         href="/rsvp"
-                        class="inline-block bg-primary-400 hover:bg-primary-500 text-white font-light tracking-wide py-3.5 px-8 md:px-12 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 text-base md:text-lg"
+                        class="inline-block bg-primary-500 hover:bg-primary-500 text-white font-light tracking-wide py-3.5 px-8 md:px-12 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 text-base md:text-lg"
                     >
                         {move || translations().t("nav.rsvp")} " →"
                     </a>

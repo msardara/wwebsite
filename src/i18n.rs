@@ -52,10 +52,7 @@ impl Translations {
             "home.tunisia_desc",
             "Celebrate with us in the heart of North Africa with Tunisian hospitality",
         );
-        map.insert(
-            "home.gift_message",
-            "Let's Celebrate Together",
-        );
+        map.insert("home.gift_message", "Let's Celebrate Together");
         map.insert(
             "home.contribution_text",
             "Our joy wouldn't be complete without you. We'd be honored to have you celebrate this moment with us.",
@@ -74,10 +71,7 @@ impl Translations {
         );
 
         // Events page
-        map.insert(
-            "events.subtitle_single",
-            "Join us in celebrating our love",
-        );
+        map.insert("events.subtitle_single", "Join us in celebrating our love");
         map.insert(
             "events.subtitle_multiple",
             "Join us in celebrating our love across beautiful destinations",
@@ -111,10 +105,7 @@ impl Translations {
         );
         map.insert("events.date_tunisia", "June 27, 2026");
         map.insert("events.sort_date_tunisia", "2026-06-27");
-        map.insert(
-            "events.schedule_tunisia",
-            "Starts at 9:00 PM",
-        );
+        map.insert("events.schedule_tunisia", "Starts at 9:00 PM");
         map.insert("events.venue_tunisia_name", "Espace La Vallée, Monastir");
         map.insert(
             "events.venue_tunisia_link",
@@ -293,10 +284,7 @@ impl Translations {
 
         // Home page
         map.insert("home.title", "Nous nous marions !");
-        map.insert(
-            "home.subtitle",
-            "SE MARIENT",
-        );
+        map.insert("home.subtitle", "SE MARIENT");
         map.insert("home.welcome", "Bienvenue");
         map.insert(
             "home.intro_p1",
@@ -313,10 +301,7 @@ impl Translations {
             "home.tunisia_desc",
             "Célébrez avec nous au cœur de l'Afrique du Nord avec l'hospitalité tunisienne",
         );
-        map.insert(
-            "home.gift_message",
-            "Célébrons Ensemble",
-        );
+        map.insert("home.gift_message", "Célébrons Ensemble");
         map.insert(
             "home.contribution_text",
             "Notre joie ne serait pas complète sans vous. Nous serions honorés de vous avoir à nos côtés pour célébrer ce moment avec nous.",
@@ -369,10 +354,7 @@ impl Translations {
         map.insert("events.travel_sardinia", "• L'aéroport de Cagliari (CA) est le plus proche<br/>• Nous recommandons de louer une voiture");
         map.insert("events.date_tunisia", "27 Juin 2026");
         map.insert("events.sort_date_tunisia", "2026-06-27");
-        map.insert(
-            "events.schedule_tunisia",
-            "Début à 21h00",
-        );
+        map.insert("events.schedule_tunisia", "Début à 21h00");
         map.insert("events.venue_tunisia_name", "Espace La Vallée, Monastir");
         map.insert(
             "events.venue_tunisia_link",
@@ -538,10 +520,7 @@ impl Translations {
 
         // Home page
         map.insert("home.title", "Ci sposiamo!");
-        map.insert(
-            "home.subtitle",
-            "SI SPOSANO",
-        );
+        map.insert("home.subtitle", "SI SPOSANO");
         map.insert("home.welcome", "Benvenuto");
         map.insert(
             "home.intro_p1",
@@ -558,10 +537,7 @@ impl Translations {
             "home.tunisia_desc",
             "Festeggia con noi nel cuore del Nord Africa con l'ospitalità tunisina",
         );
-        map.insert(
-            "home.gift_message",
-            "Celebriamo Insieme",
-        );
+        map.insert("home.gift_message", "Celebriamo Insieme");
         map.insert(
             "home.contribution_text",
             "La nostra festa non sarebbe completa senza di voi. Saremmo onorati di avervi al nostro fianco per celebrare questo momento insieme.",
@@ -614,10 +590,7 @@ impl Translations {
         map.insert("events.travel_sardinia", "• L'aeroporto di Cagliari (CA) è il più vicino<br/>• Si consiglia di noleggiare un'auto");
         map.insert("events.date_tunisia", "27 Giugno 2026");
         map.insert("events.sort_date_tunisia", "2026-06-27");
-        map.insert(
-            "events.schedule_tunisia",
-            "Inizio alle 21:00",
-        );
+        map.insert("events.schedule_tunisia", "Inizio alle 21:00");
         map.insert("events.venue_tunisia_name", "Espace La Vallée, Monastir");
         map.insert(
             "events.venue_tunisia_link",
@@ -644,7 +617,6 @@ impl Translations {
             "events.travel_nice",
             "• L'<a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>aeroporto di Nizza Costa Azzurra</a> serve la zona",
         );
-
 
         // Gallery
         map.insert("gallery.title", "Galleria fotografica");

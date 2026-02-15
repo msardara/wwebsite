@@ -25,7 +25,7 @@ pub fn EventsPage() -> impl IntoView {
                             guest_context.can_see_location("tunisia"),
                             guest_context.can_see_location("nice"),
                         ].iter().filter(|&&x| x).count();
-                        
+
                         if visible_count > 1 {
                             translations().t("events.subtitle_multiple")
                         } else {
@@ -44,11 +44,11 @@ pub fn EventsPage() -> impl IntoView {
                         ("tunisia", "events.tunisia", "/public/tunisia-flag.png", translations().t("events.sort_date_tunisia")),
                         ("nice", "events.nice", "/public/nice-flag.png", translations().t("events.sort_date_nice")),
                     ];
-                    
+
                     // Filter to only visible locations and sort by date
                     locations.retain(|(loc, _, _, _)| guest_context.can_see_location(loc));
                     locations.sort_by(|a, b| a.3.cmp(&b.3));
-                    
+
                     // Render sorted locations
                     locations.into_iter().map(|(location, title_key, flag, _)| {
                         view! {
