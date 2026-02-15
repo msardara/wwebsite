@@ -250,7 +250,7 @@ fn Footer(
     #[allow(unused_variables)] translations: impl Fn() -> Translations + 'static + Copy,
 ) -> impl IntoView {
     view! {
-        <footer class="bg-primary-50 border-t border-secondary-200/40 mt-16">
+        <footer class="bg-primary-50 border-t border-secondary-200/40">
             <div class="container mx-auto max-w-6xl px-6 py-10">
                 <div class="text-center text-secondary-700">
                     <p class="text-xs md:text-sm font-light tracking-wide">

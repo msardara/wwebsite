@@ -102,24 +102,18 @@ pub fn HomePage() -> impl IntoView {
             </div>
 
             // Mirror Photo Section
-            <div class="bg-primary-50 py-20 md:py-28">
-                <style>
-                    {".mirror-photo-container { position: relative; width: 100%; overflow: hidden; height: auto; }
-                    @media (min-width: 768px) {
-                        .mirror-photo-container { height: 60vh; }
-                        .mirror-photo-img { height: 100%; object-fit: cover; object-position: center 65%; }
-                    }"}
-                </style>
-                <div class="mirror-photo-container shadow-2xl">
+            <div class="bg-primary-50 mt-16 md:mt-24">
+                <div class="relative w-full shadow-2xl" style="position: relative;">
                     <img
                         src="/public/decoration-2.png"
                         alt="Mirror reflection"
-                        class="mirror-photo-img w-full h-auto object-contain block"
+                        class="w-full h-auto block"
+                        style="display: block;"
                     />
 
                     // Text Overlay
-                    <div style="position: absolute; bottom: 3rem; right: 1rem; z-index: 10;" class="px-4 py-2 md:px-8 md:py-4 md:bottom-[3rem]">
-                        <p class="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-light" style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 700; font-size: clamp(3rem, 8vw, 9rem); color: #1E2A1C;">
+                    <div style="position: absolute; bottom: 5%; right: 5%; z-index: 10;">
+                        <p style="font-family: 'Great Vibes', 'Dancing Script', 'Brush Script MT', cursive; font-weight: 600; font-size: clamp(2.2rem, 6vw, 7rem); color: #1E2A1C; letter-spacing: 0.02em; text-shadow: 1px 2px 6px rgba(0,0,0,0.3);">
                             "See you there!"
                         </p>
                     </div>

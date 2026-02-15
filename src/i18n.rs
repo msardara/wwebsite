@@ -114,7 +114,7 @@ impl Translations {
         map.insert("events.accommodation_tunisia", "• Hotels in Monastir<br/>• Hotels can also be booked in the <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>tourist area of Monastir</a>");
         map.insert(
             "events.travel_tunisia",
-            "• Closest airport: Monastir (20 min)<br/>• We recommend avoiding Tunisair airlines<br/>• Tap water is not drinkable in Tunisia",
+            "• Closest airport: Monastir<br/>• We recommend avoiding Tunisair airlines<br/>• Tap water is not drinkable in Tunisia",
         );
         map.insert("events.date_nice", "April 8, 2026");
         map.insert("events.sort_date_nice", "2026-04-08");
@@ -363,7 +363,7 @@ impl Translations {
         map.insert("events.accommodation_tunisia", "• Hôtels à Monastir<br/>• Les hôtels peuvent également être réservés dans la <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>zone touristique de Monastir</a>");
         map.insert(
             "events.travel_tunisia",
-            "• Aéroport le plus proche : Monastir (20 min)<br/>• Nous recommandons d'éviter la compagnie aérienne Tunisair<br/>• L'eau du robinet n'est pas potable en Tunisie",
+            "• Aéroport le plus proche : Monastir<br/>• Nous recommandons d'éviter la compagnie aérienne Tunisair<br/>• L'eau du robinet n'est pas potable en Tunisie",
         );
         map.insert("events.date_nice", "8 Avril 2026");
         map.insert("events.sort_date_nice", "2026-04-08");
@@ -599,7 +599,7 @@ impl Translations {
         map.insert("events.accommodation_tunisia", "• Hotel a Monastir<br/>• Gli hotel possono essere prenotati anche nella <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>zona turistica di Monastir</a>");
         map.insert(
             "events.travel_tunisia",
-            "• Aeroporto più vicino: Monastir (20 min)<br/>• Raccomandiamo di evitare la compagnia aerea Tunisair<br/>• L'acqua di rubinetto non è potabile in Tunisia",
+            "• Aeroporto più vicino: Monastir<br/>• Raccomandiamo di evitare la compagnia aerea Tunisair<br/>• L'acqua di rubinetto non è potabile in Tunisia",
         );
         map.insert("events.date_nice", "8 Aprile 2026");
         map.insert("events.sort_date_nice", "2026-04-08");
