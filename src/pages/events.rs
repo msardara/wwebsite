@@ -38,48 +38,28 @@ pub fn EventsPage() -> impl IntoView {
             // Events Timeline
             <div class="space-y-12">
                 {move || {
-                    if guest_context.can_see_location("sardinia") {
+                    // Define all locations with their dates for sorting
+                    let mut locations = vec![
+                        ("sardinia", "events.sardinia", "/public/sardinia-flag.png", translations().t("events.sort_date_sardinia")),
+                        ("tunisia", "events.tunisia", "/public/tunisia-flag.png", translations().t("events.sort_date_tunisia")),
+                        ("nice", "events.nice", "/public/nice-flag.png", translations().t("events.sort_date_nice")),
+                    ];
+                    
+                    // Filter to only visible locations and sort by date
+                    locations.retain(|(loc, _, _, _)| guest_context.can_see_location(loc));
+                    locations.sort_by(|a, b| a.3.cmp(&b.3));
+                    
+                    // Render sorted locations
+                    locations.into_iter().map(|(location, title_key, flag, _)| {
                         view! {
                             <LocationSection
-                                location="sardinia"
-                                title=move || translations().t("events.sardinia")
-                                flag="/public/sardinia-flag.png"
+                                location=location
+                                title=move || translations().t(title_key)
+                                flag=flag
                                 translations=translations
                             />
-                        }.into_view()
-                    } else {
-                        view! {}.into_view()
-                    }
-                }}
-
-                {move || {
-                    if guest_context.can_see_location("tunisia") {
-                        view! {
-                            <LocationSection
-                                location="tunisia"
-                                title=move || translations().t("events.tunisia")
-                                flag="/public/tunisia-flag.png"
-                                translations=translations
-                            />
-                        }.into_view()
-                    } else {
-                        view! {}.into_view()
-                    }
-                }}
-
-                {move || {
-                    if guest_context.can_see_location("nice") {
-                        view! {
-                            <LocationSection
-                                location="nice"
-                                title=move || translations().t("events.nice")
-                                flag="/public/nice-flag.png"
-                                translations=translations
-                            />
-                        }.into_view()
-                    } else {
-                        view! {}.into_view()
-                    }
+                        }
+                    }).collect_view()
                 }}
             </div>
         </div>
@@ -103,9 +83,17 @@ fn LocationSection(
                         alt="Flag"
                         class="w-16 h-12 object-cover rounded-md shadow-md border-2 border-white"
                     />
-                    <h2 class="text-3xl md:text-4xl font-serif text-secondary-800 font-light">
-                        {title}
-                    </h2>
+                    <div>
+                        <h2 class="text-3xl md:text-4xl font-serif text-secondary-800 font-light">
+                            {title}
+                        </h2>
+                        <p class="text-lg text-secondary-600 font-light mt-1">
+                            {move || {
+                                let date_key = format!("events.date_{}", location);
+                                translations().t(&date_key)
+                            }}
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -113,7 +101,7 @@ fn LocationSection(
             <div class="p-8">
                 <div class="grid md:grid-cols-2 gap-6">
                     <InfoCard
-                        icon="📅"
+                        icon="🗓️"
                         title=move || translations().t("events.schedule")
                         content_key=format!("schedule_{}", location)
                         translations=translations
@@ -153,6 +141,7 @@ fn InfoCard(
     translations: impl Fn() -> Translations + 'static + Copy,
 ) -> impl IntoView {
     let is_venue = content_key.contains("venue");
+    let is_schedule = content_key.contains("schedule");
     let content_key = store_value(content_key);
 
     let placeholder_content = move || {
@@ -167,6 +156,12 @@ fn InfoCard(
 
     let venue_link = move || {
         let key = format!("events.{}_link", content_key.get_value());
+        translations().t(&key)
+    };
+
+    let schedule_date = move || {
+        let location = content_key.get_value().replace("schedule_", "");
+        let key = format!("events.date_{}", location);
         translations().t(&key)
     };
 
@@ -202,10 +197,20 @@ fn InfoCard(
                             </div>
                         </div>
                     }.into_view()
+                } else if is_schedule {
+                    view! {
+                        <div>
+                            <p class="text-secondary-800 font-medium mb-2">
+                                {schedule_date}
+                            </p>
+                            <p class="text-secondary-600 leading-relaxed font-light">
+                                {placeholder_content}
+                            </p>
+                        </div>
+                    }.into_view()
                 } else {
                     view! {
-                        <p class="text-secondary-600 leading-relaxed font-light">
-                            {placeholder_content}
+                        <p class="text-secondary-600 leading-relaxed font-light" inner_html=placeholder_content>
                         </p>
                     }.into_view()
                 }

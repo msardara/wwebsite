@@ -89,6 +89,8 @@ impl Translations {
         map.insert("events.view_on_maps", "View on Google Maps");
 
         // Event content placeholders
+        map.insert("events.date_sardinia", "September 19, 2026");
+        map.insert("events.sort_date_sardinia", "2026-09-19");
         map.insert("events.schedule_sardinia", "Ceremony at 6:00 PM");
         map.insert("events.venue_sardinia_name", "Sa Mola Hotel Ristorante");
         map.insert(
@@ -103,25 +105,29 @@ impl Translations {
             "events.travel_sardinia",
             "Cagliari Airport (CA) is the closest. We recommend renting a car.",
         );
+        map.insert("events.date_tunisia", "June 27, 2026");
+        map.insert("events.sort_date_tunisia", "2026-06-27");
         map.insert(
             "events.schedule_tunisia",
-            "Ceremony at 6:00 PM, Reception to follow at 7:00 PM",
+            "Starts at 9:00 PM",
         );
-        map.insert("events.venue_tunisia_name", "Monastir");
+        map.insert("events.venue_tunisia_name", "Espace La Vallée, Monastir");
         map.insert(
             "events.venue_tunisia_link",
-            "https://maps.app.goo.gl/qhCtxDfV1PYgczaG6",
+            "https://maps.app.goo.gl/Y4dCfdekMGiWvMFX6",
         );
         map.insert("events.accommodation_tunisia", "Hotels in Monastir");
         map.insert(
             "events.travel_tunisia",
-            "Monastir Habib Bourguiba International Airport serves the area",
+            "• Closest airport: Monastir (20 min)<br/>• We recommend avoiding Tunisair airlines<br/>• Tap water is not drinkable in Tunisia",
         );
+        map.insert("events.date_nice", "April 8, 2026");
+        map.insert("events.sort_date_nice", "2026-04-08");
         map.insert(
             "events.schedule_nice",
-            "Ceremony at 6:00 PM, Reception to follow at 7:00 PM",
+            "Ceremony at 11:00 AM, Lunch to follow",
         );
-        map.insert("events.venue_nice_name", "Nice");
+        map.insert("events.venue_nice_name", "Nice City Hall");
         map.insert(
             "events.venue_nice_link",
             "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
@@ -340,6 +346,8 @@ impl Translations {
         map.insert("events.view_on_maps", "Voir sur Google Maps");
 
         // Event content placeholders
+        map.insert("events.date_sardinia", "19 Septembre 2026");
+        map.insert("events.sort_date_sardinia", "2026-09-19");
         map.insert("events.schedule_sardinia", "Cérémonie à 18h00");
         map.insert("events.venue_sardinia_name", "Sa Mola Hotel Ristorante");
         map.insert(
@@ -351,25 +359,29 @@ impl Translations {
             "Hôtels recommandés à Oristano / Cabras.",
         );
         map.insert("events.travel_sardinia", "L'aéroport de Cagliari (CA) est le plus proche. Nous recommandons de louer une voiture.");
+        map.insert("events.date_tunisia", "27 Juin 2026");
+        map.insert("events.sort_date_tunisia", "2026-06-27");
         map.insert(
             "events.schedule_tunisia",
-            "Cérémonie à 18h00, Réception à 19h00",
+            "Début à 21h00",
         );
-        map.insert("events.venue_tunisia_name", "Monastir");
+        map.insert("events.venue_tunisia_name", "Espace La Vallée, Monastir");
         map.insert(
             "events.venue_tunisia_link",
-            "https://maps.app.goo.gl/qhCtxDfV1PYgczaG6",
+            "https://maps.app.goo.gl/Y4dCfdekMGiWvMFX6",
         );
         map.insert("events.accommodation_tunisia", "Hôtels à Monastir");
         map.insert(
             "events.travel_tunisia",
-            "L'aéroport international Monastir Habib Bourguiba dessert la région",
+            "• Aéroport le plus proche : Monastir (20 min)<br/>• Nous recommandons d'éviter la compagnie aérienne Tunisair<br/>• L'eau du robinet n'est pas potable en Tunisie",
         );
+        map.insert("events.date_nice", "8 Avril 2026");
+        map.insert("events.sort_date_nice", "2026-04-08");
         map.insert(
             "events.schedule_nice",
-            "Cérémonie à 18h00, Réception à 19h00",
+            "Cérémonie à 11h00, suivi d'un déjeuner",
         );
-        map.insert("events.venue_nice_name", "Nice");
+        map.insert("events.venue_nice_name", "Mairie de Nice");
         map.insert(
             "events.venue_nice_link",
             "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
@@ -575,6 +587,8 @@ impl Translations {
         map.insert("events.view_on_maps", "Visualizza su Google Maps");
 
         // Event content placeholders
+        map.insert("events.date_sardinia", "19 Settembre 2026");
+        map.insert("events.sort_date_sardinia", "2026-09-19");
         map.insert("events.schedule_sardinia", "Cerimonia alle 18:00");
         map.insert("events.venue_sardinia_name", "Sa Mola Hotel Ristorante");
         map.insert(
@@ -586,25 +600,29 @@ impl Translations {
             "Hotel consigliati a Oristano / Cabras.",
         );
         map.insert("events.travel_sardinia", "L'aeroporto di Cagliari (CA) è il più vicino. Si consiglia di noleggiare un'auto.");
+        map.insert("events.date_tunisia", "27 Giugno 2026");
+        map.insert("events.sort_date_tunisia", "2026-06-27");
         map.insert(
             "events.schedule_tunisia",
-            "Cerimonia alle 18:00, Ricevimento alle 19:00",
+            "Inizio alle 21:00",
         );
-        map.insert("events.venue_tunisia_name", "Monastir");
+        map.insert("events.venue_tunisia_name", "Espace La Vallée, Monastir");
         map.insert(
             "events.venue_tunisia_link",
-            "https://maps.app.goo.gl/qhCtxDfV1PYgczaG6",
+            "https://maps.app.goo.gl/Y4dCfdekMGiWvMFX6",
         );
         map.insert("events.accommodation_tunisia", "Hotel a Monastir");
         map.insert(
             "events.travel_tunisia",
-            "L'aeroporto internazionale di Monastir Habib Bourguiba serve la zona",
+            "• Aeroporto più vicino: Monastir (20 min)<br/>• Raccomandiamo di evitare la compagnia aerea Tunisair<br/>• L'acqua di rubinetto non è potabile in Tunisia",
         );
+        map.insert("events.date_nice", "8 Aprile 2026");
+        map.insert("events.sort_date_nice", "2026-04-08");
         map.insert(
             "events.schedule_nice",
-            "Cerimonia alle 18:00, Ricevimento alle 19:00",
+            "Cerimonia alle 11:00, Pranzo a seguire",
         );
-        map.insert("events.venue_nice_name", "Nizza");
+        map.insert("events.venue_nice_name", "Municipio di Nizza");
         map.insert(
             "events.venue_nice_link",
             "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
