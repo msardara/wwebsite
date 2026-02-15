@@ -52,8 +52,32 @@ impl Translations {
             "home.tunisia_desc",
             "Celebrate with us in the heart of North Africa with Tunisian hospitality",
         );
+        map.insert(
+            "home.gift_message",
+            "Your presence is truly the best gift we could ask for",
+        );
+        map.insert(
+            "home.contribution_text",
+            "But if you feel inclined to give a little something extra, a contribution toward our future together would be warmly appreciated. We're saving up for a special trip and every little bit helps us on our way!",
+        );
+        map.insert("home.our_love", "Our Love");
+        map.insert("home.for_gardens", "For Gardens");
+        map.insert("home.and_each", "(And Each");
+        map.insert("home.other", "Other)");
+        map.insert(
+            "home.couple_story",
+            "Write a paragraph that tells your story as a couple. You can include details like how you met, your journey together, and what makes your relationship unique. This is your chance to share your personality and connect with your guests.",
+        );
 
         // Events page
+        map.insert(
+            "events.subtitle_single",
+            "Join us in celebrating our love",
+        );
+        map.insert(
+            "events.subtitle_multiple",
+            "Join us in celebrating our love across beautiful destinations",
+        );
         map.insert("events.title", "Event Details");
         map.insert("events.sardinia", "Sardinia, Italy");
         map.insert("events.tunisia", "Tunisia");
@@ -279,8 +303,32 @@ impl Translations {
             "home.tunisia_desc",
             "Célébrez avec nous au cœur de l'Afrique du Nord avec l'hospitalité tunisienne",
         );
+        map.insert(
+            "home.gift_message",
+            "Votre présence est vraiment le plus beau cadeau que nous puissions demander",
+        );
+        map.insert(
+            "home.contribution_text",
+            "Mais si vous souhaitez offrir un petit quelque chose en plus, une contribution pour notre avenir ensemble serait chaleureusement appréciée. Nous économisons pour un voyage spécial et chaque petit geste nous aide !",
+        );
+        map.insert("home.our_love", "Notre Amour");
+        map.insert("home.for_gardens", "Pour les Jardins");
+        map.insert("home.and_each", "(Et l'un");
+        map.insert("home.other", "l'Autre)");
+        map.insert(
+            "home.couple_story",
+            "Écrivez un paragraphe qui raconte votre histoire en tant que couple. Vous pouvez inclure des détails comme comment vous vous êtes rencontrés, votre parcours ensemble, et ce qui rend votre relation unique. C'est votre chance de partager votre personnalité et de créer un lien avec vos invités.",
+        );
 
         // Events page
+        map.insert(
+            "events.subtitle_single",
+            "Rejoignez-nous pour célébrer notre amour",
+        );
+        map.insert(
+            "events.subtitle_multiple",
+            "Rejoignez-nous pour célébrer notre amour à travers de belles destinations",
+        );
         map.insert("events.title", "Détails de l'événement");
         map.insert("events.sardinia", "Sardaigne, Italie");
         map.insert("events.tunisia", "Tunisie");
@@ -490,8 +538,32 @@ impl Translations {
             "home.tunisia_desc",
             "Festeggia con noi nel cuore del Nord Africa con l'ospitalità tunisina",
         );
+        map.insert(
+            "home.gift_message",
+            "La vostra presenza è davvero il regalo più bello che potremmo chiedere",
+        );
+        map.insert(
+            "home.contribution_text",
+            "Ma se desiderate offrire qualcosa in più, un contributo per il nostro futuro insieme sarebbe molto apprezzato. Stiamo risparmiando per un viaggio speciale e ogni piccolo aiuto ci accompagna nel nostro cammino!",
+        );
+        map.insert("home.our_love", "Il Nostro Amore");
+        map.insert("home.for_gardens", "Per i Giardini");
+        map.insert("home.and_each", "(E l'uno");
+        map.insert("home.other", "per l'Altro)");
+        map.insert(
+            "home.couple_story",
+            "Scrivi un paragrafo che racconti la vostra storia di coppia. Puoi includere dettagli come vi siete conosciuti, il vostro viaggio insieme e cosa rende unica la vostra relazione. Questa è la vostra occasione per condividere la vostra personalità e connettervi con i vostri ospiti.",
+        );
 
         // Events page
+        map.insert(
+            "events.subtitle_single",
+            "Unisciti a noi per celebrare il nostro amore",
+        );
+        map.insert(
+            "events.subtitle_multiple",
+            "Unisciti a noi per celebrare il nostro amore attraverso bellissime destinazioni",
+        );
         map.insert("events.title", "Dettagli dell'evento");
         map.insert("events.sardinia", "Sardegna, Italia");
         map.insert("events.tunisia", "Tunisia");

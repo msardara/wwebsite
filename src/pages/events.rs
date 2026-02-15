@@ -13,14 +13,25 @@ pub fn EventsPage() -> impl IntoView {
     view! {
         <div class="max-w-4xl mx-auto">
             // Page Header
-            <div class="text-center mb-16 animate-fade-in">
-                <div class="text-5xl mb-6">"📅"</div>
+            <div class="text-center mb-32 animate-fade-in">
                 <h1 class="text-5xl md:text-6xl font-serif font-light text-secondary-800 mb-6 tracking-wide">
                     {move || translations().t("events.title")}
                 </h1>
                 <div class="w-24 h-0.5 bg-primary-400 mx-auto mb-6"></div>
-                <p class="text-lg md:text-xl text-secondary-600 font-light">
-                    "Join us in celebrating our love across beautiful destinations"
+                <p class="text-lg md:text-xl text-secondary-600 font-light mb-8">
+                    {move || {
+                        let visible_count = [
+                            guest_context.can_see_location("sardinia"),
+                            guest_context.can_see_location("tunisia"),
+                            guest_context.can_see_location("nice"),
+                        ].iter().filter(|&&x| x).count();
+                        
+                        if visible_count > 1 {
+                            translations().t("events.subtitle_multiple")
+                        } else {
+                            translations().t("events.subtitle_single")
+                        }
+                    }}
                 </p>
             </div>
 
@@ -87,9 +98,9 @@ fn LocationSection(
             // Location Header
             <div class="bg-gradient-to-r from-primary-50 via-accent-50 to-primary-50 px-8 py-8 border-b border-primary-200">
                 <div class="flex items-center gap-4 mb-2">
-                    <img 
-                        src={flag} 
-                        alt="Flag" 
+                    <img
+                        src={flag}
+                        alt="Flag"
                         class="w-16 h-12 object-cover rounded-md shadow-md border-2 border-white"
                     />
                     <h2 class="text-3xl md:text-4xl font-serif text-secondary-800 font-light">
