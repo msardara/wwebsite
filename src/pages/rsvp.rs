@@ -525,6 +525,117 @@ fn RsvpManager(
                     </button>
                 </form>
             </Show>
+
+            // Guest Tables by Location
+            <Show when=move || !guests.get().is_empty()>
+                <div class="space-y-6 mt-12">
+                    <h2 class="text-3xl font-serif font-bold text-center text-gray-800 mb-8">
+                        "Guest Summary"
+                    </h2>
+                    
+                    <For
+                        each=move || available_locations.get()
+                        key=|loc| loc.as_str().to_string()
+                        children=move |location: Location| {
+                            let loc_str = store_value(location.as_str().to_string());
+                            
+                            // Filter guests attending this location - use create_memo
+                            let location_guests = create_memo(move |_| {
+                                guests.get()
+                                    .into_iter()
+                                    .filter(|g| {
+                                        guest_location_map
+                                            .get()
+                                            .get(&g.id)
+                                            .map(|locs| locs.contains(&loc_str.get_value()))
+                                            .unwrap_or(false)
+                                    })
+                                    .collect::<Vec<_>>()
+                            });
+                            
+                            let (title, flag, bg_color, text_color) = match location {
+                                Location::Sardinia => ("Sardinia Guests", "🇮🇹", "bg-red-50", "text-red-900"),
+                                Location::Tunisia => ("Tunisia Guests", "🇹🇳", "bg-green-50", "text-green-900"),
+                                Location::Nice => ("Nice Guests", "🇫🇷", "bg-purple-50", "text-purple-900"),
+                            };
+                            
+                            view! {
+                                <div class={format!("rounded-lg shadow-lg p-6 {}", bg_color)}>
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-4xl">{flag}</span>
+                                            <h3 class={format!("text-2xl font-serif font-bold {}", text_color)}>
+                                                {title}
+                                            </h3>
+                                        </div>
+                                        <span class={format!("text-lg font-semibold {}", text_color)}>
+                                            "("{move || location_guests.get().len()}" guests)"
+                                        </span>
+                                    </div>
+                                    
+                                    <Show
+                                        when=move || !location_guests.get().is_empty()
+                                        fallback=move || view! {
+                                            <p class="text-center text-gray-500 py-4">"No guests attending this location"</p>
+                                        }
+                                    >
+                                        <div class="bg-white rounded-lg overflow-hidden">
+                                            <table class="w-full">
+                                                <thead class="bg-gray-100 border-b border-gray-200">
+                                                    <tr>
+                                                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                                                            "Name"
+                                                        </th>
+                                                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                                                            "Dietary"
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <For
+                                                        each=move || location_guests.get()
+                                                        key=|g| g.id.clone()
+                                                        children=move |guest: Guest| {
+                                                            let mut items = Vec::new();
+                                                            let prefs = &guest.dietary_preferences;
+                                                            
+                                                            if prefs.vegetarian { items.push("Vegetarian"); }
+                                                            if prefs.vegan { items.push("Vegan"); }
+                                                            if prefs.halal { items.push("Halal"); }
+                                                            if prefs.no_pork { items.push("No Pork"); }
+                                                            if prefs.gluten_free { items.push("Gluten Free"); }
+                                                            if !prefs.other.is_empty() { 
+                                                                items.push(prefs.other.as_str()); 
+                                                            }
+                                                            
+                                                            let dietary_info = if items.is_empty() {
+                                                                String::from("-")
+                                                            } else {
+                                                                items.join(", ")
+                                                            };
+                                                            
+                                                            view! {
+                                                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                                                    <td class="px-4 py-3 text-gray-800">
+                                                                        {guest.name.clone()}
+                                                                    </td>
+                                                                    <td class="px-4 py-3 text-gray-600 text-sm">
+                                                                        {dietary_info}
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        }
+                                                    />
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </Show>
+                                </div>
+                            }
+                        }
+                    />
+                </div>
+            </Show>
         </div>
     }
 }

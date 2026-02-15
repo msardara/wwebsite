@@ -57,6 +57,7 @@ impl Translations {
         map.insert("events.title", "Event Details");
         map.insert("events.sardinia", "Sardinia, Italy");
         map.insert("events.tunisia", "Tunisia");
+        map.insert("events.nice", "Nice, France");
         map.insert("events.schedule", "Schedule");
         map.insert("events.venue", "Venue");
         map.insert("events.accommodation", "Accommodation");
@@ -91,6 +92,20 @@ impl Translations {
         map.insert(
             "events.travel_tunisia",
             "Monastir Habib Bourguiba International Airport serves the area",
+        );
+        map.insert(
+            "events.schedule_nice",
+            "Ceremony at 6:00 PM, Reception to follow at 7:00 PM",
+        );
+        map.insert("events.venue_nice_name", "Nice");
+        map.insert(
+            "events.venue_nice_link",
+            "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
+        );
+        map.insert("events.accommodation_nice", "Hotels in Nice");
+        map.insert(
+            "events.travel_nice",
+            "Nice Côte d'Azur Airport serves the area",
         );
 
         // Gallery
@@ -269,6 +284,7 @@ impl Translations {
         map.insert("events.title", "Détails de l'événement");
         map.insert("events.sardinia", "Sardaigne, Italie");
         map.insert("events.tunisia", "Tunisie");
+        map.insert("events.nice", "Nice, France");
         map.insert("events.schedule", "Programme");
         map.insert("events.venue", "Lieu");
         map.insert("events.accommodation", "Hébergement");
@@ -300,6 +316,20 @@ impl Translations {
         map.insert(
             "events.travel_tunisia",
             "L'aéroport international Monastir Habib Bourguiba dessert la région",
+        );
+        map.insert(
+            "events.schedule_nice",
+            "Cérémonie à 18h00, Réception à 19h00",
+        );
+        map.insert("events.venue_nice_name", "Nice");
+        map.insert(
+            "events.venue_nice_link",
+            "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
+        );
+        map.insert("events.accommodation_nice", "Hôtels à Nice");
+        map.insert(
+            "events.travel_nice",
+            "L'aéroport Nice Côte d'Azur dessert la région",
         );
 
         // Gallery
@@ -465,6 +495,7 @@ impl Translations {
         map.insert("events.title", "Dettagli dell'evento");
         map.insert("events.sardinia", "Sardegna, Italia");
         map.insert("events.tunisia", "Tunisia");
+        map.insert("events.nice", "Nizza, Francia");
         map.insert("events.schedule", "Programma");
         map.insert("events.venue", "Luogo");
         map.insert("events.accommodation", "Alloggio");
@@ -480,12 +511,9 @@ impl Translations {
         );
         map.insert(
             "events.accommodation_sardinia",
-            "Hotel consigliati nella zona di Oristano / Cabras.",
+            "Hotel consigliati a Oristano / Cabras.",
         );
-        map.insert(
-            "events.travel_sardinia",
-            "L'aeroporto di Cagliari (CA) è il più vicino. Consigliamo di noleggiare un'auto.",
-        );
+        map.insert("events.travel_sardinia", "L'aeroporto di Cagliari (CA) è il più vicino. Si consiglia di noleggiare un'auto.");
         map.insert(
             "events.schedule_tunisia",
             "Cerimonia alle 18:00, Ricevimento alle 19:00",
@@ -498,8 +526,23 @@ impl Translations {
         map.insert("events.accommodation_tunisia", "Hotel a Monastir");
         map.insert(
             "events.travel_tunisia",
-            "L'aeroporto internazionale Monastir Habib Bourguiba serve la zona",
+            "L'aeroporto internazionale di Monastir Habib Bourguiba serve la zona",
         );
+        map.insert(
+            "events.schedule_nice",
+            "Cerimonia alle 18:00, Ricevimento alle 19:00",
+        );
+        map.insert("events.venue_nice_name", "Nizza");
+        map.insert(
+            "events.venue_nice_link",
+            "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
+        );
+        map.insert("events.accommodation_nice", "Hotel a Nizza");
+        map.insert(
+            "events.travel_nice",
+            "L'aeroporto di Nizza Costa Azzurra serve la zona",
+        );
+
 
         // Gallery
         map.insert("gallery.title", "Galleria fotografica");

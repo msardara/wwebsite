@@ -51,6 +51,21 @@ pub fn EventsPage() -> impl IntoView {
                         view! {}.into_view()
                     }
                 }}
+
+                {move || {
+                    if guest_context.can_see_location("nice") {
+                        view! {
+                            <LocationSection
+                                location="nice"
+                                title=move || translations().t("events.nice")
+                                flag="/public/nice-flag.png"
+                                translations=translations
+                            />
+                        }.into_view()
+                    } else {
+                        view! {}.into_view()
+                    }
+                }}
             </div>
         </div>
     }
