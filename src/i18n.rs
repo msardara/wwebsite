@@ -54,19 +54,23 @@ impl Translations {
         );
         map.insert(
             "home.gift_message",
-            "Your presence is truly the best gift we could ask for",
+            "Let's Celebrate Together",
         );
         map.insert(
             "home.contribution_text",
-            "But if you feel inclined to give a little something extra, a contribution toward our future together would be warmly appreciated. We're saving up for a special trip and every little bit helps us on our way!",
+            "Our joy wouldn't be complete without you. We'd be honored to have you celebrate this moment with us.",
         );
-        map.insert("home.our_love", "Our Love");
-        map.insert("home.for_gardens", "For Gardens");
-        map.insert("home.and_each", "(And Each");
-        map.insert("home.other", "Other)");
+        map.insert(
+            "home.rsvp_instruction",
+            "Please let us know if you can join by filling out the RSVP.",
+        );
+        map.insert("home.our_love", "Once Upon a Time...");
+        map.insert("home.for_gardens", "");
+        map.insert("home.and_each", "at the Cité Universitaire");
+        map.insert("home.other", "de Paris");
         map.insert(
             "home.couple_story",
-            "Write a paragraph that tells your story as a couple. You can include details like how you met, your journey together, and what makes your relationship unique. This is your chance to share your personality and connect with your guests.",
+            "The year was 2017. We had both just arrived in Paris; Mouna was finishing her studies and Mauro was starting his PhD. It all began with a dinner, then a friendship, a connection. What was meant to be a simple meeting marked the beginning of our story.",
         );
 
         // Events page
@@ -99,11 +103,11 @@ impl Translations {
         );
         map.insert(
             "events.accommodation_sardinia",
-            "Recommended hotels in Oristano / Cabras.",
+            "• Recommended hotels in <a href='https://www.google.com/maps/place/Oristano,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://www.google.com/maps/place/Cabras,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
         );
         map.insert(
             "events.travel_sardinia",
-            "Cagliari Airport (CA) is the closest. We recommend renting a car.",
+            "• Cagliari Airport (CA) is the closest<br/>• We recommend renting a car",
         );
         map.insert("events.date_tunisia", "June 27, 2026");
         map.insert("events.sort_date_tunisia", "2026-06-27");
@@ -116,7 +120,7 @@ impl Translations {
             "events.venue_tunisia_link",
             "https://maps.app.goo.gl/Y4dCfdekMGiWvMFX6",
         );
-        map.insert("events.accommodation_tunisia", "Hotels in Monastir");
+        map.insert("events.accommodation_tunisia", "• Hotels in Monastir<br/>• Hotels can also be booked in the <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>tourist area of Monastir</a>");
         map.insert(
             "events.travel_tunisia",
             "• Closest airport: Monastir (20 min)<br/>• We recommend avoiding Tunisair airlines<br/>• Tap water is not drinkable in Tunisia",
@@ -132,10 +136,10 @@ impl Translations {
             "events.venue_nice_link",
             "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
         );
-        map.insert("events.accommodation_nice", "Hotels in Nice");
+        map.insert("events.accommodation_nice", "• Hotels in Nice<br/>• Prefer accommodation along tram lines 2 and 3, preferably near the beach");
         map.insert(
             "events.travel_nice",
-            "Nice Côte d'Azur Airport serves the area",
+            "• <a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Nice Côte d'Azur Airport</a> serves the area",
         );
 
         // Gallery
@@ -311,19 +315,23 @@ impl Translations {
         );
         map.insert(
             "home.gift_message",
-            "Votre présence est vraiment le plus beau cadeau que nous puissions demander",
+            "Célébrons Ensemble",
         );
         map.insert(
             "home.contribution_text",
-            "Mais si vous souhaitez offrir un petit quelque chose en plus, une contribution pour notre avenir ensemble serait chaleureusement appréciée. Nous économisons pour un voyage spécial et chaque petit geste nous aide !",
+            "Notre joie ne serait pas complète sans vous. Nous serions honorés de vous avoir à nos côtés pour célébrer ce moment avec nous.",
         );
-        map.insert("home.our_love", "Notre Amour");
-        map.insert("home.for_gardens", "Pour les Jardins");
-        map.insert("home.and_each", "(Et l'un");
-        map.insert("home.other", "l'Autre)");
+        map.insert(
+            "home.rsvp_instruction",
+            "Merci de nous faire savoir si vous pourrez vous joindre à nous en remplissant le RSVP.",
+        );
+        map.insert("home.our_love", "Il Était une Fois...");
+        map.insert("home.for_gardens", "");
+        map.insert("home.and_each", "à la Cité Universitaire");
+        map.insert("home.other", "de Paris");
         map.insert(
             "home.couple_story",
-            "Écrivez un paragraphe qui raconte votre histoire en tant que couple. Vous pouvez inclure des détails comme comment vous vous êtes rencontrés, votre parcours ensemble, et ce qui rend votre relation unique. C'est votre chance de partager votre personnalité et de créer un lien avec vos invités.",
+            "L'année était 2017. Nous venions tous les deux d'arriver à Paris ; Mouna finissait ses études et Mauro commençait son doctorat. Tout a commencé par un dîner, puis une amitié, une complicité. Ce qui devait être une simple rencontre a marqué le début de notre histoire.",
         );
 
         // Events page
@@ -356,9 +364,9 @@ impl Translations {
         );
         map.insert(
             "events.accommodation_sardinia",
-            "Hôtels recommandés à Oristano / Cabras.",
+            "• Hôtels recommandés à <a href='https://www.google.com/maps/place/Oristano,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://www.google.com/maps/place/Cabras,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
         );
-        map.insert("events.travel_sardinia", "L'aéroport de Cagliari (CA) est le plus proche. Nous recommandons de louer une voiture.");
+        map.insert("events.travel_sardinia", "• L'aéroport de Cagliari (CA) est le plus proche<br/>• Nous recommandons de louer une voiture");
         map.insert("events.date_tunisia", "27 Juin 2026");
         map.insert("events.sort_date_tunisia", "2026-06-27");
         map.insert(
@@ -370,7 +378,7 @@ impl Translations {
             "events.venue_tunisia_link",
             "https://maps.app.goo.gl/Y4dCfdekMGiWvMFX6",
         );
-        map.insert("events.accommodation_tunisia", "Hôtels à Monastir");
+        map.insert("events.accommodation_tunisia", "• Hôtels à Monastir<br/>• Les hôtels peuvent également être réservés dans la <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>zone touristique de Monastir</a>");
         map.insert(
             "events.travel_tunisia",
             "• Aéroport le plus proche : Monastir (20 min)<br/>• Nous recommandons d'éviter la compagnie aérienne Tunisair<br/>• L'eau du robinet n'est pas potable en Tunisie",
@@ -386,10 +394,10 @@ impl Translations {
             "events.venue_nice_link",
             "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
         );
-        map.insert("events.accommodation_nice", "Hôtels à Nice");
+        map.insert("events.accommodation_nice", "• Hôtels à Nice<br/>• Privilégiez un hébergement le long des lignes de tram 2 et 3, de préférence à proximité de la plage");
         map.insert(
             "events.travel_nice",
-            "L'aéroport Nice Côte d'Azur dessert la région",
+            "• L'<a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>aéroport Nice Côte d'Azur</a> dessert la région",
         );
 
         // Gallery
@@ -552,19 +560,23 @@ impl Translations {
         );
         map.insert(
             "home.gift_message",
-            "La vostra presenza è davvero il regalo più bello che potremmo chiedere",
+            "Celebriamo Insieme",
         );
         map.insert(
             "home.contribution_text",
-            "Ma se desiderate offrire qualcosa in più, un contributo per il nostro futuro insieme sarebbe molto apprezzato. Stiamo risparmiando per un viaggio speciale e ogni piccolo aiuto ci accompagna nel nostro cammino!",
+            "La nostra festa non sarebbe completa senza di voi. Saremmo onorati di avervi al nostro fianco per celebrare questo momento insieme.",
         );
-        map.insert("home.our_love", "Il Nostro Amore");
-        map.insert("home.for_gardens", "Per i Giardini");
-        map.insert("home.and_each", "(E l'uno");
-        map.insert("home.other", "per l'Altro)");
+        map.insert(
+            "home.rsvp_instruction",
+            "Vi preghiamo di comunicarci la vostra partecipazione compilando il modulo RSVP.",
+        );
+        map.insert("home.our_love", "C'era una Volta...");
+        map.insert("home.for_gardens", "");
+        map.insert("home.and_each", "nella Cité Universitaire");
+        map.insert("home.other", "di Parigi");
         map.insert(
             "home.couple_story",
-            "Scrivi un paragrafo che racconti la vostra storia di coppia. Puoi includere dettagli come vi siete conosciuti, il vostro viaggio insieme e cosa rende unica la vostra relazione. Questa è la vostra occasione per condividere la vostra personalità e connettervi con i vostri ospiti.",
+            "Era il 2017. Eravamo entrambi appena arrivati a Parigi; Mouna stava finendo i suoi studi e Mauro stava iniziando il suo dottorato. Tutto è iniziato con una cena, poi un'amicizia, una complicità. Quello che doveva essere un semplice incontro ha segnato l'inizio della nostra storia.",
         );
 
         // Events page
@@ -597,9 +609,9 @@ impl Translations {
         );
         map.insert(
             "events.accommodation_sardinia",
-            "Hotel consigliati a Oristano / Cabras.",
+            "• Hotel consigliati a <a href='https://www.google.com/maps/place/Oristano,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://www.google.com/maps/place/Cabras,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
         );
-        map.insert("events.travel_sardinia", "L'aeroporto di Cagliari (CA) è il più vicino. Si consiglia di noleggiare un'auto.");
+        map.insert("events.travel_sardinia", "• L'aeroporto di Cagliari (CA) è il più vicino<br/>• Si consiglia di noleggiare un'auto");
         map.insert("events.date_tunisia", "27 Giugno 2026");
         map.insert("events.sort_date_tunisia", "2026-06-27");
         map.insert(
@@ -611,7 +623,7 @@ impl Translations {
             "events.venue_tunisia_link",
             "https://maps.app.goo.gl/Y4dCfdekMGiWvMFX6",
         );
-        map.insert("events.accommodation_tunisia", "Hotel a Monastir");
+        map.insert("events.accommodation_tunisia", "• Hotel a Monastir<br/>• Gli hotel possono essere prenotati anche nella <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>zona turistica di Monastir</a>");
         map.insert(
             "events.travel_tunisia",
             "• Aeroporto più vicino: Monastir (20 min)<br/>• Raccomandiamo di evitare la compagnia aerea Tunisair<br/>• L'acqua di rubinetto non è potabile in Tunisia",
@@ -627,10 +639,10 @@ impl Translations {
             "events.venue_nice_link",
             "https://maps.app.goo.gl/D9hQbstQqHWxa1m49",
         );
-        map.insert("events.accommodation_nice", "Hotel a Nizza");
+        map.insert("events.accommodation_nice", "• Hotel a Nizza<br/>• Privilegiate un alloggio lungo le linee del tram 2 e 3, preferibilmente vicino alla spiaggia");
         map.insert(
             "events.travel_nice",
-            "L'aeroporto di Nizza Costa Azzurra serve la zona",
+            "• L'<a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>aeroporto di Nizza Costa Azzurra</a> serve la zona",
         );
 
 

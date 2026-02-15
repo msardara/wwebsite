@@ -42,8 +42,11 @@ pub fn HomePage() -> impl IntoView {
                     <h2 class="text-2xl md:text-3xl lg:text-4xl font-serif text-primary-50 mb-10 font-light tracking-wide leading-relaxed">
                         {move || translations().t("home.gift_message")}
                     </h2>
-                    <p class="text-primary-100/90 text-sm md:text-base lg:text-lg mb-12 max-w-2xl mx-auto font-light leading-relaxed">
+                    <p class="text-primary-100/90 text-sm md:text-base lg:text-lg mb-6 max-w-2xl mx-auto font-light leading-relaxed">
                         {move || translations().t("home.contribution_text")}
+                    </p>
+                    <p class="text-primary-100/90 text-sm md:text-base lg:text-lg mb-12 max-w-2xl mx-auto font-light leading-relaxed">
+                        {move || translations().t("home.rsvp_instruction")}
                     </p>
                     <a
                         href="/rsvp"
@@ -59,7 +62,7 @@ pub fn HomePage() -> impl IntoView {
                 <div class="max-w-6xl mx-auto">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 items-center">
                         // Left Text
-                        <div class="text-center md:text-right text-primary-50 order-2 md:order-1">
+                        <div class="text-center md:text-right text-primary-50 order-1 md:order-1">
                             <p class="text-lg md:text-xl font-serif font-light tracking-wider uppercase mb-2">
                                 {move || translations().t("home.our_love")}
                             </p>
@@ -69,7 +72,7 @@ pub fn HomePage() -> impl IntoView {
                         </div>
 
                         // Center - Couple Photo
-                        <div class="flex justify-center order-1 md:order-2">
+                        <div class="flex justify-center order-2 md:order-2">
                             <div class="w-64 md:w-80 lg:w-96 overflow-hidden shadow-2xl">
                                 <img
                                     src="/public/hero-couple.jpg"
@@ -92,7 +95,7 @@ pub fn HomePage() -> impl IntoView {
 
                     // Description Text Below
                     <div class="mt-16 text-center max-w-3xl mx-auto">
-                        <p class="text-primary-100/90 text-sm md:text-base lg:text-lg font-light leading-relaxed tracking-wide">
+                        <p class="text-primary-100/90 text-sm md:text-base lg:text-lg font-light leading-relaxed tracking-wide whitespace-pre-line">
                             {move || translations().t("home.couple_story")}
                         </p>
                     </div>

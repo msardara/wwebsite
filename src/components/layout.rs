@@ -117,12 +117,9 @@ fn Header(
                             <LanguageSelector language=language on_change=on_language_change/>
                         </div>
 
-                        // Guest name and logout
-                        <div class="ml-6 border-l border-secondary-300/40 pl-6 flex items-center space-x-3">
+                        // Logout button
+                        <div class="ml-6 border-l border-secondary-300/40 pl-6 flex items-center">
                             <Show when=move || guest_ctx.guest.get().is_some()>
-                                <span class="text-xs md:text-sm text-secondary-700 font-light tracking-wide">
-                                    {move || guest_ctx.guest.get().map(|g| g.name).unwrap_or_default()}
-                                </span>
                                 <button
                                     class="text-xs px-4 py-2 bg-secondary-200/50 hover:bg-secondary-300/60 rounded-full transition-all duration-200 font-light tracking-wide text-secondary-800"
                                     on:click=move |_| {
@@ -198,14 +195,14 @@ fn LanguageSelector(
     on_change: impl Fn(Language) + 'static + Copy,
 ) -> impl IntoView {
     view! {
-        <div class="flex items-center space-x-1.5">
+        <div class="flex items-center gap-2">
             <button
                 class=move || {
                     let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
                     if language.get() == Language::English {
-                        format!("{}bg-secondary-700 text-primary-50 shadow-md scale-110", base)
+                        format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
                     } else {
-                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60 hover:scale-105", base)
+                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60", base)
                     }
                 }
                 on:click=move |_| on_change(Language::English)
@@ -217,9 +214,9 @@ fn LanguageSelector(
                 class=move || {
                     let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
                     if language.get() == Language::French {
-                        format!("{}bg-secondary-700 text-primary-50 shadow-md scale-110", base)
+                        format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
                     } else {
-                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60 hover:scale-105", base)
+                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60", base)
                     }
                 }
                 on:click=move |_| on_change(Language::French)
@@ -231,9 +228,9 @@ fn LanguageSelector(
                 class=move || {
                     let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
                     if language.get() == Language::Italian {
-                        format!("{}bg-secondary-700 text-primary-50 shadow-md scale-110", base)
+                        format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
                     } else {
-                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60 hover:scale-105", base)
+                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60", base)
                     }
                 }
                 on:click=move |_| on_change(Language::Italian)

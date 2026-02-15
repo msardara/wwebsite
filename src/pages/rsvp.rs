@@ -14,14 +14,13 @@ pub fn RsvpPage() -> impl IntoView {
     let translations = move || Translations::new(language.get());
 
     view! {
-        <div class="max-w-4xl mx-auto px-4 sm:px-6">
-            <div class="text-center mb-12 sm:mb-16 animate-fade-in">
-                <div class="text-5xl mb-6">"✉️"</div>
-                <h1 class="text-4xl sm:text-5xl md:text-6xl font-serif font-light text-secondary-800 mb-6 tracking-wide">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-24 animate-fade-in">
+                <h1 class="text-5xl md:text-6xl font-serif font-light text-secondary-800 mb-6 tracking-wide">
                     {move || translations().t("rsvp.title")}
                 </h1>
                 <div class="w-24 h-0.5 bg-primary-400 mx-auto mb-6"></div>
-                <p class="text-base sm:text-lg md:text-xl text-secondary-600 font-light">
+                <p class="text-lg md:text-xl text-secondary-600 font-light mb-8">
                     {move || translations().t("rsvp.subtitle")}
                 </p>
             </div>
@@ -30,16 +29,6 @@ pub fn RsvpPage() -> impl IntoView {
                 if let Some(guest) = guest_context.guest.get() {
                     view! {
                         <div>
-                            <div class="bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl shadow-sm border border-primary-200 p-6 sm:p-8 lg:p-10 mb-8 sm:mb-12 animate-fade-in">
-                                <div class="text-center">
-                                    <h2 class="text-2xl sm:text-3xl md:text-4xl font-serif text-secondary-800 mb-2 font-light">
-                                        {move || translations().t("rsvp.welcome")} ", "
-                                        <span class="text-primary-600">{guest.name.clone()}</span> "!"
-                                    </h2>
-
-                                </div>
-                            </div>
-
                             <RsvpManager
                                 guest=guest.clone()
                                 translations=translations
@@ -529,119 +518,7 @@ fn RsvpManager(
                 </form>
             </Show>
 
-            // Guest Tables by Location
-            <Show when=move || !guests.get().is_empty()>
-                <div class="space-y-8 mt-16">
-                    <div class="text-center">
-                        <h2 class="text-3xl md:text-4xl font-serif font-light text-secondary-800 mb-4">
-                            "Guest Summary"
-                        </h2>
-                        <div class="w-24 h-0.5 bg-primary-400 mx-auto"></div>
-                    </div>
-                    
-                    <For
-                        each=move || available_locations.get()
-                        key=|loc| loc.as_str().to_string()
-                        children=move |location: Location| {
-                            let loc_str = store_value(location.as_str().to_string());
-                            
-                            // Filter guests attending this location - use create_memo
-                            let location_guests = create_memo(move |_| {
-                                guests.get()
-                                    .into_iter()
-                                    .filter(|g| {
-                                        guest_location_map
-                                            .get()
-                                            .get(&g.id)
-                                            .map(|locs| locs.contains(&loc_str.get_value()))
-                                            .unwrap_or(false)
-                                    })
-                                    .collect::<Vec<_>>()
-                            });
-                            
-                            let (title, flag, bg_color, text_color) = match location {
-                                Location::Sardinia => ("Sardinia Guests", "🇮🇹", "bg-red-50", "text-red-900"),
-                                Location::Tunisia => ("Tunisia Guests", "🇹🇳", "bg-green-50", "text-green-900"),
-                                Location::Nice => ("Nice Guests", "🇫🇷", "bg-purple-50", "text-purple-900"),
-                            };
-                            
-                            view! {
-                                <div class={format!("rounded-2xl shadow-sm border border-primary-200 p-6 sm:p-8 {}", bg_color)}>
-                                    <div class="flex items-center justify-between mb-6">
-                                        <div class="flex items-center gap-4">
-                                            <span class="text-4xl">{flag}</span>
-                                            <h3 class={format!("text-2xl md:text-3xl font-serif font-light {}", text_color)}>
-                                                {title}
-                                            </h3>
-                                        </div>
-                                        <span class={format!("text-lg font-light {}", text_color)}>
-                                            "("{move || location_guests.get().len()}" guests)"
-                                        </span>
-                                    </div>
-                                    
-                                    <Show
-                                        when=move || !location_guests.get().is_empty()
-                                        fallback=move || view! {
-                                            <p class="text-center text-secondary-500 py-6 font-light">"No guests attending this location"</p>
-                                        }
-                                    >
-                                        <div class="bg-white rounded-xl overflow-hidden shadow-sm">
-                                            <table class="w-full">
-                                                <thead class="bg-gradient-to-r from-primary-50 to-accent-50 border-b border-primary-200">
-                                                    <tr>
-                                                        <th class="px-4 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">
-                                                            "Name"
-                                                        </th>
-                                                        <th class="px-4 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">
-                                                            "Dietary"
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <For
-                                                        each=move || location_guests.get()
-                                                        key=|g| g.id.clone()
-                                                        children=move |guest: Guest| {
-                                                            let mut items = Vec::new();
-                                                            let prefs = &guest.dietary_preferences;
-                                                            
-                                                            if prefs.vegetarian { items.push("Vegetarian"); }
-                                                            if prefs.vegan { items.push("Vegan"); }
-                                                            if prefs.halal { items.push("Halal"); }
-                                                            if prefs.no_pork { items.push("No Pork"); }
-                                                            if prefs.gluten_free { items.push("Gluten Free"); }
-                                                            if !prefs.other.is_empty() { 
-                                                                items.push(prefs.other.as_str()); 
-                                                            }
-                                                            
-                                                            let dietary_info = if items.is_empty() {
-                                                                String::from("-")
-                                                            } else {
-                                                                items.join(", ")
-                                                            };
-                                                            
-                                                            view! {
-                                                                <tr class="border-b border-primary-100 hover:bg-primary-50/50 transition-colors">
-                                                                    <td class="px-4 py-3 text-secondary-800 font-light">
-                                                                        {guest.name.clone()}
-                                                                    </td>
-                                                                    <td class="px-4 py-3 text-secondary-600 text-sm font-light">
-                                                                        {dietary_info}
-                                                                    </td>
-                                                                </tr>
-                                                            }
-                                                        }
-                                                    />
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </Show>
-                                </div>
-                            }
-                        }
-                    />
-                </div>
-            </Show>
+
         </div>
     }
 }
