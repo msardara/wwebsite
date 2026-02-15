@@ -50,7 +50,7 @@ pub fn Layout() -> impl IntoView {
                 </div>
             }
         >
-            <div class="min-h-screen flex flex-col bg-background">
+            <div class="min-h-screen flex flex-col bg-primary-50/50">
                 <Header
                     language=language
                     on_language_change=change_language
@@ -59,7 +59,7 @@ pub fn Layout() -> impl IntoView {
                     set_mobile_menu_open=set_mobile_menu_open
                 />
 
-                <main class="flex-grow container mx-auto max-w-5xl px-4 py-8">
+                <main class="flex-grow container mx-auto max-w-6xl px-4 py-8">
                     <Outlet/>
                 </main>
 
@@ -84,50 +84,47 @@ fn Header(
     let is_active = move |path: &str| location.pathname.get() == path;
 
     let nav_link_class = move |path: &str| {
-        let base = "px-4 py-2 rounded-md transition-colors duration-200 ";
+        let base = "px-5 py-2.5 rounded-full transition-all duration-300 font-light tracking-wide text-sm ";
         if is_active(path) {
-            format!("{}bg-primary-400 text-white", base)
+            format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
         } else {
-            format!("{}text-gray-700 hover:bg-primary-100", base)
+            format!("{}text-secondary-800 hover:bg-secondary-200/50 hover:text-secondary-900", base)
         }
     };
 
     view! {
-        <header class="bg-white shadow-md sticky top-0 z-50">
-            <nav class="container mx-auto max-w-5xl px-4 py-4">
+        <header class="bg-white shadow-md border-b border-secondary-300 sticky top-0 z-50">
+            <nav class="container mx-auto max-w-6xl px-6 py-6">
                 <div class="flex items-center justify-between">
                     // Logo/Brand
-                    <A href="/" class="text-2xl font-serif font-bold text-primary-600 hover:text-primary-700 transition-colors">
+                    <A href="/" class="text-2xl md:text-3xl font-serif font-light text-secondary-800 hover:text-secondary-700 transition-colors tracking-wider">
                         "💍 Our Wedding"
                     </A>
 
                     // Desktop Navigation
-                    <div class="hidden md:flex items-center space-x-2">
+                    <div class="hidden md:flex items-center space-x-1">
                         <A href="/" class=move || nav_link_class("/")>
                             {move || translations().t("nav.home")}
                         </A>
                         <A href="/events" class=move || nav_link_class("/events")>
                             {move || translations().t("nav.events")}
                         </A>
-                        <A href="/gallery" class=move || nav_link_class("/gallery")>
-                            {move || translations().t("nav.gallery")}
-                        </A>
                         <A href="/rsvp" class=move || nav_link_class("/rsvp")>
                             {move || translations().t("nav.rsvp")}
                         </A>
 
-                        <div class="ml-4 border-l border-gray-300 pl-4">
+                        <div class="ml-6 border-l border-secondary-300/40 pl-6">
                             <LanguageSelector language=language on_change=on_language_change/>
                         </div>
 
                         // Guest name and logout
-                        <div class="ml-4 border-l border-gray-300 pl-4 flex items-center space-x-2">
+                        <div class="ml-6 border-l border-secondary-300/40 pl-6 flex items-center space-x-3">
                             <Show when=move || guest_ctx.guest.get().is_some()>
-                                <span class="text-sm text-gray-600">
+                                <span class="text-xs md:text-sm text-secondary-700 font-light tracking-wide">
                                     {move || guest_ctx.guest.get().map(|g| g.name).unwrap_or_default()}
                                 </span>
                                 <button
-                                    class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                    class="text-xs px-4 py-2 bg-secondary-200/50 hover:bg-secondary-300/60 rounded-full transition-all duration-200 font-light tracking-wide text-secondary-800"
                                     on:click=move |_| {
                                         guest_ctx.logout();
                                         let navigate = use_navigate();
@@ -142,7 +139,7 @@ fn Header(
 
                     // Mobile Menu Button
                     <button
-                        class="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+                        class="md:hidden p-2 rounded-lg hover:bg-secondary-200/50 transition-colors text-secondary-800"
                         on:click=move |_| set_mobile_menu_open.update(|open| *open = !*open)
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,41 +156,34 @@ fn Header(
                 // Mobile Navigation
                 <div class=move || {
                     if mobile_menu_open.get() {
-                        "md:hidden mt-4 pb-4 space-y-2 animate-slide-in"
+                        "md:hidden mt-6 pb-4 space-y-2 animate-slide-in bg-white/60 rounded-lg p-4 backdrop-blur-sm"
                     } else {
                         "hidden"
                     }
                 }>
                     <A
                         href="/"
-                        class="block px-4 py-2 rounded-md text-gray-700 hover:bg-primary-100"
+                        class="block px-5 py-3 rounded-lg text-secondary-800 hover:bg-secondary-200/50 font-light tracking-wide transition-all"
                         on:click=move |_| set_mobile_menu_open.set(false)
                     >
                         {move || translations().t("nav.home")}
                     </A>
                     <A
                         href="/events"
-                        class="block px-4 py-2 rounded-md text-gray-700 hover:bg-primary-100"
+                        class="block px-5 py-3 rounded-lg text-secondary-800 hover:bg-secondary-200/50 font-light tracking-wide transition-all"
                         on:click=move |_| set_mobile_menu_open.set(false)
                     >
                         {move || translations().t("nav.events")}
                     </A>
                     <A
-                        href="/gallery"
-                        class="block px-4 py-2 rounded-md text-gray-700 hover:bg-primary-100"
-                        on:click=move |_| set_mobile_menu_open.set(false)
-                    >
-                        {move || translations().t("nav.gallery")}
-                    </A>
-                    <A
                         href="/rsvp"
-                        class="block px-4 py-2 rounded-md text-gray-700 hover:bg-primary-100"
+                        class="block px-5 py-3 rounded-lg text-secondary-800 hover:bg-secondary-200/50 font-light tracking-wide transition-all"
                         on:click=move |_| set_mobile_menu_open.set(false)
                     >
                         {move || translations().t("nav.rsvp")}
                     </A>
 
-                    <div class="pt-2 mt-2 border-t border-gray-200">
+                    <div class="pt-3 mt-3 border-t border-secondary-300/40">
                         <LanguageSelector language=language on_change=on_language_change/>
                     </div>
                 </div>
@@ -208,14 +198,14 @@ fn LanguageSelector(
     on_change: impl Fn(Language) + 'static + Copy,
 ) -> impl IntoView {
     view! {
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-1.5">
             <button
                 class=move || {
-                    let base = "px-3 py-1 rounded-md text-sm transition-all duration-200 ";
+                    let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
                     if language.get() == Language::English {
-                        format!("{}bg-primary-400 text-white scale-110", base)
+                        format!("{}bg-secondary-700 text-primary-50 shadow-md scale-110", base)
                     } else {
-                        format!("{}bg-gray-100 hover:bg-gray-200", base)
+                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60 hover:scale-105", base)
                     }
                 }
                 on:click=move |_| on_change(Language::English)
@@ -225,11 +215,11 @@ fn LanguageSelector(
             </button>
             <button
                 class=move || {
-                    let base = "px-3 py-1 rounded-md text-sm transition-all duration-200 ";
+                    let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
                     if language.get() == Language::French {
-                        format!("{}bg-primary-400 text-white scale-110", base)
+                        format!("{}bg-secondary-700 text-primary-50 shadow-md scale-110", base)
                     } else {
-                        format!("{}bg-gray-100 hover:bg-gray-200", base)
+                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60 hover:scale-105", base)
                     }
                 }
                 on:click=move |_| on_change(Language::French)
@@ -239,11 +229,11 @@ fn LanguageSelector(
             </button>
             <button
                 class=move || {
-                    let base = "px-3 py-1 rounded-md text-sm transition-all duration-200 ";
+                    let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
                     if language.get() == Language::Italian {
-                        format!("{}bg-primary-400 text-white scale-110", base)
+                        format!("{}bg-secondary-700 text-primary-50 shadow-md scale-110", base)
                     } else {
-                        format!("{}bg-gray-100 hover:bg-gray-200", base)
+                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60 hover:scale-105", base)
                     }
                 }
                 on:click=move |_| on_change(Language::Italian)
@@ -260,10 +250,10 @@ fn Footer(
     #[allow(unused_variables)] translations: impl Fn() -> Translations + 'static + Copy,
 ) -> impl IntoView {
     view! {
-        <footer class="bg-white border-t border-gray-200 mt-12">
-            <div class="container mx-auto max-w-5xl px-4 py-8">
-                <div class="text-center text-gray-600">
-                    <p class="text-sm">
+        <footer class="bg-primary-50 border-t border-secondary-200/40 mt-16">
+            <div class="container mx-auto max-w-6xl px-6 py-10">
+                <div class="text-center text-secondary-700">
+                    <p class="text-xs md:text-sm font-light tracking-wide">
                         {move || translations().t("footer.copyright")}
                     </p>
                 </div>

@@ -35,7 +35,7 @@ impl Translations {
 
         // Home page
         map.insert("home.title", "We're Getting Married!");
-        map.insert("home.subtitle", "Join us in celebrating our special day");
+        map.insert("home.subtitle", "ARE GETTING MARRIED");
         map.insert("home.welcome", "Welcome");
         map.insert(
             "home.intro_p1",
@@ -261,7 +261,7 @@ impl Translations {
         map.insert("home.title", "Nous nous marions !");
         map.insert(
             "home.subtitle",
-            "Rejoignez-nous pour célébrer notre jour spécial",
+            "SE MARIENT",
         );
         map.insert("home.welcome", "Bienvenue");
         map.insert(
@@ -472,7 +472,7 @@ impl Translations {
         map.insert("home.title", "Ci sposiamo!");
         map.insert(
             "home.subtitle",
-            "Unisciti a noi per celebrare il nostro giorno speciale",
+            "SI SPOSANO",
         );
         map.insert("home.welcome", "Benvenuto");
         map.insert(

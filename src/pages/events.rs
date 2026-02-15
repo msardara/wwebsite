@@ -11,16 +11,20 @@ pub fn EventsPage() -> impl IntoView {
     let translations = move || Translations::new(language.get());
 
     view! {
-        <div class="max-w-3xl mx-auto">
-            <div class="text-center mb-12 animate-fade-in">
-                <h1 class="text-4xl md:text-5xl font-serif font-bold text-primary-600 mb-4">
+        <div class="max-w-4xl mx-auto">
+            // Page Header
+            <div class="text-center mb-16 animate-fade-in">
+                <div class="text-5xl mb-6">"📅"</div>
+                <h1 class="text-5xl md:text-6xl font-serif font-light text-secondary-800 mb-6 tracking-wide">
                     {move || translations().t("events.title")}
                 </h1>
-                <p class="text-lg text-gray-600">
-                    "Celebrate with us in two beautiful locations"
+                <div class="w-24 h-0.5 bg-primary-400 mx-auto mb-6"></div>
+                <p class="text-lg md:text-xl text-secondary-600 font-light">
+                    "Join us in celebrating our love across beautiful destinations"
                 </p>
             </div>
 
+            // Events Timeline
             <div class="space-y-12">
                 {move || {
                     if guest_context.can_see_location("sardinia") {
@@ -79,42 +83,52 @@ fn LocationSection(
     translations: impl Fn() -> Translations + 'static + Copy,
 ) -> impl IntoView {
     view! {
-        <div class="bg-white rounded-lg shadow-lg p-8 animate-fade-in">
-            <div class="flex items-center mb-6">
-                <img src={flag} alt="Flag" class="w-16 h-12 mr-4 object-cover rounded shadow-md border border-gray-200"/>
-                <h2 class="text-3xl font-serif font-bold text-gray-800">
-                    {title}
-                </h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-primary-100 overflow-hidden animate-fade-in">
+            // Location Header
+            <div class="bg-gradient-to-r from-primary-50 via-accent-50 to-primary-50 px-8 py-8 border-b border-primary-200">
+                <div class="flex items-center gap-4 mb-2">
+                    <img 
+                        src={flag} 
+                        alt="Flag" 
+                        class="w-16 h-12 object-cover rounded-md shadow-md border-2 border-white"
+                    />
+                    <h2 class="text-3xl md:text-4xl font-serif text-secondary-800 font-light">
+                        {title}
+                    </h2>
+                </div>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-8">
-                <InfoCard
-                    icon="📅"
-                    title=move || translations().t("events.schedule")
-                    content_key=format!("schedule_{}", location)
-                    translations=translations
-                />
+            // Event Details Grid
+            <div class="p-8">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <InfoCard
+                        icon="📅"
+                        title=move || translations().t("events.schedule")
+                        content_key=format!("schedule_{}", location)
+                        translations=translations
+                    />
 
-                <InfoCard
-                    icon="📍"
-                    title=move || translations().t("events.venue")
-                    content_key=format!("venue_{}", location)
-                    translations=translations
-                />
+                    <InfoCard
+                        icon="📍"
+                        title=move || translations().t("events.venue")
+                        content_key=format!("venue_{}", location)
+                        translations=translations
+                    />
 
-                <InfoCard
-                    icon="🏨"
-                    title=move || translations().t("events.accommodation")
-                    content_key=format!("accommodation_{}", location)
-                    translations=translations
-                />
+                    <InfoCard
+                        icon="🏨"
+                        title=move || translations().t("events.accommodation")
+                        content_key=format!("accommodation_{}", location)
+                        translations=translations
+                    />
 
-                <InfoCard
-                    icon="✈️"
-                    title=move || translations().t("events.travel")
-                    content_key=format!("travel_{}", location)
-                    translations=translations
-                />
+                    <InfoCard
+                        icon="✈️"
+                        title=move || translations().t("events.travel")
+                        content_key=format!("travel_{}", location)
+                        translations=translations
+                    />
+                </div>
             </div>
         </div>
     }
@@ -130,7 +144,6 @@ fn InfoCard(
     let is_venue = content_key.contains("venue");
     let content_key = store_value(content_key);
 
-    // Placeholder content - will be loaded from Supabase in Phase 5
     let placeholder_content = move || {
         let key = format!("events.{}", content_key.get_value());
         translations().t(&key)
@@ -147,10 +160,12 @@ fn InfoCard(
     };
 
     view! {
-        <div class="bg-gray-50 rounded-lg p-6 hover:bg-gray-100 transition-colors duration-200">
-            <div class="flex items-start mb-3">
-                <span class="text-3xl mr-3">{icon}</span>
-                <h3 class="text-xl font-serif font-semibold text-gray-800">
+        <div class="group bg-gradient-to-br from-primary-50/30 to-white rounded-xl p-6 border border-primary-100/50 hover:border-primary-300 hover:shadow-md transition-all duration-300">
+            <div class="flex items-start gap-3 mb-4">
+                <div class="text-4xl flex-shrink-0 transform group-hover:scale-110 transition-transform duration-300">
+                    {icon}
+                </div>
+                <h3 class="text-xl font-serif text-secondary-800 pt-1 font-light">
                     {title}
                 </h3>
             </div>
@@ -159,24 +174,26 @@ fn InfoCard(
                 if is_venue {
                     view! {
                         <div>
-                            <p class="text-gray-600 leading-relaxed mb-4">
+                            <p class="text-secondary-600 leading-relaxed mb-6 font-light">
                                 {venue_name}
                             </p>
-                            <div class="flex justify-end mt-4">
+                            <div class="flex justify-end">
                                 <a
                                     href=venue_link
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 font-medium text-sm"
+                                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-secondary-600 hover:bg-secondary-700 text-white rounded-full shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-200 text-sm font-light"
                                 >
-                                    "📍 " {move || translations().t("events.view_on_maps")} " ↗"
+                                    <span>"📍"</span>
+                                    <span>{move || translations().t("events.view_on_maps")}</span>
+                                    <span>"↗"</span>
                                 </a>
                             </div>
                         </div>
                     }.into_view()
                 } else {
                     view! {
-                        <p class="text-gray-600 leading-relaxed">
+                        <p class="text-secondary-600 leading-relaxed font-light">
                             {placeholder_content}
                         </p>
                     }.into_view()

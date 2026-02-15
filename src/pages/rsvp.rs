@@ -15,11 +15,13 @@ pub fn RsvpPage() -> impl IntoView {
 
     view! {
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
-            <div class="text-center mb-8 sm:mb-12 animate-fade-in">
-                <h1 class="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-primary-600 mb-3 sm:mb-4">
+            <div class="text-center mb-12 sm:mb-16 animate-fade-in">
+                <div class="text-5xl mb-6">"✉️"</div>
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-serif font-light text-secondary-800 mb-6 tracking-wide">
                     {move || translations().t("rsvp.title")}
                 </h1>
-                <p class="text-base sm:text-lg text-gray-600">
+                <div class="w-24 h-0.5 bg-primary-400 mx-auto mb-6"></div>
+                <p class="text-base sm:text-lg md:text-xl text-secondary-600 font-light">
                     {move || translations().t("rsvp.subtitle")}
                 </p>
             </div>
@@ -28,9 +30,9 @@ pub fn RsvpPage() -> impl IntoView {
                 if let Some(guest) = guest_context.guest.get() {
                     view! {
                         <div>
-                            <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 animate-fade-in">
+                            <div class="bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl shadow-sm border border-primary-200 p-6 sm:p-8 lg:p-10 mb-8 sm:mb-12 animate-fade-in">
                                 <div class="text-center">
-                                    <h2 class="text-2xl sm:text-3xl font-serif text-gray-800 mb-2">
+                                    <h2 class="text-2xl sm:text-3xl md:text-4xl font-serif text-secondary-800 mb-2 font-light">
                                         {move || translations().t("rsvp.welcome")} ", "
                                         <span class="text-primary-600">{guest.name.clone()}</span> "!"
                                     </h2>
@@ -46,8 +48,8 @@ pub fn RsvpPage() -> impl IntoView {
                     }.into_view()
                 } else {
                     view! {
-                        <div class="text-center text-gray-600">
-                            "Guest not found"
+                        <div class="text-center text-secondary-600 py-12">
+                            <p class="text-xl font-light">"Guest not found"</p>
                         </div>
                     }.into_view()
                 }
@@ -412,36 +414,37 @@ fn RsvpManager(
     view! {
         <div class="space-y-8">
             <Show when=move || error.get().is_some()>
-                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm">
                     {move || error.get().unwrap_or_default()}
                 </div>
             </Show>
 
             <Show when=move || success.get()>
-                <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg animate-fade-in">
+                <div class="bg-green-50 border-l-4 border-green-500 text-green-800 px-6 py-4 rounded-lg shadow-sm animate-fade-in">
                     <p class="font-semibold">{move || translations().t("rsvp.success")}</p>
-                    <p class="text-sm mt-1">{move || translations().t("rsvp.success_thank_you")}</p>
+                    <p class="text-sm mt-1 font-light">{move || translations().t("rsvp.success_thank_you")}</p>
                 </div>
             </Show>
 
             <Show
                 when=move || !loading.get()
                 fallback=move || view! {
-                    <div class="text-center text-gray-600 py-12">
-                        {move || translations().t("common.loading")}
+                    <div class="text-center text-secondary-600 py-16">
+                        <div class="text-5xl mb-4">"⏳"</div>
+                        <p class="text-lg font-light">{move || translations().t("common.loading")}</p>
                     </div>
                 }
             >
                 <form on:submit=move |ev| handle_submit.with_value(|f| f(ev)) class="space-y-8">
                     // Guest List Section
-                    <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
-                        <div class="flex items-center justify-between mb-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-primary-200 p-6 sm:p-8 lg:p-10">
+                        <div class="flex items-center justify-between mb-8">
                             <div>
-                                <h2 class="text-2xl font-serif font-bold text-gray-800">
+                                <h2 class="text-2xl md:text-3xl font-serif font-light text-secondary-800">
                                     "Guest List"
                                     <span class="text-red-600">"*"</span>
                                 </h2>
-                                <p class="text-sm text-gray-600 mt-1">
+                                <p class="text-sm text-secondary-600 mt-2 font-light">
                                     "Add all guests in your party and their dietary preferences"
                                 </p>
                             </div>
@@ -471,7 +474,7 @@ fn RsvpManager(
 
                         <button
                             type="button"
-                            class="w-full py-3 px-4 bg-primary-100 hover:bg-primary-200 text-primary-700 font-semibold rounded-lg transition-colors border-2 border-dashed border-primary-300"
+                            class="w-full py-4 px-6 bg-gradient-to-br from-primary-50 to-accent-50 hover:from-primary-100 hover:to-accent-100 text-secondary-700 font-light rounded-xl transition-all duration-200 border-2 border-dashed border-primary-300 hover:border-primary-400 hover:shadow-sm"
                             on:click=move |ev| add_guest.with_value(|f| f(ev))
                             disabled=move || saving.get()
                         >
@@ -480,16 +483,16 @@ fn RsvpManager(
                     </div>
 
                     // Additional notes section
-                    <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
-                        <h2 class="text-2xl font-serif font-bold text-gray-800 mb-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-primary-200 p-6 sm:p-8 lg:p-10">
+                        <h2 class="text-2xl md:text-3xl font-serif font-light text-secondary-800 mb-4">
                             {move || translations().t("rsvp.notes")}
                         </h2>
-                        <p class="text-sm text-gray-600 mb-4">
+                        <p class="text-sm text-secondary-600 mb-6 font-light">
                             "Any special requests, dietary restrictions, or messages for us?"
                         </p>
                         <textarea
-                            class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all resize-none text-sm sm:text-base"
-                            rows="4"
+                            class="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all resize-none text-sm sm:text-base bg-primary-50/30 text-secondary-700 font-light"
+                            rows="5"
                             placeholder="Any special requests or messages?"
                             prop:value=move || notes.get()
                             on:input=move |ev| set_notes.set(event_target_value(&ev))
@@ -498,7 +501,7 @@ fn RsvpManager(
                     </div>
 
                     <Show when=move || error.get().is_some()>
-                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg animate-fade-in">
+                        <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm animate-fade-in">
                             {move || error.get().unwrap_or_default()}
                         </div>
                     </Show>
@@ -528,10 +531,13 @@ fn RsvpManager(
 
             // Guest Tables by Location
             <Show when=move || !guests.get().is_empty()>
-                <div class="space-y-6 mt-12">
-                    <h2 class="text-3xl font-serif font-bold text-center text-gray-800 mb-8">
-                        "Guest Summary"
-                    </h2>
+                <div class="space-y-8 mt-16">
+                    <div class="text-center">
+                        <h2 class="text-3xl md:text-4xl font-serif font-light text-secondary-800 mb-4">
+                            "Guest Summary"
+                        </h2>
+                        <div class="w-24 h-0.5 bg-primary-400 mx-auto"></div>
+                    </div>
                     
                     <For
                         each=move || available_locations.get()
@@ -560,15 +566,15 @@ fn RsvpManager(
                             };
                             
                             view! {
-                                <div class={format!("rounded-lg shadow-lg p-6 {}", bg_color)}>
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="flex items-center gap-3">
+                                <div class={format!("rounded-2xl shadow-sm border border-primary-200 p-6 sm:p-8 {}", bg_color)}>
+                                    <div class="flex items-center justify-between mb-6">
+                                        <div class="flex items-center gap-4">
                                             <span class="text-4xl">{flag}</span>
-                                            <h3 class={format!("text-2xl font-serif font-bold {}", text_color)}>
+                                            <h3 class={format!("text-2xl md:text-3xl font-serif font-light {}", text_color)}>
                                                 {title}
                                             </h3>
                                         </div>
-                                        <span class={format!("text-lg font-semibold {}", text_color)}>
+                                        <span class={format!("text-lg font-light {}", text_color)}>
                                             "("{move || location_guests.get().len()}" guests)"
                                         </span>
                                     </div>
@@ -576,17 +582,17 @@ fn RsvpManager(
                                     <Show
                                         when=move || !location_guests.get().is_empty()
                                         fallback=move || view! {
-                                            <p class="text-center text-gray-500 py-4">"No guests attending this location"</p>
+                                            <p class="text-center text-secondary-500 py-6 font-light">"No guests attending this location"</p>
                                         }
                                     >
-                                        <div class="bg-white rounded-lg overflow-hidden">
+                                        <div class="bg-white rounded-xl overflow-hidden shadow-sm">
                                             <table class="w-full">
-                                                <thead class="bg-gray-100 border-b border-gray-200">
+                                                <thead class="bg-gradient-to-r from-primary-50 to-accent-50 border-b border-primary-200">
                                                     <tr>
-                                                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                                                        <th class="px-4 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">
                                                             "Name"
                                                         </th>
-                                                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                                                        <th class="px-4 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">
                                                             "Dietary"
                                                         </th>
                                                     </tr>
@@ -615,11 +621,11 @@ fn RsvpManager(
                                                             };
                                                             
                                                             view! {
-                                                                <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                                                    <td class="px-4 py-3 text-gray-800">
+                                                                <tr class="border-b border-primary-100 hover:bg-primary-50/50 transition-colors">
+                                                                    <td class="px-4 py-3 text-secondary-800 font-light">
                                                                         {guest.name.clone()}
                                                                     </td>
-                                                                    <td class="px-4 py-3 text-gray-600 text-sm">
+                                                                    <td class="px-4 py-3 text-secondary-600 text-sm font-light">
                                                                         {dietary_info}
                                                                     </td>
                                                                 </tr>
@@ -766,13 +772,13 @@ fn GuestCard(
     let available_locations_stored = store_value(available_locations);
 
     view! {
-        <div class="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div class="space-y-3">
+        <div class="bg-white border border-primary-200 p-4 sm:p-5 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+            <div class="space-y-4">
                 <div class="flex items-start sm:items-center gap-2 w-full">
                     <input
                         node_ref=input_ref
                         type="text"
-                        class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base font-semibold"
+                        class="min-w-0 flex-1 px-4 py-2.5 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent text-sm sm:text-base font-light text-secondary-800 bg-primary-50/30"
                         placeholder=move || translations().t("rsvp.invitee_name")
                         prop:value=move || name.get()
                         on:input=move |ev| set_name.set(event_target_value(&ev))
@@ -780,7 +786,7 @@ fn GuestCard(
                     />
                     <button
                         type="button"
-                        class="flex-shrink-0 w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        class="flex-shrink-0 w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
                         on:click=delete_guest
                         title=move || translations().t("rsvp.delete_invitee")
                     >
@@ -790,8 +796,8 @@ fn GuestCard(
 
                 // Location selection (only show if multiple locations)
                 <Show when=move || show_locations>
-                    <div class="bg-white p-3 rounded border border-gray-200">
-                        <p class="text-xs font-semibold text-gray-700 mb-2">"Attending:"</p>
+                    <div class="bg-gradient-to-br from-primary-50/50 to-accent-50/50 p-4 rounded-lg border border-primary-200">
+                        <p class="text-xs font-medium text-secondary-700 mb-3">"Attending:"</p>
                         <div class="flex flex-wrap gap-2">
                             <For
                                 each=move || available_locations_stored.with_value(|v| v.clone())
@@ -816,16 +822,16 @@ fn GuestCard(
                                     };
 
                                     view! {
-                                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
                                             <input
                                                 type="checkbox"
-                                                class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
                                                 prop:checked=is_selected
                                                 on:change=move |_| {
                                                     on_toggle_location.call((guest_id_for_locations.get_value(), loc_str_for_click.clone()))
                                                 }
                                             />
-                                            <span class="text-sm font-medium text-gray-700">
+                                            <span class="text-sm font-light text-secondary-700">
                                                 {flag} " " {display_name}
                                             </span>
                                         </label>
@@ -837,124 +843,124 @@ fn GuestCard(
                 </Show>
 
                 // Age category selection
-                <div class="bg-white p-3 rounded border border-gray-200">
-                    <p class="text-xs font-semibold text-gray-700 mb-2">"Age Category:"</p>
+                <div class="bg-gradient-to-br from-primary-50/50 to-accent-50/50 p-4 rounded-lg border border-primary-200">
+                    <p class="text-xs font-medium text-secondary-700 mb-3">"Age Category:"</p>
                     <div class="flex flex-wrap gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
                             <input
                                 type="radio"
                                 name={format!("age_category_{}", guest_id)}
-                                class="w-4 h-4 text-primary-600"
+                                class="w-4 h-4 text-secondary-600"
                                 prop:checked=move || age_category.get().as_str() == "adult"
                                 on:change=move |_| {
                                     set_age_category.set(crate::types::AgeCategory::Adult);
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-sm font-medium text-gray-700">"Adult"</span>
+                            <span class="text-sm font-light text-secondary-700">"Adult"</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
                             <input
                                 type="radio"
                                 name={format!("age_category_{}", guest_id)}
-                                class="w-4 h-4 text-primary-600"
+                                class="w-4 h-4 text-secondary-600"
                                 prop:checked=move || age_category.get().as_str() == "child_under_3"
                                 on:change=move |_| {
                                     set_age_category.set(crate::types::AgeCategory::ChildUnder3);
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-sm font-medium text-gray-700">"< 3 years"</span>
+                            <span class="text-sm font-light text-secondary-700">"< 3 years"</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors">
+                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
                             <input
                                 type="radio"
                                 name={format!("age_category_{}", guest_id)}
-                                class="w-4 h-4 text-primary-600"
+                                class="w-4 h-4 text-secondary-600"
                                 prop:checked=move || age_category.get().as_str() == "child_under_10"
                                 on:change=move |_| {
                                     set_age_category.set(crate::types::AgeCategory::ChildUnder10);
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-sm font-medium text-gray-700">"< 10 years"</span>
+                            <span class="text-sm font-light text-secondary-700">"< 10 years"</span>
                         </label>
                     </div>
                 </div>
 
-                <div class="pl-2">
-                    <p class="text-xs font-semibold text-gray-600 mb-2">"Dietary Restrictions:"</p>
+                <div class="pl-1">
+                    <p class="text-xs font-medium text-secondary-700 mb-3">"Dietary Restrictions:"</p>
                     <div class="grid grid-cols-2 gap-2">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input
                                 type="checkbox"
-                                class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
                                 prop:checked=move || vegetarian.get()
                                 on:change=move |ev| {
                                     set_vegetarian.set(event_target_checked(&ev));
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-xs text-gray-700">{move || translations().t("rsvp.vegetarian")}</span>
+                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.vegetarian")}</span>
                         </label>
 
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input
                                 type="checkbox"
-                                class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
                                 prop:checked=move || vegan.get()
                                 on:change=move |ev| {
                                     set_vegan.set(event_target_checked(&ev));
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-xs text-gray-700">{move || translations().t("rsvp.vegan")}</span>
+                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.vegan")}</span>
                         </label>
 
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input
                                 type="checkbox"
-                                class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
                                 prop:checked=move || halal.get()
                                 on:change=move |ev| {
                                     set_halal.set(event_target_checked(&ev));
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-xs text-gray-700">{move || translations().t("rsvp.halal")}</span>
+                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.halal")}</span>
                         </label>
 
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input
                                 type="checkbox"
-                                class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
                                 prop:checked=move || no_pork.get()
                                 on:change=move |ev| {
                                     set_no_pork.set(event_target_checked(&ev));
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-xs text-gray-700">{move || translations().t("rsvp.no_pork")}</span>
+                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.no_pork")}</span>
                         </label>
 
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input
                                 type="checkbox"
-                                class="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
                                 prop:checked=move || gluten_free.get()
                                 on:change=move |ev| {
                                     set_gluten_free.set(event_target_checked(&ev));
                                     save_changes.with_value(|f| f());
                                 }
                             />
-                            <span class="text-xs text-gray-700">{move || translations().t("rsvp.gluten_free")}</span>
+                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.gluten_free")}</span>
                         </label>
                     </div>
 
                     <div class="mt-4">
                         <input
                             type="text"
-                            class="w-full h-8 px-2 py-2.5 text-xs text-gray-600 bg-transparent border-0 border-b border-gray-200 focus:border-primary-400 focus:outline-none placeholder-gray-400"
+                            class="w-full h-8 px-2 py-2.5 text-xs text-secondary-700 font-light bg-transparent border-0 border-b border-primary-200 focus:border-primary-400 focus:outline-none placeholder-secondary-400"
                             placeholder=move || translations().t("rsvp.other_dietary")
                             prop:value=move || other.get()
                             on:input=move |ev| set_other.set(event_target_value(&ev))
