@@ -188,6 +188,10 @@ impl Translations {
         map.insert("rsvp.guests_label", "guest(s)");
         map.insert("rsvp.success", "Thank you! Your RSVP has been saved.");
         map.insert("rsvp.success_thank_you", "Thank you for your response!");
+        map.insert(
+            "rsvp.success_refresh",
+            "Response submitted! The page will reload in 5 seconds.",
+        );
         map.insert("rsvp.error", "Something went wrong. Please try again.");
         map.insert(
             "rsvp.error_code_required",
@@ -466,6 +470,10 @@ impl Translations {
         map.insert("rsvp.success", "Merci ! Votre RSVP a été enregistré.");
         map.insert("rsvp.success_thank_you", "Merci pour votre réponse !");
         map.insert(
+            "rsvp.success_refresh",
+            "Réponse envoyée ! La page se rechargera dans 5 secondes.",
+        );
+        map.insert(
             "rsvp.error",
             "Une erreur s'est produite. Veuillez réessayer.",
         );
@@ -723,6 +731,10 @@ impl Translations {
         map.insert("rsvp.guests_label", "ospite/i");
         map.insert("rsvp.success", "Grazie! Il tuo RSVP è stato salvato.");
         map.insert("rsvp.success_thank_you", "Grazie per la tua risposta!");
+        map.insert(
+            "rsvp.success_refresh",
+            "Risposta inviata! La pagina si ricaricherà tra 5 secondi.",
+        );
         map.insert("rsvp.error", "Qualcosa è andato storto. Riprova.");
         map.insert("rsvp.error_code_required", "Inserisci il tuo codice invito");
         map.insert("rsvp.error_loading", "Errore nel caricamento del RSVP");

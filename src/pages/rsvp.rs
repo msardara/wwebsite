@@ -389,6 +389,14 @@ fn RsvpManager(
             set_saving.set(false);
             set_success.set(true);
             set_error.set(None);
+
+            // Reload the page after 5 seconds to show the saved state
+            set_timeout(
+                move || {
+                    window().location().reload().ok();
+                },
+                std::time::Duration::from_secs(5),
+            );
         });
     });
 
@@ -510,7 +518,7 @@ fn RsvpManager(
                 <div class="bg-green-50 border-l-4 border-green-500 text-green-800 px-6 py-8 rounded-lg shadow-sm animate-fade-in text-center">
                     <div class="text-5xl mb-4">"✓"</div>
                     <p class="text-2xl font-semibold mb-2">{move || translations().t("rsvp.success")}</p>
-                    <p class="text-base mt-2 font-light">"Response submitted! Refresh the page to update your RSVP."</p>
+                    <p class="text-base mt-2 font-light">{move || translations().t("rsvp.success_refresh")}</p>
                 </div>
             </Show>
         </div>
