@@ -389,42 +389,30 @@ fn RsvpManager(
             set_saving.set(false);
             set_success.set(true);
             set_error.set(None);
-
-            // Reload the page after 2 seconds to show the saved state
-            set_timeout(
-                move || {
-                    window().location().reload().ok();
-                },
-                std::time::Duration::from_secs(2),
-            );
         });
     });
 
     view! {
         <div class="space-y-8">
-            <Show when=move || error.get().is_some()>
-                <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm">
-                    {move || error.get().unwrap_or_default()}
-                </div>
-            </Show>
-
-            <Show when=move || success.get()>
-                <div class="bg-green-50 border-l-4 border-green-500 text-green-800 px-6 py-4 rounded-lg shadow-sm animate-fade-in">
-                    <p class="font-semibold">{move || translations().t("rsvp.success")}</p>
-                    <p class="text-sm mt-1 font-light">{move || translations().t("rsvp.success_thank_you")}</p>
-                </div>
-            </Show>
-
             <Show
-                when=move || !loading.get()
+                when=move || success.get()
                 fallback=move || view! {
-                    <div class="text-center text-secondary-600 py-16">
-                        <div class="text-5xl mb-4">"⏳"</div>
-                        <p class="text-lg font-light">{move || translations().t("common.loading")}</p>
-                    </div>
-                }
-            >
-                <form on:submit=move |ev| handle_submit.with_value(|f| f(ev)) class="space-y-8">
+                    <Show when=move || error.get().is_some()>
+                        <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm">
+                            {move || error.get().unwrap_or_default()}
+                        </div>
+                    </Show>
+
+                    <Show
+                        when=move || !loading.get()
+                        fallback=move || view! {
+                            <div class="text-center text-secondary-600 py-16">
+                                <div class="text-5xl mb-4">"⏳"</div>
+                                <p class="text-lg font-light">{move || translations().t("common.loading")}</p>
+                            </div>
+                        }
+                    >
+                        <form on:submit=move |ev| handle_submit.with_value(|f| f(ev)) class="space-y-8">
                     // Guest List Section
                     <div class="bg-white rounded-2xl shadow-sm border border-primary-200 p-6 sm:p-8 lg:p-10">
                         <div class="flex items-center justify-between mb-8">
@@ -514,11 +502,17 @@ fn RsvpManager(
                                 {move || translations().t("common.loading")}
                             </span>
                         </Show>
-                    </button>
-                </form>
+                        </button>
+                    </form>
+                </Show>
+            }
+            >
+                <div class="bg-green-50 border-l-4 border-green-500 text-green-800 px-6 py-8 rounded-lg shadow-sm animate-fade-in text-center">
+                    <div class="text-5xl mb-4">"✓"</div>
+                    <p class="text-2xl font-semibold mb-2">{move || translations().t("rsvp.success")}</p>
+                    <p class="text-base mt-2 font-light">"Response submitted! Refresh the page to update your RSVP."</p>
+                </div>
             </Show>
-
-
         </div>
     }
 }
