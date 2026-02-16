@@ -195,7 +195,8 @@ _install-supabase-cli:
 # Run development server with hot reload (opens browser)
 dev: _install-trunk _build-css _require-env
     @echo "Starting development server..."
-    @set -a && . ./.env && set +a && {{ tools_dir }}/bin/trunk serve --open
+    @mkdir -p target dist
+    @{{ tools_dir }}/bin/trunk serve --open
 
 # Build CSS once
 _build-css: _install-tailwindcss
@@ -209,7 +210,7 @@ _build-css: _install-tailwindcss
 # Run dev server and CSS watch in parallel
 dev-all: _install-trunk _install-tailwindcss _require-env
     #!/usr/bin/env sh
-    set -a && . ./.env && set +a
+    mkdir -p target dist
     {{ tools_dir }}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --watch &
     CSS_PID=$!
     {{ tools_dir }}/bin/trunk serve
@@ -222,13 +223,13 @@ dev-all: _install-trunk _install-tailwindcss _require-env
 # Build project (debug mode)
 build: _install-trunk _build-css _require-env
     @echo "Building project..."
-    @set -a && { [ -f ./.env ] && . ./.env || true; } && set +a && {{ tools_dir }}/bin/trunk build
+    @{{ tools_dir }}/bin/trunk build
 
 # Build for production (optimized)
 build-release: _install-trunk _install-tailwindcss _require-env
     @echo "Building for production..."
     {{ tools_dir }}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --minify
-    @set -a && { [ -f ./.env ] && . ./.env || true; } && set +a && {{ tools_dir }}/bin/trunk build --release
+    @{{ tools_dir }}/bin/trunk build --release
     @just _optimize-wasm
 
 _require-env:
