@@ -116,7 +116,7 @@ fn Header(
                             {move || translations().t("nav.rsvp")}
                         </A>
 
-                        <div class="ml-6 border-l border-secondary-300/40 pl-6">
+                        <div class="mx-6 border-l border-r border-secondary-300/40 px-6">
                             <LanguageSelector language=language on_change=on_language_change/>
                         </div>
 

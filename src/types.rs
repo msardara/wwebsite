@@ -77,6 +77,7 @@ pub struct GuestGroup {
     pub id: String,
     pub name: String,
     pub email: Option<String>,
+    #[serde(default)]
     pub invitation_code: String,
     pub party_size: i32,
     pub locations: Vec<String>,
@@ -97,7 +98,6 @@ pub struct GuestGroupWithCount {
 pub struct GuestGroupInput {
     pub name: String,
     pub email: Option<String>,
-    pub invitation_code: String,
     pub party_size: i32,
     pub locations: Vec<String>,
     pub default_language: String,
@@ -154,42 +154,6 @@ pub struct GuestUpdate {
     pub attending_locations: Option<Vec<String>>,
     pub dietary_preferences: Option<DietaryPreferences>,
     pub age_category: Option<AgeCategory>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Content {
-    pub id: String,
-    pub key: String,
-    pub language: String,
-    pub location: Option<Location>,
-    pub value: String,
-    pub updated_at: Option<DateTime<Utc>>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Photo {
-    pub id: String,
-    pub filename: String,
-    pub caption: Option<String>,
-    pub display_order: i32,
-    pub created_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PhotoInput {
-    pub filename: String,
-    pub caption: Option<String>,
-    pub display_order: i32,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
-    pub key: String,
-    pub value: String,
-    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

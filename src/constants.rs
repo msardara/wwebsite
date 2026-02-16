@@ -26,16 +26,6 @@ pub const SUPABASE_REST_PATH: &str = "/rest/v1";
 /// Supabase Auth API path
 pub const SUPABASE_AUTH_PATH: &str = "/auth/v1";
 
-/// Supabase Storage API path
-pub const SUPABASE_STORAGE_PATH: &str = "/storage/v1";
-
-// ============================================================================
-// Storage Buckets
-// ============================================================================
-
-/// Wedding photos storage bucket name
-pub const WEDDING_PHOTOS_BUCKET: &str = "wedding-photos";
-
 // ============================================================================
 // Database Tables
 // ============================================================================
@@ -46,12 +36,6 @@ pub const TABLE_GUEST_GROUPS: &str = "guest_groups";
 /// Guests table name
 pub const TABLE_GUESTS: &str = "guests";
 
-/// Photos table name
-pub const TABLE_PHOTOS: &str = "photos";
-
-/// Content table name
-pub const TABLE_CONTENT: &str = "content";
-
 // ============================================================================
 // UI Constants
 // ============================================================================
@@ -61,12 +45,6 @@ pub const ANIMATION_DURATION_MS: u32 = 200;
 
 /// Toast notification display duration in milliseconds
 pub const TOAST_DURATION_MS: u32 = 3000;
-
-/// Maximum file size for photo uploads (10MB)
-pub const MAX_PHOTO_SIZE_BYTES: usize = 10 * 1024 * 1024;
-
-/// Allowed photo file extensions
-pub const ALLOWED_PHOTO_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp"];
 
 // ============================================================================
 // Validation Constants
@@ -131,9 +109,6 @@ pub const SUCCESS_SAVED: &str = "Changes saved successfully!";
 
 /// RSVP submitted message
 pub const SUCCESS_RSVP_SUBMITTED: &str = "Your RSVP has been submitted!";
-
-/// Photo uploaded message
-pub const SUCCESS_PHOTO_UPLOADED: &str = "Photo uploaded successfully!";
 
 // ============================================================================
 // Retry Configuration

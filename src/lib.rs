@@ -17,7 +17,6 @@ use components::layout::Layout;
 use contexts::{GuestContext, SupabaseContext};
 use pages::admin::AdminPage;
 use pages::events::EventsPage;
-use pages::gallery::GalleryPage;
 use pages::home::HomePage;
 use pages::invitation::InvitationPage;
 use pages::rsvp::RsvpPage;
@@ -68,7 +67,6 @@ pub fn App() -> impl IntoView {
                 <Route path="/" view=Layout>
                     <Route path="" view=HomePage/>
                     <Route path="events" view=EventsPage/>
-                    <Route path="gallery" view=GalleryPage/>
                     <Route path="rsvp" view=RsvpPage/>
                 </Route>
 

@@ -600,11 +600,7 @@ fn GuestgroupModal(
             .and_then(|g| g.email.clone())
             .unwrap_or_default(),
     );
-    let (invitation_code, set_invitation_code) = create_signal(
-        guest
-            .as_ref()
-            .map_or_else(generate_invitation_code, |g| g.invitation_code.clone()),
-    );
+
     let (_party_size, _set_party_size) = create_signal(guest.as_ref().map_or(1, |g| g.party_size));
     // Parse initial location(s) from Vec<String>
     let initial_locations = guest
@@ -848,7 +844,6 @@ fn GuestgroupModal(
                         } else {
                             Some(email.get())
                         },
-                        invitation_code: invitation_code.get(),
                         party_size: actual_party_size,
                         locations: get_locations_value(),
                         default_language: default_language.get(),
@@ -981,35 +976,7 @@ fn GuestgroupModal(
                             </div>
                         </div>
 
-                        {if !is_edit {
-                            view! {
-                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                        "Invitation Code" <span class="text-red-500">"*"</span>
-                                    </label>
-                                    <div class="flex gap-2">
-                                        <input
-                                            type="text"
-                                            required
-                                            placeholder="XXXXXXXX"
-                                            class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 font-mono text-lg font-bold tracking-wider"
-                                            prop:value=move || invitation_code.get()
-                                            on:input=move |ev| set_invitation_code.set(event_target_value(&ev))
-                                        />
-                                        <button
-                                            type="button"
-                                            on:click=move |_| set_invitation_code.set(generate_invitation_code())
-                                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold shadow-md hover:shadow-lg flex items-center gap-2"
-                                        >
-                                            <span>"🔄"</span>
-                                            <span>"Generate"</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            }.into_view()
-                        } else {
-                            view! { <div></div> }.into_view()
-                        }}
+
 
                         <div>
                             <label class="block text-base font-semibold text-gray-800 mb-3">
@@ -1230,17 +1197,4 @@ fn GuestgroupModal(
             </div>
         </div>
     }
-}
-
-fn generate_invitation_code() -> String {
-    use rand::Rng;
-    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let mut rng = rand::thread_rng();
-
-    (0..8)
-        .map(|_| {
-            let idx = rng.gen_range(0..CHARSET.len());
-            CHARSET[idx] as char
-        })
-        .collect()
 }

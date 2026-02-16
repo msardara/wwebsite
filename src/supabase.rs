@@ -4,18 +4,14 @@
 // - SupabaseRpcClient: For anonymous/guest users, only RPC access
 // - SupabaseAdminClient: For authenticated admins, full table access
 
-use crate::constants::{
-    SUPABASE_AUTH_PATH, SUPABASE_REST_PATH, SUPABASE_STORAGE_PATH, TABLE_GUESTS,
-    TABLE_GUEST_GROUPS, TABLE_PHOTOS, WEDDING_PHOTOS_BUCKET,
-};
+use crate::constants::{SUPABASE_AUTH_PATH, SUPABASE_REST_PATH, TABLE_GUESTS, TABLE_GUEST_GROUPS};
 use crate::types::{
     AdminStats, AuthResponse, AuthSession, DietaryPreferences, Guest, GuestGroup, GuestGroupInput,
-    GuestGroupUpdate, GuestGroupWithCount, GuestInput, GuestUpdate, LoginCredentials, Photo,
-    PhotoInput,
+    GuestGroupUpdate, GuestGroupWithCount, GuestInput, GuestUpdate, LoginCredentials,
 };
 use chrono::{DateTime, Utc};
 use postgrest::Postgrest;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 /// Result type for Supabase operations
 pub type SupabaseResult<T> = Result<T, SupabaseError>;
@@ -74,6 +70,7 @@ where
 }
 
 /// Execute a request and parse response as a Vec, handling empty/404 responses
+#[allow(dead_code)]
 async fn execute_and_parse_vec<T>(response: reqwest::Response) -> SupabaseResult<Vec<T>>
 where
     T: serde::de::DeserializeOwned,
@@ -364,6 +361,7 @@ pub struct SupabaseRpcClient {
     client: Postgrest,
     #[allow(dead_code)]
     publishable_key: String,
+    #[allow(dead_code)]
     pub base_url: String,
 }
 
@@ -390,12 +388,18 @@ impl SupabaseRpcClient {
 
     /// Find a guest group by their invitation code using secure RPC function
     pub async fn find_guest_by_code(&self, code: &str) -> SupabaseResult<Option<GuestGroup>> {
-        execute_rpc_option(
+        let result: Option<GuestGroup> = execute_rpc_option(
             &self.client,
             "authenticate_guest_group",
             format!(r#"{{"code":"{}"}}"#, code),
         )
-        .await
+        .await?;
+
+        // Set invitation_code from caller input — the DB no longer returns it
+        Ok(result.map(|mut g| {
+            g.invitation_code = code.to_string();
+            g
+        }))
     }
 
     /// Update party_size for a guest group with invitation code validation (RPC)
@@ -404,19 +408,30 @@ impl SupabaseRpcClient {
         guest_group_id: &str,
         invitation_code: &str,
         new_party_size: i32,
-    ) -> SupabaseResult<GuestGroup> {
+    ) -> SupabaseResult<()> {
         let params = serde_json::json!({
             "p_guest_group_id": guest_group_id,
             "p_invitation_code": invitation_code,
             "p_new_party_size": new_party_size
         });
 
-        execute_rpc(
-            &self.client,
-            "update_guest_group_party_size",
-            params.to_string(),
-        )
-        .await
+        let response = self
+            .client
+            .rpc("update_guest_group_party_size", params.to_string())
+            .execute()
+            .await
+            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(SupabaseError::ServerError(format!(
+                "Status: {}, Body: {}",
+                status, error_text
+            )));
+        }
+
+        Ok(())
     }
 
     /// Update additional_notes for a guest group with invitation code validation (RPC)
@@ -425,14 +440,30 @@ impl SupabaseRpcClient {
         guest_group_id: &str,
         invitation_code: &str,
         additional_notes: &str,
-    ) -> SupabaseResult<GuestGroup> {
+    ) -> SupabaseResult<()> {
         let params = serde_json::json!({
             "p_guest_group_id": guest_group_id,
             "p_invitation_code": invitation_code,
             "p_additional_notes": additional_notes
         });
 
-        execute_rpc(&self.client, "update_guest_group_notes", params.to_string()).await
+        let response = self
+            .client
+            .rpc("update_guest_group_notes", params.to_string())
+            .execute()
+            .await
+            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(SupabaseError::ServerError(format!(
+                "Status: {}, Body: {}",
+                status, error_text
+            )));
+        }
+
+        Ok(())
     }
 
     // ========================================================================
@@ -539,24 +570,6 @@ impl SupabaseRpcClient {
         )
         .await
     }
-
-    // ========================================================================
-    // PHOTO OPERATIONS (Read-only for guests)
-    // ========================================================================
-
-    /// Get all photos (ordered by display_order)
-    pub async fn get_all_photos(&self) -> SupabaseResult<Vec<Photo>> {
-        let response = self
-            .client
-            .from(TABLE_PHOTOS)
-            .select("*")
-            .order("display_order")
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_and_parse_vec(response).await
-    }
 }
 
 impl Default for SupabaseRpcClient {
@@ -577,6 +590,7 @@ pub struct SupabaseAdminClient {
     #[allow(dead_code)]
     publishable_key: String,
     pub base_url: String,
+    #[allow(dead_code)]
     auth_token: Option<String>,
 }
 
@@ -1158,178 +1172,6 @@ impl SupabaseAdminClient {
             gluten_free_count,
             other_dietary_count,
         })
-    }
-
-    // ========================================================================
-    // PHOTO OPERATIONS (Admin - Full CRUD)
-    // ========================================================================
-
-    /// Get all photos (ordered by display_order)
-    pub async fn get_all_photos(&self) -> SupabaseResult<Vec<Photo>> {
-        let response = self
-            .client
-            .from(TABLE_PHOTOS)
-            .select("*")
-            .order("display_order")
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_and_parse_vec(response).await
-    }
-
-    /// Create a new photo entry
-    pub async fn create_photo(&self, photo: &PhotoInput) -> SupabaseResult<Photo> {
-        let response = self
-            .client
-            .from(TABLE_PHOTOS)
-            .insert(serde_json::to_string(photo).unwrap())
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_and_parse_single(response).await
-    }
-
-    /// Update a photo's caption or display order
-    #[allow(dead_code)]
-    pub async fn update_photo(
-        &self,
-        id: &str,
-        caption: Option<String>,
-        display_order: Option<i32>,
-    ) -> SupabaseResult<Photo> {
-        #[derive(Serialize)]
-        #[allow(dead_code)]
-        struct PhotoUpdate {
-            #[serde(skip_serializing_if = "Option::is_none")]
-            caption: Option<String>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            display_order: Option<i32>,
-        }
-
-        let update = PhotoUpdate {
-            caption,
-            display_order,
-        };
-        let json_body =
-            serde_json::to_string(&update).map_err(|e| SupabaseError::ParseError(e.to_string()))?;
-
-        let response = self
-            .client
-            .from(TABLE_PHOTOS)
-            .eq("id", id)
-            .update(json_body)
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_and_parse_single(response).await
-    }
-
-    /// Delete a photo
-    pub async fn delete_photo(&self, photo_id: &str) -> SupabaseResult<()> {
-        let response = self
-            .client
-            .from(TABLE_PHOTOS)
-            .eq("id", photo_id)
-            .delete()
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_delete(response).await
-    }
-
-    // ========================================================================
-    // STORAGE OPERATIONS (Admin)
-    // ========================================================================
-
-    /// Upload a photo file to Supabase storage
-    pub async fn upload_photo_to_storage(
-        &self,
-        filename: &str,
-        file_data: Vec<u8>,
-    ) -> SupabaseResult<String> {
-        let storage_url = format!(
-            "{}{}/object/{}/{}",
-            self.base_url, SUPABASE_STORAGE_PATH, WEDDING_PHOTOS_BUCKET, filename
-        );
-
-        let content_type = if filename.to_lowercase().ends_with(".png") {
-            "image/png"
-        } else if filename.to_lowercase().ends_with(".gif") {
-            "image/gif"
-        } else if filename.to_lowercase().ends_with(".webp") {
-            "image/webp"
-        } else {
-            "image/jpeg"
-        };
-
-        let auth_header = if let Some(ref token) = self.auth_token {
-            format!("Bearer {}", token)
-        } else {
-            format!("Bearer {}", &self.publishable_key)
-        };
-
-        let response = reqwest::Client::new()
-            .post(&storage_url)
-            .header("apikey", &self.publishable_key)
-            .header("Authorization", &auth_header)
-            .header("Content-Type", content_type)
-            .header("x-upsert", "false")
-            .body(file_data)
-            .send()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            return Err(SupabaseError::ServerError(format!(
-                "Upload failed - Status: {}, Body: {}",
-                status, error_text
-            )));
-        }
-
-        let authenticated_url = format!(
-            "{}{}/object/{}/{}",
-            self.base_url, SUPABASE_STORAGE_PATH, WEDDING_PHOTOS_BUCKET, filename
-        );
-        Ok(authenticated_url)
-    }
-
-    /// Delete a photo file from Supabase storage
-    pub async fn delete_photo_from_storage(&self, filename: &str) -> SupabaseResult<()> {
-        let storage_url = format!(
-            "{}{}/object/{}/{}",
-            self.base_url, SUPABASE_STORAGE_PATH, WEDDING_PHOTOS_BUCKET, filename
-        );
-
-        let auth_header = if let Some(ref token) = self.auth_token {
-            format!("Bearer {}", token)
-        } else {
-            format!("Bearer {}", &self.publishable_key)
-        };
-
-        let response = reqwest::Client::new()
-            .delete(&storage_url)
-            .header("apikey", &self.publishable_key)
-            .header("Authorization", &auth_header)
-            .send()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            return Err(SupabaseError::ServerError(format!(
-                "Delete failed - Status: {}, Body: {}",
-                status, error_text
-            )));
-        }
-
-        Ok(())
     }
 }
 

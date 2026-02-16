@@ -29,7 +29,7 @@ impl Translations {
         // Navigation
         map.insert("nav.home", "Home");
         map.insert("nav.events", "Program");
-        map.insert("nav.gallery", "Gallery");
+
         map.insert("nav.rsvp", "RSVP");
         map.insert("nav.admin", "Admin");
 
@@ -133,10 +133,6 @@ impl Translations {
             "events.travel_nice",
             "• <a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Nice Côte d'Azur Airport</a> serves the area",
         );
-
-        // Gallery
-        map.insert("gallery.title", "Photo Gallery");
-        map.insert("gallery.empty", "No photos yet. Check back soon!");
 
         // RSVP
         map.insert("rsvp.title", "RSVP");
@@ -245,9 +241,6 @@ impl Translations {
         map.insert("admin.dashboard", "Dashboard");
         map.insert("admin.guests", "Guests");
         map.insert("admin.rsvps", "RSVPs");
-        map.insert("admin.content", "Content");
-        map.insert("admin.photos", "Photos");
-        map.insert("admin.config", "Configuration");
 
         // Common
         map.insert("common.loading", "Loading...");
@@ -301,7 +294,7 @@ impl Translations {
         // Navigation
         map.insert("nav.home", "Accueil");
         map.insert("nav.events", "Programme");
-        map.insert("nav.gallery", "Galerie");
+
         map.insert("nav.rsvp", "RSVP");
         map.insert("nav.admin", "Admin");
 
@@ -405,10 +398,6 @@ impl Translations {
             "events.travel_nice",
             "• L'<a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>aéroport Nice Côte d'Azur</a> dessert la région",
         );
-
-        // Gallery
-        map.insert("gallery.title", "Galerie photos");
-        map.insert("gallery.empty", "Pas encore de photos. Revenez bientôt !");
 
         // RSVP
         map.insert("rsvp.title", "RSVP");
@@ -532,9 +521,6 @@ impl Translations {
         map.insert("admin.dashboard", "Tableau de bord");
         map.insert("admin.guests", "Invités");
         map.insert("admin.rsvps", "RSVPs");
-        map.insert("admin.content", "Contenu");
-        map.insert("admin.photos", "Photos");
-        map.insert("admin.config", "Configuration");
 
         // Common
         map.insert("common.loading", "Chargement...");
@@ -566,7 +552,7 @@ impl Translations {
         // Navigation
         map.insert("nav.home", "Home");
         map.insert("nav.events", "Programma");
-        map.insert("nav.gallery", "Galleria");
+
         map.insert("nav.rsvp", "RSVP");
         map.insert("nav.admin", "Admin");
 
@@ -670,10 +656,6 @@ impl Translations {
             "events.travel_nice",
             "• L'<a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>aeroporto di Nizza Costa Azzurra</a> serve la zona",
         );
-
-        // Gallery
-        map.insert("gallery.title", "Galleria fotografica");
-        map.insert("gallery.empty", "Nessuna foto ancora. Torna presto!");
 
         // RSVP
         map.insert("rsvp.title", "RSVP");
@@ -782,9 +764,6 @@ impl Translations {
         map.insert("admin.dashboard", "Dashboard");
         map.insert("admin.guests", "Ospiti");
         map.insert("admin.rsvps", "RSVPs");
-        map.insert("admin.content", "Contenuto");
-        map.insert("admin.photos", "Foto");
-        map.insert("admin.config", "Configurazione");
 
         // Common
         map.insert("common.loading", "Caricamento...");

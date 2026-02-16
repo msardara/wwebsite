@@ -1,4 +1,4 @@
-use crate::components::admin::{AdminDashboard, GuestManagement, PhotoManagement, RsvpManagement};
+use crate::components::admin::{AdminDashboard, GuestManagement, RsvpManagement};
 use crate::contexts::AdminContext;
 use crate::styles::*;
 use leptos::*;
@@ -9,7 +9,6 @@ enum AdminTab {
     Dashboard,
     Guests,
     Rsvps,
-    Photos,
 }
 
 #[component]
@@ -71,12 +70,6 @@ pub fn AdminPage() -> impl IntoView {
                                             is_active=move || active_tab.get() == AdminTab::Rsvps
                                             on_click=move |_| set_active_tab.set(AdminTab::Rsvps)
                                         />
-                                        <TabButton
-                                            label="Photos"
-                                            icon="📷"
-                                            is_active=move || active_tab.get() == AdminTab::Photos
-                                            on_click=move |_| set_active_tab.set(AdminTab::Photos)
-                                        />
                                     </div>
                                 </div>
 
@@ -85,7 +78,6 @@ pub fn AdminPage() -> impl IntoView {
                                     AdminTab::Dashboard => view! { <AdminDashboard /> }.into_view(),
                                     AdminTab::Guests => view! { <GuestManagement /> }.into_view(),
                                     AdminTab::Rsvps => view! { <RsvpManagement /> }.into_view(),
-                                    AdminTab::Photos => view! { <PhotoManagement /> }.into_view(),
                                 }}
                             </div>
                         </main>

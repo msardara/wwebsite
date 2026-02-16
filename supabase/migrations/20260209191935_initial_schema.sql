@@ -1,14 +1,97 @@
 -- ============================================================================
 -- Wedding Website - Initial Database Schema
 -- Created: 2026-02-10
--- Tables: guest_groups, guests, content, photos, config
+-- Tables: guest_groups, guests
 --
 -- Security Model:
 -- - Guest authentication required via invitation codes (frontend GuestContext)
--- - Photos gallery accessible only to authenticated guests
--- - Storage bucket 'wedding-photos' is PRIVATE (not public)
 -- - Admin operations require authenticated admin users
 -- ============================================================================
+
+-- ============================================================================
+-- VALIDATION FUNCTIONS
+-- ============================================================================
+
+-- Valid wedding locations constant
+-- Returns the canonical array of allowed location values.
+-- Used by CHECK constraints and validation logic throughout the schema.
+CREATE OR REPLACE FUNCTION valid_locations()
+RETURNS TEXT[]
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT ARRAY['sardinia', 'tunisia', 'nice']::text[];
+$$;
+
+-- Valid age categories constant
+-- Returns the canonical array of allowed age category values.
+-- Used by CHECK constraints and validation logic throughout the schema.
+CREATE OR REPLACE FUNCTION valid_age_categories()
+RETURNS TEXT[]
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT ARRAY['adult', 'child_under_3', 'child_under_10']::text[];
+$$;
+
+-- Validate dietary_preferences JSONB structure
+-- Allowed keys: vegetarian, vegan, halal, no_pork, gluten_free (boolean), other (string)
+CREATE OR REPLACE FUNCTION validate_dietary_preferences(prefs JSONB)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  allowed_keys TEXT[] := ARRAY['vegetarian', 'vegan', 'halal', 'no_pork', 'gluten_free', 'other'];
+  key TEXT;
+BEGIN
+  -- Allow NULL
+  IF prefs IS NULL THEN
+    RETURN TRUE;
+  END IF;
+
+  -- Must be a JSON object
+  IF jsonb_typeof(prefs) != 'object' THEN
+    RETURN FALSE;
+  END IF;
+
+  -- Check no unexpected keys
+  FOR key IN SELECT jsonb_object_keys(prefs)
+  LOOP
+    IF NOT (key = ANY(allowed_keys)) THEN
+      RETURN FALSE;
+    END IF;
+  END LOOP;
+
+  -- Validate boolean fields
+  IF prefs ? 'vegetarian' AND jsonb_typeof(prefs -> 'vegetarian') != 'boolean' THEN RETURN FALSE; END IF;
+  IF prefs ? 'vegan' AND jsonb_typeof(prefs -> 'vegan') != 'boolean' THEN RETURN FALSE; END IF;
+  IF prefs ? 'halal' AND jsonb_typeof(prefs -> 'halal') != 'boolean' THEN RETURN FALSE; END IF;
+  IF prefs ? 'no_pork' AND jsonb_typeof(prefs -> 'no_pork') != 'boolean' THEN RETURN FALSE; END IF;
+  IF prefs ? 'gluten_free' AND jsonb_typeof(prefs -> 'gluten_free') != 'boolean' THEN RETURN FALSE; END IF;
+
+  -- Validate 'other' is a string with max length 500
+  IF prefs ? 'other' THEN
+    IF jsonb_typeof(prefs -> 'other') != 'string' THEN RETURN FALSE; END IF;
+    IF length(prefs ->> 'other') > 500 THEN RETURN FALSE; END IF;
+  END IF;
+
+  -- Limit total serialized size
+  IF length(prefs::text) > 1000 THEN RETURN FALSE; END IF;
+
+  RETURN TRUE;
+END;
+$$;
+
+-- Check that a TEXT array contains no duplicate values.
+-- Used by CHECK constraints to enforce array uniqueness.
+CREATE OR REPLACE FUNCTION array_has_no_duplicates(arr TEXT[])
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT cardinality(arr) = cardinality(ARRAY(SELECT DISTINCT unnest(arr)));
+$$;
 
 -- ============================================================================
 -- TABLES
@@ -20,17 +103,25 @@ CREATE TABLE guest_groups (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   email TEXT,
-  invitation_code TEXT UNIQUE NOT NULL,
-  party_size INTEGER NOT NULL DEFAULT 1 CHECK (party_size > 0),
-  locations TEXT[] NOT NULL DEFAULT '{}',
+  invitation_code UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+  party_size INTEGER NOT NULL DEFAULT 1 CHECK (party_size > 0 AND party_size <= 20),
+  locations TEXT[] NOT NULL,
   default_language TEXT NOT NULL DEFAULT 'en' CHECK (default_language IN ('en', 'fr', 'it')),
   additional_notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT guest_groups_name_not_empty CHECK (length(trim(name)) > 0),
+  CONSTRAINT guest_groups_name_length CHECK (length(name) <= 200),
+  CONSTRAINT guest_groups_email_length CHECK (email IS NULL OR length(email) <= 254),
+
+  CONSTRAINT guest_groups_additional_notes_length CHECK (additional_notes IS NULL OR length(additional_notes) <= 2000),
+  CONSTRAINT guest_groups_locations_valid CHECK (locations <@ valid_locations()),
+  CONSTRAINT guest_groups_locations_not_empty CHECK (cardinality(locations) > 0),
+  CONSTRAINT guest_groups_locations_no_duplicates CHECK (array_has_no_duplicates(locations))
 );
 
 -- Indexes for guest_groups table
-CREATE INDEX idx_guest_groups_invitation_code ON guest_groups(invitation_code);
+-- NOTE: No explicit index on invitation_code — the UNIQUE constraint already creates one.
 CREATE INDEX idx_guest_groups_locations ON guest_groups USING GIN(locations);
 CREATE INDEX idx_guest_groups_default_language ON guest_groups(default_language);
 
@@ -42,10 +133,14 @@ CREATE TABLE guests (
   name TEXT NOT NULL,
   attending_locations TEXT[] NOT NULL DEFAULT '{}',
   dietary_preferences JSONB DEFAULT '{"vegetarian": false, "vegan": false, "halal": false, "no_pork": false, "gluten_free": false, "other": ""}'::jsonb,
-  age_category TEXT DEFAULT 'adult' CHECK (age_category IN ('adult', 'child_under_3', 'child_under_10')),
+  age_category TEXT DEFAULT 'adult' CHECK (age_category = ANY(valid_age_categories())),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  CONSTRAINT guests_name_not_empty CHECK (length(trim(name)) > 0)
+  CONSTRAINT guests_name_not_empty CHECK (length(trim(name)) > 0),
+  CONSTRAINT guests_name_length CHECK (length(name) <= 200),
+  CONSTRAINT guests_dietary_valid CHECK (validate_dietary_preferences(dietary_preferences)),
+  CONSTRAINT guests_attending_locations_valid CHECK (attending_locations <@ valid_locations()),
+  CONSTRAINT guests_attending_locations_no_duplicates CHECK (array_has_no_duplicates(attending_locations))
 );
 
 -- Indexes for guests table
@@ -55,38 +150,7 @@ CREATE INDEX idx_guests_age_category ON guests(age_category);
 
 
 
--- Content table (multilingual website content)
-CREATE TABLE content (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key TEXT NOT NULL,
-  language TEXT NOT NULL CHECK (language IN ('en', 'fr', 'it')),
-  location TEXT,
-  value TEXT NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  CONSTRAINT content_key_lang_loc_unique UNIQUE (key, language, location)
-);
 
--- Index for content lookups
-CREATE INDEX idx_content_lookup ON content(key, language, location);
-
--- Photos table
-CREATE TABLE photos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  filename TEXT NOT NULL,
-  caption TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Index for photo ordering
-CREATE INDEX idx_photos_order ON photos(display_order);
-
--- Configuration table
-CREATE TABLE config (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- ============================================================================
 -- TRIGGERS - Auto-update timestamps
@@ -116,29 +180,45 @@ CREATE TRIGGER update_guests_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- Revoke default PUBLIC execute on trigger functions (defense-in-depth)
+REVOKE EXECUTE ON FUNCTION update_updated_at_column() FROM PUBLIC;
 
 
-CREATE TRIGGER update_content_updated_at
-  BEFORE UPDATE ON content
+-- ============================================================================
+-- IMMUTABILITY TRIGGER - Prevent modification of invitation_code after creation
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION prevent_invitation_code_update()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.invitation_code IS DISTINCT FROM NEW.invitation_code THEN
+    RAISE EXCEPTION 'invitation_code cannot be modified after creation';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER enforce_invitation_code_immutable
+  BEFORE UPDATE ON guest_groups
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+  EXECUTE FUNCTION prevent_invitation_code_update();
 
-CREATE TRIGGER update_config_updated_at
-  BEFORE UPDATE ON config
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+REVOKE EXECUTE ON FUNCTION prevent_invitation_code_update() FROM PUBLIC;
 
 -- ============================================================================
 -- BUSINESS LOGIC FUNCTIONS
 -- ============================================================================
 
 -- Function for secure guest group authentication by invitation code
-CREATE OR REPLACE FUNCTION authenticate_guest_group(code TEXT)
+CREATE OR REPLACE FUNCTION authenticate_guest_group(code UUID)
 RETURNS TABLE (
   id UUID,
   name TEXT,
   email TEXT,
-  invitation_code TEXT,
   party_size INTEGER,
   locations TEXT[],
   default_language TEXT,
@@ -155,7 +235,6 @@ BEGIN
     gg.id,
     gg.name,
     gg.email,
-    gg.invitation_code,
     gg.party_size,
     gg.locations,
     gg.default_language,
@@ -166,29 +245,9 @@ BEGIN
 END;
 $$;
 
--- Grant execute permission to anonymous users
-GRANT EXECUTE ON FUNCTION authenticate_guest_group(TEXT) TO anon, authenticated;
-
--- Function to validate guest_group_id access
--- NOTE: This function is DEPRECATED and should not be used for security
--- It only checks if a guest_group exists, not if the user owns it
--- Use the new secure RPC functions instead
-CREATE OR REPLACE FUNCTION is_valid_guest_group_id(check_guest_group_id UUID)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  -- Only admins can use this now
-  IF auth.role() = 'authenticated' THEN
-    RETURN true;
-  END IF;
-
-  -- Anonymous users should use RPC functions with invitation_code
-  RETURN false;
-END;
-$$;
+-- Revoke default PUBLIC execute, then grant only to intended roles
+REVOKE EXECUTE ON FUNCTION authenticate_guest_group(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION authenticate_guest_group(UUID) TO anon, authenticated;
 
 -- ============================================================================
 -- SECURE RPC FUNCTIONS - Guests Table
@@ -197,7 +256,7 @@ $$;
 -- Get guests for a specific guest group with invitation code validation
 CREATE OR REPLACE FUNCTION get_guests_for_group(
   p_guest_group_id UUID,
-  p_invitation_code TEXT
+  p_invitation_code UUID
 )
 RETURNS SETOF guests
 LANGUAGE plpgsql
@@ -226,7 +285,7 @@ $$;
 -- Security: Maximum 20 guests per group to prevent abuse
 CREATE OR REPLACE FUNCTION create_guest_for_group(
   p_guest_group_id UUID,
-  p_invitation_code TEXT,
+  p_invitation_code UUID,
   p_name TEXT,
   p_attending_locations TEXT[],
   p_dietary_preferences JSONB,
@@ -240,13 +299,15 @@ AS $$
 DECLARE
   v_guest guests;
   v_current_guest_count INTEGER;
+  v_group_locations TEXT[];
 BEGIN
-  -- Validate invitation code
-  IF NOT EXISTS (
-    SELECT 1 FROM guest_groups
-    WHERE id = p_guest_group_id
-    AND invitation_code = p_invitation_code
-  ) THEN
+  -- Validate invitation code and fetch group locations
+  SELECT locations INTO v_group_locations
+  FROM guest_groups
+  WHERE id = p_guest_group_id
+  AND invitation_code = p_invitation_code;
+
+  IF v_group_locations IS NULL THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
@@ -259,9 +320,52 @@ BEGIN
     RAISE EXCEPTION 'Maximum of 20 guests per group allowed';
   END IF;
 
+  -- Reject NULL parameters (PostgreSQL three-valued logic would bypass subsequent checks)
+  IF p_name IS NULL THEN
+    RAISE EXCEPTION 'Guest name cannot be null';
+  END IF;
+
+  -- Normalize name by trimming whitespace
+  p_name := trim(p_name);
+
+  IF p_attending_locations IS NULL THEN
+    RAISE EXCEPTION 'Attending locations cannot be null';
+  END IF;
+
+  -- Deduplicate attending_locations to prevent duplicate entries
+  p_attending_locations := ARRAY(SELECT DISTINCT unnest(p_attending_locations));
+
+  IF p_age_category IS NULL THEN
+    RAISE EXCEPTION 'Age category cannot be null';
+  END IF;
+
   -- Validate name
   IF length(trim(p_name)) = 0 THEN
     RAISE EXCEPTION 'Guest name cannot be empty';
+  END IF;
+
+  IF length(p_name) > 200 THEN
+    RAISE EXCEPTION 'Guest name must be 200 characters or less';
+  END IF;
+
+  -- Validate dietary_preferences
+  IF NOT validate_dietary_preferences(p_dietary_preferences) THEN
+    RAISE EXCEPTION 'Invalid dietary preferences: must be a JSON object with keys (vegetarian, vegan, halal, no_pork, gluten_free as booleans; other as string up to 500 chars)';
+  END IF;
+
+  -- Validate age_category
+  IF NOT (p_age_category = ANY(valid_age_categories())) THEN
+    RAISE EXCEPTION 'Invalid age category. Must be one of: %', array_to_string(valid_age_categories(), ', ');
+  END IF;
+
+  -- Validate attending_locations against global valid locations
+  IF NOT (p_attending_locations <@ valid_locations()) THEN
+    RAISE EXCEPTION 'Invalid attending locations. Each location must be one of: %', array_to_string(valid_locations(), ', ');
+  END IF;
+
+  -- Validate attending_locations against group's invited locations
+  IF NOT (p_attending_locations <@ v_group_locations) THEN
+    RAISE EXCEPTION 'Attending locations must be within the group''s invited locations: %', array_to_string(v_group_locations, ', ');
   END IF;
 
   -- Insert guest
@@ -277,7 +381,7 @@ $$;
 CREATE OR REPLACE FUNCTION update_guest_for_group(
   p_guest_id UUID,
   p_guest_group_id UUID,
-  p_invitation_code TEXT,
+  p_invitation_code UUID,
   p_name TEXT,
   p_attending_locations TEXT[],
   p_dietary_preferences JSONB,
@@ -290,13 +394,15 @@ SET search_path = public
 AS $$
 DECLARE
   v_guest guests;
+  v_group_locations TEXT[];
 BEGIN
-  -- Validate invitation code
-  IF NOT EXISTS (
-    SELECT 1 FROM guest_groups
-    WHERE id = p_guest_group_id
-    AND invitation_code = p_invitation_code
-  ) THEN
+  -- Validate invitation code and fetch group locations
+  SELECT locations INTO v_group_locations
+  FROM guest_groups
+  WHERE id = p_guest_group_id
+  AND invitation_code = p_invitation_code;
+
+  IF v_group_locations IS NULL THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
@@ -309,9 +415,52 @@ BEGIN
     RAISE EXCEPTION 'Guest does not belong to this group';
   END IF;
 
+  -- Reject NULL parameters (PostgreSQL three-valued logic would bypass subsequent checks)
+  IF p_name IS NULL THEN
+    RAISE EXCEPTION 'Guest name cannot be null';
+  END IF;
+
+  -- Normalize name by trimming whitespace
+  p_name := trim(p_name);
+
+  IF p_attending_locations IS NULL THEN
+    RAISE EXCEPTION 'Attending locations cannot be null';
+  END IF;
+
+  -- Deduplicate attending_locations to prevent duplicate entries
+  p_attending_locations := ARRAY(SELECT DISTINCT unnest(p_attending_locations));
+
+  IF p_age_category IS NULL THEN
+    RAISE EXCEPTION 'Age category cannot be null';
+  END IF;
+
   -- Validate name
   IF length(trim(p_name)) = 0 THEN
     RAISE EXCEPTION 'Guest name cannot be empty';
+  END IF;
+
+  IF length(p_name) > 200 THEN
+    RAISE EXCEPTION 'Guest name must be 200 characters or less';
+  END IF;
+
+  -- Validate dietary_preferences
+  IF NOT validate_dietary_preferences(p_dietary_preferences) THEN
+    RAISE EXCEPTION 'Invalid dietary preferences: must be a JSON object with keys (vegetarian, vegan, halal, no_pork, gluten_free as booleans; other as string up to 500 chars)';
+  END IF;
+
+  -- Validate age_category
+  IF NOT (p_age_category = ANY(valid_age_categories())) THEN
+    RAISE EXCEPTION 'Invalid age category. Must be one of: %', array_to_string(valid_age_categories(), ', ');
+  END IF;
+
+  -- Validate attending_locations against global valid locations
+  IF NOT (p_attending_locations <@ valid_locations()) THEN
+    RAISE EXCEPTION 'Invalid attending locations. Each location must be one of: %', array_to_string(valid_locations(), ', ');
+  END IF;
+
+  -- Validate attending_locations against group's invited locations
+  IF NOT (p_attending_locations <@ v_group_locations) THEN
+    RAISE EXCEPTION 'Attending locations must be within the group''s invited locations: %', array_to_string(v_group_locations, ', ');
   END IF;
 
   -- Update guest
@@ -319,9 +468,9 @@ BEGIN
   SET name = p_name,
       attending_locations = p_attending_locations,
       dietary_preferences = p_dietary_preferences,
-      age_category = p_age_category,
-      updated_at = NOW()
+      age_category = p_age_category
   WHERE id = p_guest_id
+  AND guest_group_id = p_guest_group_id
   RETURNING * INTO v_guest;
 
   RETURN v_guest;
@@ -332,7 +481,7 @@ $$;
 CREATE OR REPLACE FUNCTION delete_guest_for_group(
   p_guest_id UUID,
   p_guest_group_id UUID,
-  p_invitation_code TEXT
+  p_invitation_code UUID
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -360,17 +509,23 @@ BEGIN
 
   -- Delete guest
   DELETE FROM guests
-  WHERE id = p_guest_id;
+  WHERE id = p_guest_id
+  AND guest_group_id = p_guest_group_id;
 
   RETURN TRUE;
 END;
 $$;
 
--- Grant execute permissions on guest functions
-GRANT EXECUTE ON FUNCTION get_guests_for_group(UUID, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION create_guest_for_group(UUID, TEXT, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, TEXT, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, TEXT) TO anon, authenticated;
+-- Revoke default PUBLIC execute, then grant only to intended roles
+REVOKE EXECUTE ON FUNCTION get_guests_for_group(UUID, UUID) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION create_guest_for_group(UUID, UUID, TEXT, TEXT[], JSONB, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, UUID, TEXT, TEXT[], JSONB, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, UUID) FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION get_guests_for_group(UUID, UUID) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION create_guest_for_group(UUID, UUID, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, UUID, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, UUID) TO anon, authenticated;
 
 -- ============================================================================
 -- SECURITY - Row Level Security (RLS)
@@ -379,9 +534,6 @@ GRANT EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, TEXT) TO anon, auth
 -- Enable RLS on all tables
 ALTER TABLE guest_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE content ENABLE ROW LEVEL SECURITY;
-ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE config ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- RLS POLICIES - Guest Groups Table
@@ -445,11 +597,14 @@ CREATE POLICY "admins_can_delete_guests"
 -- Direct table access is blocked for security
 -- No policies for anon role - must use RPC functions with invitation_code validation
 
--- Grant permissions only to authenticated admins
-GRANT SELECT, INSERT, UPDATE, DELETE ON guests TO authenticated;
+-- Explicitly revoke all direct table access for anonymous users (defense-in-depth)
+-- Anonymous users must use SECURITY DEFINER RPC functions with invitation_code validation
+REVOKE ALL ON guest_groups FROM anon;
+REVOKE ALL ON guests FROM anon;
 
--- NOTE: Anonymous users access guest_groups through authenticate_guest_group() function
--- No direct SELECT grant needed
+-- Grant permissions only to authenticated admins
+GRANT SELECT, INSERT, UPDATE, DELETE ON guest_groups TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON guests TO authenticated;
 
 -- ============================================================================
 -- SECURE FUNCTION - Update Party Size with Invitation Code Validation
@@ -459,26 +614,37 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON guests TO authenticated;
 -- This allows guests to increase their party size when RSVPing without compromising security
 CREATE OR REPLACE FUNCTION update_guest_group_party_size(
   p_guest_group_id UUID,
-  p_invitation_code TEXT,
+  p_invitation_code UUID,
   p_new_party_size INTEGER
 )
-RETURNS guest_groups
+RETURNS TABLE (
+  id UUID,
+  name TEXT,
+  email TEXT,
+  party_size INTEGER,
+  locations TEXT[],
+  default_language TEXT,
+  additional_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE
+)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_guest_group guest_groups;
 BEGIN
   -- Validate that the invitation code matches the guest_group_id
-  SELECT * INTO v_guest_group
-  FROM guest_groups
-  WHERE id = p_guest_group_id
-    AND invitation_code = p_invitation_code;
-
-  -- If no match found, raise an error
-  IF NOT FOUND THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM guest_groups
+    WHERE guest_groups.id = p_guest_group_id
+    AND guest_groups.invitation_code = p_invitation_code
+  ) THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
+  END IF;
+
+  -- Reject NULL to provide a clear error instead of a raw constraint violation
+  IF p_new_party_size IS NULL THEN
+    RAISE EXCEPTION 'Party size cannot be null';
   END IF;
 
   -- Validate party_size is reasonable (between 1 and 20)
@@ -486,62 +652,87 @@ BEGIN
     RAISE EXCEPTION 'Party size must be between 1 and 20';
   END IF;
 
-  -- Update the party_size
+  -- Update the party_size and return explicit columns (excluding invitation_code)
+  RETURN QUERY
   UPDATE guest_groups
-  SET party_size = p_new_party_size,
-      updated_at = NOW()
-  WHERE id = p_guest_group_id
-  RETURNING * INTO v_guest_group;
-
-  RETURN v_guest_group;
+  SET party_size = p_new_party_size
+  WHERE guest_groups.id = p_guest_group_id
+  RETURNING
+    guest_groups.id,
+    guest_groups.name,
+    guest_groups.email,
+    guest_groups.party_size,
+    guest_groups.locations,
+    guest_groups.default_language,
+    guest_groups.additional_notes,
+    guest_groups.created_at,
+    guest_groups.updated_at;
 END;
 $$;
 
--- Grant EXECUTE permission to anon and authenticated roles
-GRANT EXECUTE ON FUNCTION update_guest_group_party_size(UUID, TEXT, INTEGER) TO anon;
-GRANT EXECUTE ON FUNCTION update_guest_group_party_size(UUID, TEXT, INTEGER) TO authenticated;
+-- Revoke default PUBLIC execute, then grant only to intended roles
+REVOKE EXECUTE ON FUNCTION update_guest_group_party_size(UUID, UUID, INTEGER) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION update_guest_group_party_size(UUID, UUID, INTEGER) TO anon, authenticated;
 
--- Add a comment explaining the function
-COMMENT ON FUNCTION update_guest_group_party_size(UUID, TEXT, INTEGER) IS
-  'Securely updates party_size for a guest_group by validating the invitation code.';
+COMMENT ON FUNCTION update_guest_group_party_size(UUID, UUID, INTEGER) IS
+  'Securely updates party_size for a guest_group by validating the invitation code. Returns explicit columns excluding invitation_code.';
 
 -- Update additional_notes for a guest group with invitation code validation
 CREATE OR REPLACE FUNCTION update_guest_group_notes(
   p_guest_group_id UUID,
-  p_invitation_code TEXT,
+  p_invitation_code UUID,
   p_additional_notes TEXT
 )
-RETURNS guest_groups
+RETURNS TABLE (
+  id UUID,
+  name TEXT,
+  email TEXT,
+  party_size INTEGER,
+  locations TEXT[],
+  default_language TEXT,
+  additional_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE
+)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_guest_group guest_groups;
 BEGIN
   -- Validate invitation code
   IF NOT EXISTS (
     SELECT 1 FROM guest_groups
-    WHERE id = p_guest_group_id
-    AND invitation_code = p_invitation_code
+    WHERE guest_groups.id = p_guest_group_id
+    AND guest_groups.invitation_code = p_invitation_code
   ) THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
-  -- Update the additional_notes
-  UPDATE guest_groups
-  SET additional_notes = p_additional_notes,
-      updated_at = NOW()
-  WHERE id = p_guest_group_id
-  RETURNING * INTO v_guest_group;
+  -- Validate notes length
+  IF p_additional_notes IS NOT NULL AND length(p_additional_notes) > 2000 THEN
+    RAISE EXCEPTION 'Additional notes must be 2000 characters or less';
+  END IF;
 
-  RETURN v_guest_group;
+  -- Update the additional_notes and return explicit columns (excluding invitation_code)
+  RETURN QUERY
+  UPDATE guest_groups
+  SET additional_notes = p_additional_notes
+  WHERE guest_groups.id = p_guest_group_id
+  RETURNING
+    guest_groups.id,
+    guest_groups.name,
+    guest_groups.email,
+    guest_groups.party_size,
+    guest_groups.locations,
+    guest_groups.default_language,
+    guest_groups.additional_notes,
+    guest_groups.created_at,
+    guest_groups.updated_at;
 END;
 $$;
 
--- Grant EXECUTE permission to anon and authenticated roles
-GRANT EXECUTE ON FUNCTION update_guest_group_notes(UUID, TEXT, TEXT) TO anon;
-GRANT EXECUTE ON FUNCTION update_guest_group_notes(UUID, TEXT, TEXT) TO authenticated;
+REVOKE EXECUTE ON FUNCTION update_guest_group_notes(UUID, UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION update_guest_group_notes(UUID, UUID, TEXT) TO anon, authenticated;
 
 -- ============================================================================
 -- GUEST LOCATION ATTENDANCE FUNCTIONS
@@ -551,7 +742,7 @@ GRANT EXECUTE ON FUNCTION update_guest_group_notes(UUID, TEXT, TEXT) TO authenti
 CREATE OR REPLACE FUNCTION set_guest_location_attendance(
   p_guest_id UUID,
   p_guest_group_id UUID,
-  p_invitation_code TEXT,
+  p_invitation_code UUID,
   p_location TEXT,
   p_attending BOOLEAN
 )
@@ -560,14 +751,26 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_group_locations TEXT[];
 BEGIN
-  -- Validate invitation code
-  IF NOT EXISTS (
-    SELECT 1 FROM guest_groups
-    WHERE id = p_guest_group_id
-    AND invitation_code = p_invitation_code
-  ) THEN
+  -- Validate invitation code and fetch group locations
+  SELECT locations INTO v_group_locations
+  FROM guest_groups
+  WHERE id = p_guest_group_id
+  AND invitation_code = p_invitation_code;
+
+  IF v_group_locations IS NULL THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
+  END IF;
+
+  -- Reject NULL parameters
+  IF p_location IS NULL THEN
+    RAISE EXCEPTION 'Location cannot be null';
+  END IF;
+
+  IF p_attending IS NULL THEN
+    RAISE EXCEPTION 'Attending flag cannot be null';
   END IF;
 
   -- Validate guest belongs to the group
@@ -580,8 +783,13 @@ BEGIN
   END IF;
 
   -- Validate location
-  IF p_location NOT IN ('sardinia', 'tunisia', 'nice') THEN
-    RAISE EXCEPTION 'Invalid location. Must be sardinia, tunisia, or nice';
+  IF NOT (p_location = ANY(valid_locations())) THEN
+    RAISE EXCEPTION 'Invalid location. Must be one of: %', array_to_string(valid_locations(), ', ');
+  END IF;
+
+  -- Validate location is within the group's invited locations
+  IF NOT (p_location = ANY(v_group_locations)) THEN
+    RAISE EXCEPTION 'Location ''%'' is not available for this group. Group locations: %', p_location, array_to_string(v_group_locations, ', ');
   END IF;
 
   IF p_attending THEN
@@ -589,12 +797,14 @@ BEGIN
     UPDATE guests
     SET attending_locations = array_append(attending_locations, p_location)
     WHERE id = p_guest_id
+    AND guest_group_id = p_guest_group_id
     AND NOT (p_location = ANY(attending_locations));
   ELSE
     -- Remove location from array
     UPDATE guests
     SET attending_locations = array_remove(attending_locations, p_location)
-    WHERE id = p_guest_id;
+    WHERE id = p_guest_id
+    AND guest_group_id = p_guest_group_id;
   END IF;
 END;
 $$;
@@ -602,7 +812,7 @@ $$;
 -- Get attending guests for a location (with invitation code validation)
 CREATE OR REPLACE FUNCTION get_attending_guests_for_location(
   p_guest_group_id UUID,
-  p_invitation_code TEXT,
+  p_invitation_code UUID,
   p_location TEXT
 )
 RETURNS TABLE (
@@ -614,23 +824,36 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_group_locations TEXT[];
 BEGIN
-  -- Validate invitation code
-  IF NOT EXISTS (
-    SELECT 1 FROM guest_groups
-    WHERE id = p_guest_group_id
-    AND invitation_code = p_invitation_code
-  ) THEN
+  -- Validate invitation code and fetch group locations
+  SELECT locations INTO v_group_locations
+  FROM guest_groups
+  WHERE id = p_guest_group_id
+  AND invitation_code = p_invitation_code;
+
+  IF v_group_locations IS NULL THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
+  -- Reject NULL parameter
+  IF p_location IS NULL THEN
+    RAISE EXCEPTION 'Location cannot be null';
+  END IF;
+
   -- Validate location
-  IF p_location NOT IN ('sardinia', 'tunisia', 'nice') THEN
-    RAISE EXCEPTION 'Invalid location. Must be sardinia, tunisia, or nice';
+  IF NOT (p_location = ANY(valid_locations())) THEN
+    RAISE EXCEPTION 'Invalid location. Must be one of: %', array_to_string(valid_locations(), ', ');
+  END IF;
+
+  -- Validate location is within the group's invited locations
+  IF NOT (p_location = ANY(v_group_locations)) THEN
+    RAISE EXCEPTION 'Location ''%'' is not available for this group. Group locations: %', p_location, array_to_string(v_group_locations, ', ');
   END IF;
 
   RETURN QUERY
-  SELECT 
+  SELECT
     g.id as guest_id,
     g.name as guest_name,
     g.dietary_preferences
@@ -644,7 +867,7 @@ $$;
 -- Bulk update guest attendance for a location (with invitation code validation)
 CREATE OR REPLACE FUNCTION bulk_update_guest_location_attendance(
   p_guest_group_id UUID,
-  p_invitation_code TEXT,
+  p_invitation_code UUID,
   p_location TEXT,
   p_guest_ids UUID[]
 )
@@ -653,19 +876,41 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_group_locations TEXT[];
 BEGIN
-  -- Validate invitation code
-  IF NOT EXISTS (
-    SELECT 1 FROM guest_groups
-    WHERE id = p_guest_group_id
-    AND invitation_code = p_invitation_code
-  ) THEN
+  -- Validate invitation code and fetch group locations
+  SELECT locations INTO v_group_locations
+  FROM guest_groups
+  WHERE id = p_guest_group_id
+  AND invitation_code = p_invitation_code;
+
+  IF v_group_locations IS NULL THEN
     RAISE EXCEPTION 'Invalid guest group or invitation code';
   END IF;
 
+  -- Reject NULL parameters
+  IF p_location IS NULL THEN
+    RAISE EXCEPTION 'Location cannot be null';
+  END IF;
+
+  IF p_guest_ids IS NULL THEN
+    RAISE EXCEPTION 'Guest IDs array cannot be null';
+  END IF;
+
+  -- Validate guest_ids array size (matches max 20 guests per group limit)
+  IF array_length(p_guest_ids, 1) > 20 THEN
+    RAISE EXCEPTION 'Cannot update more than 20 guests at once';
+  END IF;
+
   -- Validate location
-  IF p_location NOT IN ('sardinia', 'tunisia', 'nice') THEN
-    RAISE EXCEPTION 'Invalid location. Must be sardinia, tunisia, or nice';
+  IF NOT (p_location = ANY(valid_locations())) THEN
+    RAISE EXCEPTION 'Invalid location. Must be one of: %', array_to_string(valid_locations(), ', ');
+  END IF;
+
+  -- Validate location is within the group's invited locations
+  IF NOT (p_location = ANY(v_group_locations)) THEN
+    RAISE EXCEPTION 'Location ''%'' is not available for this group. Group locations: %', p_location, array_to_string(v_group_locations, ', ');
   END IF;
 
   -- Remove location from all guests in this group
@@ -677,63 +922,19 @@ BEGIN
   UPDATE guests
   SET attending_locations = array_append(attending_locations, p_location)
   WHERE id = ANY(p_guest_ids)
+  AND guest_group_id = p_guest_group_id
   AND NOT (p_location = ANY(attending_locations));
 END;
 $$;
 
--- Grant execute permissions on guest location attendance functions
-GRANT EXECUTE ON FUNCTION set_guest_location_attendance(UUID, UUID, TEXT, TEXT, BOOLEAN) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION get_attending_guests_for_location(UUID, TEXT, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION bulk_update_guest_location_attendance(UUID, TEXT, TEXT, UUID[]) TO anon, authenticated;
+-- Revoke default PUBLIC execute, then grant only to intended roles
+REVOKE EXECUTE ON FUNCTION set_guest_location_attendance(UUID, UUID, UUID, TEXT, BOOLEAN) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION get_attending_guests_for_location(UUID, UUID, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION bulk_update_guest_location_attendance(UUID, UUID, TEXT, UUID[]) FROM PUBLIC;
 
--- ============================================================================
--- RLS POLICIES - Content Table
--- ============================================================================
-
--- Everyone can read content
-CREATE POLICY "content_select_all"
-  ON content FOR SELECT
-  TO anon, authenticated
-  USING (true);
-
--- Only admins can manage content
-CREATE POLICY "content_all_admin"
-  ON content FOR ALL
-  TO authenticated
-  USING (auth.role() = 'authenticated');
-
--- ============================================================================
--- RLS POLICIES - Photos Table
--- ============================================================================
-
--- Authenticated guests (with invitation codes) can view photos
--- Frontend enforces authentication via GuestContext
-CREATE POLICY "photos_select_all"
-  ON photos FOR SELECT
-  TO anon, authenticated
-  USING (true);
-
--- Only admins can manage photos
-CREATE POLICY "photos_all_admin"
-  ON photos FOR ALL
-  TO authenticated
-  USING (auth.role() = 'authenticated');
-
--- ============================================================================
--- RLS POLICIES - Config Table
--- ============================================================================
-
--- Everyone can read config
-CREATE POLICY "config_select_all"
-  ON config FOR SELECT
-  TO anon, authenticated
-  USING (true);
-
--- Only admins can manage config
-CREATE POLICY "config_all_admin"
-  ON config FOR ALL
-  TO authenticated
-  USING (auth.role() = 'authenticated');
+GRANT EXECUTE ON FUNCTION set_guest_location_attendance(UUID, UUID, UUID, TEXT, BOOLEAN) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_attending_guests_for_location(UUID, UUID, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION bulk_update_guest_location_attendance(UUID, UUID, TEXT, UUID[]) TO anon, authenticated;
 
 -- ============================================================================
 -- VIEWS - Statistics and Reports
@@ -741,73 +942,7 @@ CREATE POLICY "config_all_admin"
 
 
 
--- ============================================================================
--- SEED DATA - Configuration
--- ============================================================================
 
-INSERT INTO config (key, value) VALUES
-  ('wedding_date_sardinia', '2026-09-19'),
-  ('wedding_date_tunisia', '2026-06-27'),
-  ('wedding_date_nice', '2026-07-15'),
-  ('venue_address_sardinia', 'Costa Smeralda, Sardinia, Italy'),
-  ('venue_address_tunisia', 'Tunis, Tunisia'),
-  ('venue_address_nice', 'Nice, France'),
-  ('default_language', 'en');
-
--- ============================================================================
--- SEED DATA - Multilingual Content
--- ============================================================================
-
--- English content
-INSERT INTO content (key, language, location, value) VALUES
-  ('welcome_message', 'en', NULL, 'Welcome to our wedding website! We are so excited to celebrate our special day with you.'),
-  ('our_story', 'en', NULL, 'Our love story began...'),
-  ('schedule_sardinia', 'en', 'sardinia', 'Ceremony: 4:00 PM\nReception: 6:00 PM\nDinner: 8:00 PM'),
-  ('venue_sardinia', 'en', 'sardinia', 'Beautiful seaside venue in Costa Smeralda with stunning Mediterranean views.'),
-  ('accommodation_sardinia', 'en', 'sardinia', 'We have reserved blocks of rooms at several nearby hotels. Contact us for details.'),
-  ('travel_sardinia', 'en', 'sardinia', 'Fly into Olbia Airport (OLB). Car rental recommended.'),
-  ('schedule_tunisia', 'en', 'tunisia', 'Ceremony: 5:00 PM\nReception: 7:00 PM\nDinner: 9:00 PM'),
-  ('venue_tunisia', 'en', 'tunisia', 'Traditional venue in Tunis with stunning architecture and gardens.'),
-  ('accommodation_tunisia', 'en', 'tunisia', 'Recommended hotels and guest houses in Tunis city center.'),
-  ('travel_tunisia', 'en', 'tunisia', 'Fly into Tunis-Carthage International Airport (TUN). Taxis and transport readily available.'),
-  ('schedule_nice', 'en', 'nice', 'Ceremony: 3:00 PM\nReception: 5:00 PM\nDinner: 7:00 PM'),
-  ('venue_nice', 'en', 'nice', 'Beautiful venue on the French Riviera with stunning views of the Mediterranean Sea.'),
-  ('accommodation_nice', 'en', 'nice', 'Recommended hotels along the Promenade des Anglais and Old Town. Contact us for details.'),
-  ('travel_nice', 'en', 'nice', 'Fly into Nice Côte d''Azur Airport (NCE). Tram and bus services available to the city center.');
-
--- French content
-INSERT INTO content (key, language, location, value) VALUES
-  ('welcome_message', 'fr', NULL, 'Bienvenue sur notre site de mariage ! Nous sommes très heureux de célébrer notre jour spécial avec vous.'),
-  ('our_story', 'fr', NULL, 'Notre histoire d''amour a commencé...'),
-  ('schedule_sardinia', 'fr', 'sardinia', 'Cérémonie : 16h00\nRéception : 18h00\nDîner : 20h00'),
-  ('venue_sardinia', 'fr', 'sardinia', 'Magnifique lieu en bord de mer à Costa Smeralda avec une vue imprenable sur la Méditerranée.'),
-  ('accommodation_sardinia', 'fr', 'sardinia', 'Nous avons réservé des chambres dans plusieurs hôtels à proximité. Contactez-nous pour plus de détails.'),
-  ('travel_sardinia', 'fr', 'sardinia', 'Voler à l''aéroport d''Olbia (OLB). Location de voiture recommandée.'),
-  ('schedule_tunisia', 'fr', 'tunisia', 'Cérémonie : 17h00\nRéception : 19h00\nDîner : 21h00'),
-  ('venue_tunisia', 'fr', 'tunisia', 'Lieu traditionnel à Tunis avec une architecture et des jardins magnifiques.'),
-  ('accommodation_tunisia', 'fr', 'tunisia', 'Hôtels et maisons d''hôtes recommandés dans le centre-ville de Tunis.'),
-  ('travel_tunisia', 'fr', 'tunisia', 'Voler à l''aéroport international de Tunis-Carthage (TUN). Taxis et transports facilement disponibles.'),
-  ('schedule_nice', 'fr', 'nice', 'Cérémonie : 15h00\nRéception : 17h00\nDîner : 19h00'),
-  ('venue_nice', 'fr', 'nice', 'Magnifique lieu sur la Côte d''Azur avec une vue imprenable sur la mer Méditerranée.'),
-  ('accommodation_nice', 'fr', 'nice', 'Hôtels recommandés le long de la Promenade des Anglais et dans la Vieille Ville. Contactez-nous pour plus de détails.'),
-  ('travel_nice', 'fr', 'nice', 'Voler à l''aéroport de Nice Côte d''Azur (NCE). Services de tram et bus disponibles vers le centre-ville.');
-
--- Italian content
-INSERT INTO content (key, language, location, value) VALUES
-  ('welcome_message', 'it', NULL, 'Benvenuti sul nostro sito di matrimonio! Siamo entusiasti di celebrare il nostro giorno speciale con voi.'),
-  ('our_story', 'it', NULL, 'La nostra storia d''amore è iniziata...'),
-  ('schedule_sardinia', 'it', 'sardinia', 'Cerimonia: 16:00\nRicevimento: 18:00\nCena: 20:00'),
-  ('venue_sardinia', 'it', 'sardinia', 'Splendida location sul mare in Costa Smeralda con vista mozzafiato sul Mediterraneo.'),
-  ('accommodation_sardinia', 'it', 'sardinia', 'Abbiamo riservato camere in diversi hotel nelle vicinanze. Contattateci per i dettagli.'),
-  ('travel_sardinia', 'it', 'sardinia', 'Volare all''aeroporto di Olbia (OLB). Si consiglia il noleggio auto.'),
-  ('schedule_tunisia', 'it', 'tunisia', 'Cerimonia: 17:00\nRicevimento: 19:00\nCena: 21:00'),
-  ('venue_tunisia', 'it', 'tunisia', 'Location tradizionale a Tunisi con splendida architettura e giardini.'),
-  ('accommodation_tunisia', 'it', 'tunisia', 'Hotel e pensioni consigliati nel centro di Tunisi.'),
-  ('travel_tunisia', 'it', 'tunisia', 'Volare all''aeroporto internazionale di Tunisi-Cartagine (TUN). Taxi e trasporti prontamente disponibili.'),
-  ('schedule_nice', 'it', 'nice', 'Cerimonia: 15:00\nRicevimento: 17:00\nCena: 19:00'),
-  ('venue_nice', 'it', 'nice', 'Splendida location sulla Costa Azzurra con vista mozzafiato sul Mar Mediterraneo.'),
-  ('accommodation_nice', 'it', 'nice', 'Hotel consigliati lungo la Promenade des Anglais e nel centro storico. Contattateci per i dettagli.'),
-  ('travel_nice', 'it', 'nice', 'Volare all''aeroporto di Nizza Costa Azzurra (NCE). Servizi di tram e autobus disponibili per il centro città.');
 
 -- ============================================================================
 -- COMPLETION MESSAGE
@@ -822,9 +957,6 @@ BEGIN
   RAISE NOTICE '📊 Tables Created:';
   RAISE NOTICE '  • guest_groups (invitation groups/households)';
   RAISE NOTICE '  • guests (individual invitees with location attendance)';
-  RAISE NOTICE '  • content (multilingual: EN/FR/IT)';
-  RAISE NOTICE '  • photos (gallery management)';
-  RAISE NOTICE '  • config (site configuration)';
   RAISE NOTICE '';
   RAISE NOTICE '🔒 Security Features:';
   RAISE NOTICE '  ✓ Row Level Security (RLS) enabled on all tables';
@@ -833,14 +965,7 @@ BEGIN
   RAISE NOTICE '  ✓ Admin full access via JWT authentication';
   RAISE NOTICE '  ✓ Anonymous users must use RPC functions with invitation_code';
   RAISE NOTICE '';
-  RAISE NOTICE '📈 Views Created:';
-  RAISE NOTICE '  • rsvp_stats - Real-time statistics';
-  RAISE NOTICE '  • pending_rsvps - Guest groups without responses';
-  RAISE NOTICE '';
-  RAISE NOTICE '🌱 Seed Data:';
-  RAISE NOTICE '  ✓ Default configuration loaded';
-  RAISE NOTICE '  ✓ Sample content in 3 languages';
-  RAISE NOTICE '';
+
   RAISE NOTICE '📝 Table Naming:';
   RAISE NOTICE '  • guest_groups = invitation groups (formerly "guests")';
   RAISE NOTICE '  • guests = individual invitees (formerly "invitees")';
@@ -848,58 +973,18 @@ BEGIN
   RAISE NOTICE '📝 Next Steps:';
   RAISE NOTICE '  1. Create admin user: Dashboard → Authentication → Users';
   RAISE NOTICE '  2. Add guest groups via admin panel';
-  RAISE NOTICE '  3. Customize content and configuration';
-  RAISE NOTICE '  4. Frontend MUST use RPC functions for guest/RSVP operations:';
+  RAISE NOTICE '  3. Frontend MUST use RPC functions for guest/RSVP operations:';
+  RAISE NOTICE '     • authenticate_guest_group(invitation_code)';
   RAISE NOTICE '     • get_guests_for_group(guest_group_id, invitation_code)';
-  RAISE NOTICE '     • create_guest_for_group(guest_group_id, invitation_code, name, dietary)';
-  RAISE NOTICE '     • update_guest_for_group(guest_id, guest_group_id, invitation_code, name, dietary)';
+  RAISE NOTICE '     • create_guest_for_group(guest_group_id, invitation_code, name, ...)';
+  RAISE NOTICE '     • update_guest_for_group(guest_id, guest_group_id, invitation_code, ...)';
   RAISE NOTICE '     • delete_guest_for_group(guest_id, guest_group_id, invitation_code)';
-  RAISE NOTICE '     • get_rsvps_for_group(guest_group_id, invitation_code)';
-  RAISE NOTICE '     • get_rsvp_by_location(guest_group_id, invitation_code, location)';
-  RAISE NOTICE '     • upsert_rsvp_for_group(guest_group_id, invitation_code, location, ...)';
-  RAISE NOTICE '  ⚠️  WARNING: Direct table queries for guests/rsvps will FAIL for anon users';
+  RAISE NOTICE '     • update_guest_group_party_size(guest_group_id, invitation_code, size)';
+  RAISE NOTICE '     • update_guest_group_notes(guest_group_id, invitation_code, notes)';
+  RAISE NOTICE '     • set_guest_location_attendance(guest_id, group_id, code, location, bool)';
+  RAISE NOTICE '     • get_attending_guests_for_location(group_id, code, location)';
+  RAISE NOTICE '     • bulk_update_guest_location_attendance(group_id, code, location, ids)';
+  RAISE NOTICE '  ⚠️  WARNING: Direct table queries for guests will FAIL for anon users';
   RAISE NOTICE '';
   RAISE NOTICE '============================================================================';
 END $$;
-
--- ============================================================================
--- STORAGE BUCKETS
--- ============================================================================
-
--- Create storage bucket for wedding photos (PUBLIC)
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'wedding-photos',
-  'wedding-photos',
-  true,  -- Public bucket - guests can view photos
-  52428800,  -- 50MB file size limit
-  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-)
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================================================
--- STORAGE POLICIES
--- ============================================================================
-
--- Allow everyone to view photos (bucket is public)
-CREATE POLICY "Anyone can view wedding photos"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'wedding-photos');
-
--- Allow authenticated users (admins) to upload photos
-CREATE POLICY "Authenticated users can upload photos"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'wedding-photos');
-
--- Allow authenticated users (admins) to update photos
-CREATE POLICY "Authenticated users can update photos"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (bucket_id = 'wedding-photos');
-
--- Allow authenticated users (admins) to delete photos
-CREATE POLICY "Authenticated users can delete photos"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (bucket_id = 'wedding-photos');

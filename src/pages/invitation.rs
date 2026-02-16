@@ -17,13 +17,7 @@ pub fn InvitationPage() -> impl IntoView {
 
     // Get query parameters to check for pre-filled code
     let query = use_query_map();
-    let initial_code = query.with(|params| {
-        params
-            .get("code")
-            .cloned()
-            .unwrap_or_default()
-            .to_uppercase()
-    });
+    let initial_code = query.with(|params| params.get("code").cloned().unwrap_or_default());
 
     let (code, set_code) = create_signal(initial_code.clone());
     let (loading, set_loading) = create_signal(false);
@@ -139,10 +133,10 @@ pub fn InvitationPage() -> impl IntoView {
                             </label>
                             <input
                                 type="text"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all uppercase text-center text-2xl tracking-widest"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all text-center text-2xl tracking-widest"
                                 placeholder=move || translations().t("rsvp.code_placeholder")
                                 prop:value=code
-                                on:input=move |ev| set_code.set(event_target_value(&ev).to_uppercase())
+                                on:input=move |ev| set_code.set(event_target_value(&ev))
                                 required
                                 disabled=move || loading.get()
                                 autofocus
