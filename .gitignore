@@ -11,6 +11,9 @@ lcov*
 /pkg
 *.wasm
 
+# Tailwind build output
+style/output.css
+
 # IDE
 .vscode/
 .idea/
