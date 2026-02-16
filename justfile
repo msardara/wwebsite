@@ -8,16 +8,6 @@ set dotenv-load
 default:
     @just --list
 
-# ============================================================================
-# VARIABLES
-# ============================================================================
-
-# Build profile (debug or release)
-profile := env("PROFILE", "debug")
-
-# Target architecture
-target := env("TARGET", "wasm32-unknown-unknown")
-
 # Tools directory for local binary installations
 tools_dir := ".tools"
 
@@ -26,17 +16,17 @@ tools_dir := ".tools"
 # ============================================================================
 
 # Install all required tools and dependencies
-setup: install-wasm-target install-trunk install-wasm-opt install-tailwindcss build-css
-    @echo "✅ Setup complete! Run 'just dev' to start developing"
+setup: _install-rust _install-trunk _install-wasm-opt _install-tailwindcss _build-css
+    @echo "Setup complete. Run 'just dev' to start developing."
 
-# Install standalone TailwindCSS CLI binary (idempotent - skips if already installed)
-install-tailwindcss:
+# Install standalone TailwindCSS CLI binary (idempotent)
+_install-tailwindcss:
     #!/usr/bin/env sh
     if [ -f {{tools_dir}}/bin/tailwindcss ]; then
-        echo "✅ TailwindCSS CLI already installed"
+        echo "TailwindCSS CLI already installed."
         exit 0
     fi
-    echo "📦 Installing standalone TailwindCSS CLI to {{tools_dir}}/..."
+    echo "Installing standalone TailwindCSS CLI to {{tools_dir}}/..."
     mkdir -p {{tools_dir}}/bin
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
@@ -45,7 +35,7 @@ install-tailwindcss:
     elif [ "$ARCH" = "x86_64" ]; then
         ARCH="x64"
     else
-        echo "❌ Unsupported architecture: $ARCH"
+        echo "Error: Unsupported architecture: $ARCH"
         exit 1
     fi
     if [ "$OS" = "darwin" ]; then
@@ -53,7 +43,7 @@ install-tailwindcss:
     elif [ "$OS" = "linux" ]; then
         PLATFORM="linux-${ARCH}"
     else
-        echo "❌ Unsupported OS: $OS"
+        echo "Error: Unsupported OS: $OS"
         exit 1
     fi
     VERSION="v3.4.17"
@@ -61,26 +51,26 @@ install-tailwindcss:
     echo "Downloading $URL..."
     curl -L -o {{tools_dir}}/bin/tailwindcss "$URL"
     chmod +x {{tools_dir}}/bin/tailwindcss
-    echo "✅ TailwindCSS CLI installed successfully"
+    echo "TailwindCSS CLI installed successfully."
 
-# Install WASM target (idempotent - skips if already installed)
-install-wasm-target:
-    @if rustup target list | grep -q "wasm32-unknown-unknown (installed)"; then \
-        echo "✅ WASM target already installed"; \
+# Install Rust via rustup (idempotent)
+_install-rust:
+    @if command -v rustc >/dev/null 2>&1; then \
+        echo "Rust already installed: $$(rustc --version)"; \
     else \
-        echo "📦 Installing WASM target..."; \
-        rustup target add wasm32-unknown-unknown; \
-        echo "✅ WASM target installed successfully!"; \
+        echo "Installing Rust via rustup..."; \
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
+        echo "Rust installed successfully. Please restart your shell or run: source $$HOME/.cargo/env"; \
     fi
 
-# Install Trunk build tool (idempotent - skips if already installed)
-install-trunk:
+# Install Trunk build tool (idempotent)
+_install-trunk:
     #!/usr/bin/env sh
     if [ -f {{tools_dir}}/bin/trunk ]; then
-        echo "✅ Trunk already installed: $({{tools_dir}}/bin/trunk --version)"
+        echo "Trunk already installed: $({{tools_dir}}/bin/trunk --version)"
         exit 0
     fi
-    echo "📦 Installing Trunk from GitHub releases to {{tools_dir}}/..."
+    echo "Installing Trunk from GitHub releases to {{tools_dir}}/..."
     mkdir -p {{tools_dir}}/bin
     PROJECT_DIR=$(pwd)
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -90,7 +80,7 @@ install-trunk:
     elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
         ARCH="aarch64"
     else
-        echo "❌ Unsupported architecture: $ARCH"
+        echo "Error: Unsupported architecture: $ARCH"
         exit 1
     fi
     if [ "$OS" = "darwin" ]; then
@@ -98,7 +88,7 @@ install-trunk:
     elif [ "$OS" = "linux" ]; then
         OS="unknown-linux-gnu"
     else
-        echo "❌ Unsupported OS: $OS"
+        echo "Error: Unsupported OS: $OS"
         exit 1
     fi
     VERSION="v0.21.14"
@@ -111,16 +101,16 @@ install-trunk:
     cp trunk "$PROJECT_DIR/{{tools_dir}}/bin/"
     rm -f trunk "$FILENAME"
     cd "$PROJECT_DIR"
-    echo "✅ Trunk installed successfully: $({{tools_dir}}/bin/trunk --version)"
+    echo "Trunk installed successfully: $({{tools_dir}}/bin/trunk --version)"
 
-# Install wasm-opt from binaryen releases (idempotent - skips if already installed)
-install-wasm-opt:
+# Install wasm-opt from binaryen releases (idempotent)
+_install-wasm-opt:
     #!/usr/bin/env sh
     if [ -f {{tools_dir}}/bin/wasm-opt ]; then
-        echo "✅ wasm-opt already installed: $({{tools_dir}}/bin/wasm-opt --version)"
+        echo "wasm-opt already installed: $({{tools_dir}}/bin/wasm-opt --version)"
         exit 0
     fi
-    echo "📦 Installing wasm-opt from binaryen to {{tools_dir}}/..."
+    echo "Installing wasm-opt from binaryen to {{tools_dir}}/..."
     mkdir -p {{tools_dir}}/bin
     PROJECT_DIR=$(pwd)
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -130,7 +120,7 @@ install-wasm-opt:
     elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
         ARCH="arm64"
     else
-        echo "❌ Unsupported architecture: $ARCH"
+        echo "Error: Unsupported architecture: $ARCH"
         exit 1
     fi
     if [ "$OS" = "darwin" ]; then
@@ -138,7 +128,7 @@ install-wasm-opt:
     elif [ "$OS" = "linux" ]; then
         OS="linux"
     else
-        echo "❌ Unsupported OS: $OS"
+        echo "Error: Unsupported OS: $OS"
         exit 1
     fi
     VERSION="version_117"
@@ -155,39 +145,38 @@ install-wasm-opt:
     fi
     rm -rf "binaryen-$VERSION" "$FILENAME"
     cd "$PROJECT_DIR"
-    echo "✅ wasm-opt installed successfully: $({{tools_dir}}/bin/wasm-opt --version)"
+    echo "wasm-opt installed successfully: $({{tools_dir}}/bin/wasm-opt --version)"
 
-# Install cargo-llvm-cov for code coverage (idempotent - skips if already installed)
-# Install cargo-binstall for fast binary installations (the only cargo install in this file)
-install-binstall:
+# Install cargo-binstall for fast binary installations
+_install-binstall:
     @if command -v cargo-binstall >/dev/null 2>&1; then \
-        echo "✅ cargo-binstall already installed"; \
+        echo "cargo-binstall already installed."; \
     else \
-        echo "📦 Installing cargo-binstall..."; \
+        echo "Installing cargo-binstall..."; \
         cargo install cargo-binstall; \
-        echo "✅ cargo-binstall installed successfully!"; \
+        echo "cargo-binstall installed successfully."; \
     fi
 
-# Install cargo-llvm-cov for code coverage (idempotent - skips if already installed)
-install-cargo-llvm-cov: install-binstall
-    @if command -v cargo-llvm-cov >/dev/null 2>&1; then \
-        echo "✅ cargo-llvm-cov already installed: $$(cargo llvm-cov --version | head -n1)"; \
-    else \
-        echo "📦 Installing cargo-llvm-cov..."; \
-        cargo binstall -y cargo-llvm-cov; \
-        echo "✅ cargo-llvm-cov installed successfully!"; \
-    fi
+# Install optional development tools (used by CI)
+install-tools: _install-binstall
+    @echo "Installing development tools..."
+    @command -v cargo-audit >/dev/null 2>&1 || cargo binstall -y cargo-audit
+    @command -v cargo-machete >/dev/null 2>&1 || cargo binstall -y cargo-machete
+    @command -v cargo-deny >/dev/null 2>&1 || cargo binstall -y cargo-deny
+    @command -v typos >/dev/null 2>&1 || cargo binstall -y typos-cli
+    @command -v cargo-llvm-cov >/dev/null 2>&1 || cargo binstall -y cargo-llvm-cov
+    @echo "Tools installed."
 
-# Install Supabase CLI (idempotent - skips if already installed)
-install-supabase-cli:
+# Install Supabase CLI (idempotent)
+_install-supabase-cli:
     @if command -v supabase >/dev/null 2>&1; then \
-        echo "✅ Supabase CLI already installed: $$(supabase --version)"; \
+        echo "Supabase CLI already installed: $$(supabase --version)"; \
     elif command -v brew >/dev/null 2>&1; then \
-        echo "📦 Installing Supabase CLI via Homebrew..."; \
+        echo "Installing Supabase CLI via Homebrew..."; \
         brew install supabase/tap/supabase; \
-        echo "✅ Supabase CLI installed successfully!"; \
+        echo "Supabase CLI installed successfully."; \
     else \
-        echo "❌ Homebrew not found"; \
+        echo "Error: Homebrew not found."; \
         echo ""; \
         echo "Please install Supabase CLI manually:"; \
         echo "  macOS:   brew install supabase/tap/supabase"; \
@@ -198,65 +187,31 @@ install-supabase-cli:
         exit 1; \
     fi
 
-# Install typos-cli for spell checking (idempotent - skips if already installed)
-install-typos: install-binstall
-    @if command -v typos >/dev/null 2>&1; then \
-        echo "✅ typos already installed: $$(typos --version)"; \
-    else \
-        echo "📦 Installing typos-cli..."; \
-        cargo binstall -y typos-cli; \
-        echo "✅ typos-cli installed successfully!"; \
-    fi
-
-# Install optional development tools
-install-tools: install-binstall
-    @echo "🔧 Installing development tools..."
-    @command -v cargo-audit >/dev/null 2>&1 || cargo binstall -y cargo-audit
-    @command -v cargo-machete >/dev/null 2>&1 || cargo binstall -y cargo-machete
-    @command -v cargo-deny >/dev/null 2>&1 || cargo binstall -y cargo-deny
-    @command -v cargo-sort >/dev/null 2>&1 || cargo binstall -y cargo-sort
-    @command -v typos >/dev/null 2>&1 || cargo binstall -y typos-cli
-    @command -v cargo-llvm-cov >/dev/null 2>&1 || cargo binstall -y cargo-llvm-cov
-    @echo "✅ Tools installed!"
-
 # ============================================================================
 # DEVELOPMENT
 # ============================================================================
 
 # Run development server with hot reload (opens browser)
-dev: install-wasm-target install-trunk build-css
-    @echo "🚀 Starting development server..."
+dev: _install-trunk _build-css
+    @echo "Starting development server..."
     @if [ -f .env ]; then \
         set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk serve --open; \
     else \
-        echo "⚠️  Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
+        echo "Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
         {{tools_dir}}/bin/trunk serve --open; \
     fi
 
-# Run development server without opening browser
-serve: install-wasm-target install-trunk build-css
-    @if [ -f .env ]; then \
-        set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk serve; \
-    else \
-        echo "⚠️  Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
-        {{tools_dir}}/bin/trunk serve; \
-    fi
-
-# Build CSS and watch for changes
-watch-css: install-tailwindcss
-    {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --watch
-
 # Build CSS once
-build-css: install-tailwindcss
+_build-css: _install-tailwindcss
     @if [ ! -f "style/output.css" ] || [ "style/main.css" -nt "style/output.css" ]; then \
-        echo "🎨 Building CSS..."; \
+        echo "Building CSS..."; \
         {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css; \
     else \
-        echo "✅ CSS already built and up to date"; \
+        echo "CSS already up to date."; \
     fi
 
-# Run both dev server and CSS watch in parallel
-dev-all: install-wasm-target install-trunk install-tailwindcss
+# Run dev server and CSS watch in parallel
+dev-all: _install-trunk _install-tailwindcss
     #!/usr/bin/env sh
     {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --watch &
     CSS_PID=$!
@@ -266,55 +221,42 @@ dev-all: install-wasm-target install-trunk install-tailwindcss
     {{tools_dir}}/bin/trunk serve
     kill $CSS_PID 2>/dev/null
 
-# Open project in browser
-open:
-    @echo "🌐 Opening http://127.0.0.1:3000 in browser..."
-    @open http://127.0.0.1:3000 2>/dev/null || xdg-open http://127.0.0.1:3000 2>/dev/null || echo "Please open http://127.0.0.1:3000 manually"
-
-# Watch for file changes and rebuild
-watch:
-    @if command -v cargo-watch >/dev/null 2>&1; then \
-        cargo watch -x check -x test; \
-    else \
-        echo "❌ cargo-watch not installed. Install with: cargo binstall cargo-watch"; \
-    fi
-
 # ============================================================================
-# BUILD & DEPLOY
+# BUILD
 # ============================================================================
 
 # Build project (debug mode)
-build: install-trunk build-css
-    @echo "🔨 Building project..."
+build: _install-trunk _build-css
+    @echo "Building project..."
     @if [ -f .env ]; then \
         set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk build; \
     else \
-        echo "⚠️  Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
+        echo "Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
         {{tools_dir}}/bin/trunk build; \
     fi
 
 # Build for production (optimized)
-build-release: install-trunk install-tailwindcss
-    @echo "🔨 Building for production..."
+build-release: _install-trunk _install-tailwindcss
+    @echo "Building for production..."
     {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --minify
     @if [ -f .env ]; then \
         set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk build --release; \
     else \
-        echo "⚠️  Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
+        echo "Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
         {{tools_dir}}/bin/trunk build --release; \
     fi
     @just _optimize-wasm
 
 # Optimize WASM files with wasm-opt
-_optimize-wasm: install-wasm-opt
+_optimize-wasm: _install-wasm-opt
     #!/usr/bin/env sh
-    echo "🔧 Optimizing WASM with wasm-opt..."
+    echo "Optimizing WASM with wasm-opt..."
     if [ -f {{tools_dir}}/bin/wasm-opt ]; then
         WASM_OPT="{{tools_dir}}/bin/wasm-opt"
     elif command -v wasm-opt >/dev/null 2>&1; then
         WASM_OPT="wasm-opt"
     else
-        echo "⚠️  wasm-opt not found"
+        echo "Error: wasm-opt not found"
         exit 1
     fi
     for wasm in dist/*.wasm; do
@@ -323,74 +265,34 @@ _optimize-wasm: install-wasm-opt
             $WASM_OPT -Oz "$wasm" -o "$wasm.tmp" && mv "$wasm.tmp" "$wasm"
         fi
     done
-    echo "✅ WASM optimization complete!"
-
-# Serve the production build locally for testing
-serve-dist:
-    @echo "🌐 Serving production build..."
-    @if [ -d "dist" ]; then \
-        cd dist && python3 -m http.server 8080; \
-    else \
-        echo "❌ No dist directory found. Run 'just build-release' first."; \
-    fi
+    echo "WASM optimization complete."
 
 # ============================================================================
 # CODE QUALITY
 # ============================================================================
 
-# Check code without building
-check:
-    @echo "🔍 Checking code..."
-    cargo check --all-targets --all-features
-
 # Format code
 fmt:
-    @echo "🎨 Formatting code..."
+    @echo "Formatting code..."
     cargo fmt
 
 # Check if code is formatted
 fmt-check:
-    @echo "🔍 Checking code format..."
+    @echo "Checking code format..."
     cargo fmt -- --check
 
 # Run clippy linter
 clippy:
-    @echo "📎 Running clippy..."
+    @echo "Running clippy..."
     cargo clippy --all-targets --all-features -- -D warnings
 
 # Check for typos in code and docs
-typos: install-typos
-    @echo "🔤 Checking for typos..."
+typos:
+    @echo "Checking for typos..."
     @typos
 
-# Fix typos automatically
-typos-fix: install-typos
-    @echo "🔤 Fixing typos..."
-    @typos --write-changes
-
-# Sort Cargo.toml dependencies
-sort:
-    @echo "📋 Sorting dependencies..."
-    @if command -v cargo-sort >/dev/null 2>&1; then \
-        cargo sort; \
-    else \
-        echo "⚠️  cargo-sort not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# Check if dependencies are sorted
-sort-check:
-    @echo "🔍 Checking dependency order..."
-    @if command -v cargo-sort >/dev/null 2>&1; then \
-        cargo sort --check; \
-    else \
-        echo "⚠️  cargo-sort not installed. Run 'just install-tools' to install it."; \
-    fi
-
 # Run all linting checks
-lint: fmt-check clippy sort-check typos
-
-# Fix all auto-fixable issues
-fix: fmt sort typos-fix
+lint: fmt-check clippy typos
 
 # ============================================================================
 # TESTING
@@ -398,18 +300,13 @@ fix: fmt sort typos-fix
 
 # Run all tests
 test:
-    @echo "🧪 Running tests..."
+    @echo "Running tests..."
     SUPABASE_URL=https://dummy.supabase.co SUPABASE_PUBLISHABLE_KEY=dummy-key cargo test --all-features
 
-# Run tests with coverage
-test-coverage: install-cargo-llvm-cov
-    @echo "🧪 Running tests with coverage..."
+# Run tests with coverage (used by CI)
+test-coverage:
+    @echo "Running tests with coverage..."
     SUPABASE_URL=https://dummy.supabase.co SUPABASE_PUBLISHABLE_KEY=dummy-key cargo llvm-cov --lcov --output-path lcov.info --all-features
-
-# Build tests without running
-test-build:
-    @echo "🔨 Building tests..."
-    cargo test --no-run --all-features
 
 # ============================================================================
 # SECURITY & AUDITING
@@ -417,70 +314,55 @@ test-build:
 
 # Check for security vulnerabilities
 audit:
-    @echo "🔒 Checking for vulnerabilities..."
-    @if command -v cargo-audit >/dev/null 2>&1; then \
-        cargo audit; \
-    else \
-        echo "⚠️  cargo-audit not installed. Run 'just install-tools' to install it."; \
-    fi
+    @echo "Checking for vulnerabilities..."
+    cargo audit
 
 # Check for unused dependencies
 unused:
-    @echo "🔍 Checking for unused dependencies..."
-    @if command -v cargo-machete >/dev/null 2>&1; then \
-        cargo machete; \
-    else \
-        echo "⚠️  cargo-machete not installed. Run 'just install-tools' to install it."; \
-    fi
+    @echo "Checking for unused dependencies..."
+    cargo machete
 
 # Check licenses of dependencies
 licenses:
-    @echo "📜 Checking licenses..."
-    @if command -v cargo-deny >/dev/null 2>&1; then \
-        cargo deny check licenses; \
-    else \
-        echo "⚠️  cargo-deny not installed. Run 'just install-tools' to install it."; \
-    fi
+    @echo "Checking licenses..."
+    cargo deny check licenses
 
-# Run all dependency checks (audit + unused + licenses)
+# Run all dependency checks
 check-deps: audit unused licenses
-
-# Run all checks (lint + security + tests)
-check-all: lint audit unused test
 
 # ============================================================================
 # DATABASE (SUPABASE)
 # ============================================================================
 
 # Login to Supabase CLI (run once)
-db-login: install-supabase-cli
-    @echo "🔐 Logging in to Supabase..."
+_db-login: _install-supabase-cli
+    @echo "Logging in to Supabase..."
     @echo "This will open a browser window to authenticate."
     @echo ""
     supabase login
 
 # Link to Supabase project
-db-link: install-supabase-cli db-login
-    @echo "🔗 Linking to Supabase project..."
+_db-link: _install-supabase-cli _db-login
+    @echo "Linking to Supabase project..."
     @echo ""
     @supabase link || \
         (echo ""; \
-         echo "❌ Failed to link. You may need to login first:"; \
-         echo "   just db-login"; \
+         echo "Error: Failed to link. You may need to login first:"; \
+         echo "   just _db-login"; \
          exit 1)
-    @echo "✅ Successfully linked to project!"
+    @echo "Successfully linked to project."
 
 # Run database migrations
-db-migrate: install-supabase-cli
-    @echo "🔄 Running database migrations..."
+db-migrate: _install-supabase-cli
+    @echo "Running database migrations..."
     @echo "Pushing migrations to database..."
     @if supabase db push --include-all; then \
-        echo "✅ Migrations complete!"; \
+        echo "Migrations complete."; \
         echo ""; \
-        echo "📝 Database updated with latest schema changes"; \
+        echo "Database updated with latest schema changes."; \
     else \
         echo ""; \
-        echo "❌ Migration failed."; \
+        echo "Error: Migration failed."; \
         echo ""; \
         echo "Manual migration:"; \
         echo "  1. Open: https://stmfsurqatlfqieuxclt.supabase.co"; \
@@ -490,13 +372,13 @@ db-migrate: install-supabase-cli
     fi
 
 # Configure .env file automatically from Supabase CLI
-db-configure: install-supabase-cli db-link
+db-configure: _install-supabase-cli _db-link
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "🔧 Configuring environment variables from Supabase..."
+    echo "Configuring environment variables from Supabase..."
     echo ""
     if [ ! -f "supabase/.temp/project-ref" ]; then
-        echo "❌ Project not linked. Run: just db-link"
+        echo "Error: Project not linked. Run: just _db-link"
         exit 1
     fi
     PROJECT_REF=$(cat supabase/.temp/project-ref)
@@ -504,13 +386,13 @@ db-configure: install-supabase-cli db-link
     echo "Fetching API keys..."
     PUB_KEY=$(supabase projects api-keys --project-ref $PROJECT_REF 2>/dev/null | grep "sb_publishable" | head -1 | awk '{print $3}')
     if [ -z "$PUB_KEY" ]; then
-        echo "❌ Failed to fetch API keys. You may need to login again: just db-login"
+        echo "Error: Failed to fetch API keys. You may need to login again: just _db-login"
         exit 1
     fi
     echo "SUPABASE_URL=https://$PROJECT_REF.supabase.co" > .env
     echo "SUPABASE_PUBLISHABLE_KEY=$PUB_KEY" >> .env
     echo ""
-    echo "✅ .env file configured!"
+    echo ".env file configured."
     echo ""
     echo "Contents:"
     echo "  SUPABASE_URL=https://$PROJECT_REF.supabase.co"
@@ -519,13 +401,13 @@ db-configure: install-supabase-cli db-link
     echo "Next: Rebuild the project with 'just build' or 'just dev'"
 
 # Create admin user in Supabase Auth
-db-create-admin: install-supabase-cli db-link
+db-create-admin: _install-supabase-cli _db-link
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "👤 Creating admin user..."
+    echo "Creating admin user..."
     echo ""
     if [ ! -f "supabase/.temp/project-ref" ]; then
-        echo "❌ Project not linked. Run: just db-link"
+        echo "Error: Project not linked. Run: just _db-link"
         exit 1
     fi
     PROJECT_REF=$(cat supabase/.temp/project-ref)
@@ -533,22 +415,19 @@ db-create-admin: install-supabase-cli db-link
     PASSWORD=$(openssl rand -base64 16)
     echo "Creating user with email: $EMAIL"
     echo ""
-    # Get the anon key
     ANON_KEY=$(supabase projects api-keys --project-ref $PROJECT_REF 2>/dev/null | grep "anon" | head -1 | awk '{print $3}')
     if [ -z "$ANON_KEY" ]; then
-        echo "❌ Failed to fetch API key. You may need to login again: just db-login"
+        echo "Error: Failed to fetch API key. You may need to login again: just _db-login"
         exit 1
     fi
-    # Create user via Supabase Auth API
     RESPONSE=$(curl -s -X POST "https://$PROJECT_REF.supabase.co/auth/v1/signup" \
         -H "apikey: $ANON_KEY" \
         -H "Content-Type: application/json" \
         -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
-    # Check if user was created or already exists
     if echo "$RESPONSE" | grep -q "email" || echo "$RESPONSE" | grep -q "already"; then
-        echo "✅ Admin user created/updated!"
+        echo "Admin user created/updated."
     else
-        echo "⚠️  Response: $RESPONSE"
+        echo "Warning: Response: $RESPONSE"
         echo "User may already exist or there was an issue."
     fi
     echo ""
@@ -556,218 +435,27 @@ db-create-admin: install-supabase-cli db-link
     echo "  Email: $EMAIL"
     echo "  Password: $PASSWORD"
     echo ""
-    echo "⚠️  IMPORTANT: Save this password securely!"
+    echo "IMPORTANT: Save this password securely!"
     echo ""
-    echo "📧 Check your email to confirm the account (if email confirmation is enabled)"
-    echo ""
-
-# Show instructions for getting API keys (legacy - use db-configure instead)
-db-show-keys:
-    @echo "🔑 Getting Your Supabase API Keys"
-    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    @echo ""
-    @echo "✨ TIP: Use 'just db-configure' to automatically set up .env!"
-    @echo ""
-    @echo "Or manually:"
-    @echo "1. Run: supabase projects api-keys --project-ref stmfsurqatlfqieuxclt"
-    @echo "2. Copy the publishable key"
-    @echo "3. Update your .env file:"
-    @echo "   SUPABASE_URL=https://stmfsurqatlfqieuxclt.supabase.co"
-    @echo "   SUPABASE_PUBLISHABLE_KEY=<paste-key-here>"
-    @echo ""
-    @echo "4. Rebuild the project: just build"
+    echo "Check your email to confirm the account (if email confirmation is enabled)."
 
 # ============================================================================
-# DOCUMENTATION
-# ============================================================================
-
-# Generate documentation
-doc:
-    @echo "📚 Generating documentation..."
-    cargo doc --no-deps --all-features
-
-# Generate and open documentation
-doc-open:
-    @echo "📚 Generating and opening documentation..."
-    cargo doc --no-deps --all-features --open
-
-# ============================================================================
-# CI & GIT HOOKS
+# CI
 # ============================================================================
 
 # Simulate CI pipeline locally
-ci: check-all build-release
-    @echo "✅ CI pipeline complete!"
-
-# Pre-commit checks (fast)
-pre-commit: fmt-check clippy test
-
-# Pre-push checks (comprehensive)
-pre-push: check-all
+ci: lint test build-release
+    @echo "CI pipeline complete."
 
 # ============================================================================
 # MAINTENANCE
 # ============================================================================
 
-# Update all dependencies
-update:
-    cargo update
-
-# Update Rust toolchain
-update-rust:
-    rustup update
-
-# Update all cargo-installed tools
-update-tools: install-binstall
-    @echo "🔧 Updating development tools..."
-    @command -v cargo-audit >/dev/null 2>&1 && cargo binstall -y cargo-audit || true
-    @command -v cargo-machete >/dev/null 2>&1 && cargo binstall -y cargo-machete || true
-    @command -v cargo-deny >/dev/null 2>&1 && cargo binstall -y cargo-deny || true
-    @command -v cargo-sort >/dev/null 2>&1 && cargo binstall -y cargo-sort || true
-    @command -v typos >/dev/null 2>&1 && cargo binstall -y typos-cli || true
-    @command -v cargo-llvm-cov >/dev/null 2>&1 && cargo binstall -y cargo-llvm-cov || true
-    @echo "✅ Tools updated!"
-
 # Clean build artifacts
 clean:
-    @echo "🧹 Cleaning build artifacts..."
+    @echo "Cleaning build artifacts..."
     cargo clean
-    trunk clean
     rm -rf dist/
     rm -rf style/output.css
-    @echo "✅ Cleaned!"
-
-# Clean everything including caches and tools
-clean-all: clean
-    @echo "🧹 Deep cleaning..."
-    cargo clean
     rm -rf {{tools_dir}}/
-    @echo "✅ Deep cleaned!"
-
-# Clean and rebuild
-rebuild: clean build
-
-# Check for outdated dependencies
-outdated:
-    @if command -v cargo-outdated >/dev/null 2>&1; then \
-        cargo outdated; \
-    else \
-        echo "❌ cargo-outdated not installed. Install with: cargo binstall cargo-outdated"; \
-    fi
-
-# ============================================================================
-# PROJECT INFO & HELP
-# ============================================================================
-
-# Check which tools are installed
-check-installed:
-    @echo "🔍 Checking installed tools..."
-    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    @printf "Rust:          "; rustc --version 2>/dev/null || echo "❌ NOT INSTALLED"
-    @printf "Cargo:         "; cargo --version 2>/dev/null || echo "❌ NOT INSTALLED"
-    @printf "WASM target:   "; rustup target list | grep -q "wasm32-unknown-unknown (installed)" && echo "✅ installed" || echo "❌ NOT INSTALLED - run 'just install-wasm-target'"
-    @printf "TailwindCSS:   "; if [ -f {{tools_dir}}/bin/tailwindcss ]; then echo "✅ installed"; else echo "❌ NOT INSTALLED - run 'just install-tailwindcss'"; fi
-    @printf "Trunk:         "; if [ -f {{tools_dir}}/bin/trunk ]; then {{tools_dir}}/bin/trunk --version; else echo "❌ NOT INSTALLED - run 'just install-trunk'"; fi
-    @printf "Supabase CLI:  "; supabase --version 2>/dev/null || echo "❌ NOT INSTALLED - run 'just install-supabase-cli'"
-    @printf "Just:          "; just --version 2>/dev/null || echo "✅ (you're using it)"
-    @printf "Binstall:      "; cargo-binstall --version 2>/dev/null || echo "❌ NOT INSTALLED - run 'just install-binstall'"
-    @echo ""
-    @echo "Development tools (optional):"
-    @printf "cargo-audit:   "; cargo audit --version 2>/dev/null || echo "❌ run 'just install-tools'"
-    @printf "cargo-deny:    "; cargo deny --version 2>/dev/null || echo "❌ run 'just install-tools'"
-    @printf "cargo-machete: "; cargo machete --version 2>/dev/null || echo "❌ run 'just install-tools'"
-    @printf "typos:         "; typos --version 2>/dev/null || echo "❌ run 'just install-tools'"
-
-# Show project information
-info:
-    @echo "📋 Wedding Website Project Info"
-    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    @echo "Rust version:    $(rustc --version)"
-    @echo "Cargo version:   $(cargo --version)"
-    @echo "Trunk version:   $(trunk --version 2>/dev/null || echo 'not installed')"
-    @echo "Supabase CLI:    $(supabase --version 2>/dev/null || echo 'not installed')"
-    @echo "Build profile:   {{profile}}"
-    @echo "Target:          {{target}}"
-
-# Show project statistics
-stats:
-    @echo "📊 Project Statistics"
-    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    @echo "Rust files:      $(find src -name '*.rs' 2>/dev/null | wc -l)"
-    @echo "Lines of code:   $(find src -name '*.rs' 2>/dev/null -exec cat {} \; | wc -l)"
-    @echo "Dependencies:    $(grep -c '^[a-zA-Z]' Cargo.toml | tail -1)"
-    @echo "Pages:           $(find src/pages -name '*.rs' 2>/dev/null | wc -l)"
-    @echo "Components:      $(find src/components -name '*.rs' 2>/dev/null | wc -l)"
-
-# Count lines of code by type
-loc:
-    @echo "📏 Lines of code by type:"
-    @echo "Rust:       $(find src -name '*.rs' 2>/dev/null -exec cat {} \; | wc -l)"
-    @echo "CSS:        $(find style -name '*.css' 2>/dev/null -exec cat {} \; | wc -l)"
-    @echo "HTML:       $(find . -name '*.html' 2>/dev/null -exec cat {} \; | wc -l)"
-    @echo "Markdown:   $(find . -name '*.md' 2>/dev/null -exec cat {} \; | wc -l)"
-
-# Check disk space used by build artifacts
-disk-usage:
-    @echo "💾 Disk usage:"
-    @du -sh target/ 2>/dev/null || echo "No target directory"
-    @du -sh dist/ 2>/dev/null || echo "No dist directory"
-    @du -sh {{tools_dir}}/ 2>/dev/null || echo "No tools directory"
-
-# Show quick start guide
-quickstart:
-    @echo "🚀 Quick Start Guide"
-    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    @echo ""
-    @echo "Frontend Setup:"
-    @echo "  1. just check-installed     - Check what's installed"
-    @echo "  2. just setup               - Install all dependencies"
-    @echo "  3. just dev                 - Start development server"
-    @echo ""
-    @echo "Database Setup:"
-    @echo "  4. just install-supabase-cli - Install Supabase CLI"
-    @echo "  5. just db-login             - Login to Supabase (one time)"
-    @echo "  6. just db-configure         - Set up .env automatically"
-    @echo "  7. just db-migrate           - Push schema migrations"
-    @echo ""
-    @echo "That's it! You're ready to go! 🎉"
-    @echo ""
-    @echo "See README.md for full documentation"
-
-# Show common commands
-help:
-    @echo "🎯 Common Commands"
-    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    @echo ""
-    @echo "Setup:"
-    @echo "  just check-installed  - Check installed tools"
-    @echo "  just setup            - Install everything (run once)"
-    @echo "  just install-trunk    - Install Trunk only"
-    @echo "  just install-tools    - Install optional dev tools"
-    @echo "  just install-supabase-cli - Install Supabase CLI"
-    @echo ""
-    @echo "Development:"
-    @echo "  just dev              - Start dev server (handles deps)"
-    @echo "  just serve            - Start dev server (no browser open)"
-    @echo "  just build            - Build project"
-    @echo "  just test             - Run tests"
-    @echo ""
-    @echo "Database:"
-    @echo "  just db-login         - Login to Supabase (one time)"
-    @echo "  just db-link          - Link to Supabase project"
-    @echo "  just db-configure     - Set up .env from Supabase CLI"
-    @echo "  just db-migrate       - Push schema migrations"
-    @echo "  just db-create-admin  - Create admin user"
-    @echo "  just db-show-keys     - Show API key instructions"
-    @echo ""
-    @echo "Code Quality:"
-    @echo "  just lint             - Run all linters"
-    @echo "  just fix              - Auto-fix issues"
-    @echo "  just check-all        - Run all checks + tests"
-    @echo "  just audit            - Check security"
-    @echo ""
-    @echo "Deployment:"
-    @echo "  just build-release    - Production build"
-    @echo "  just serve-dist       - Serve production build locally"
-    @echo ""
-    @echo "Run 'just --list' for all commands"
+    @echo "Cleaned."
