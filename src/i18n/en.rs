@@ -76,11 +76,11 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     );
     map.insert(
         "events.accommodation_sardinia",
-        "• Recommended hotels in <a href='https://maps.app.goo.gl/N4KVpYEZF7G4jWbC6' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://maps.app.goo.gl/x72Q9zfYCDEZWMem9' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
+        "• We recommend checking hotels in <a href='https://maps.app.goo.gl/N4KVpYEZF7G4jWbC6' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://maps.app.goo.gl/x72Q9zfYCDEZWMem9' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
     );
     map.insert(
         "events.travel_sardinia",
-        "• <a href='https://maps.app.goo.gl/uvofAX2NkqLeoi2D7' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cagliari Airport</a> (CA) is the closest<br/>• We recommend renting a car",
+        "• Closest airport: <a href='https://maps.app.goo.gl/uvofAX2NkqLeoi2D7' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cagliari</a><br/>• We recommend renting a car",
     );
     map.insert("events.date_tunisia", "June 27, 2026");
     map.insert("events.sort_date_tunisia", "2026-06-27");
@@ -90,7 +90,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
         "events.venue_tunisia_link",
         "https://maps.app.goo.gl/Y4dCfdekMGiWvMFX6",
     );
-    map.insert("events.accommodation_tunisia", "• Hotels in Monastir<br/>• Hotels can also be booked in the <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>tourist area of Monastir</a>");
+    map.insert("events.accommodation_tunisia", "• Hotels in Monastir<br/>• We recommend checking the <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>tourist area of Monastir</a>");
     map.insert(
         "events.travel_tunisia",
         "• Closest airport: <a href='https://maps.app.goo.gl/YyvPgoUmRDPqmzgy8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Monastir</a><br/>• We recommend avoiding Tunisair airlines<br/>• Tap water is not drinkable in Tunisia",
@@ -109,7 +109,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     map.insert("events.accommodation_nice", "• Hotels in Nice<br/>• Prefer accommodation along tram lines 2 and 3, preferably near the beach");
     map.insert(
         "events.travel_nice",
-        "• <a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Nice Côte d'Azur Airport</a> serves the area",
+        "• Closest airport: <a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Nice Côte d'Azur</a>",
     );
 
     // RSVP

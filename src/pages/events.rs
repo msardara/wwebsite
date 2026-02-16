@@ -11,7 +11,7 @@ pub fn EventsPage() -> impl IntoView {
     view! {
         <div class="max-w-4xl mx-auto">
             // Page Header
-            <div class="text-center mb-32 animate-fade-in">
+            <div class="text-center mb-6 animate-fade-in">
                 <h1 class="text-5xl md:text-6xl font-serif font-light text-secondary-800 mb-6 tracking-wide">
                     {move || translations().t("events.title")}
                 </h1>
