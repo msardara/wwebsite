@@ -76,7 +76,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     );
     map.insert(
         "events.accommodation_sardinia",
-        "• Recommended hotels in <a href='https://www.google.com/maps/place/Oristano,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://www.google.com/maps/place/Cabras,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
+        "• Recommended hotels in <a href='https://maps.app.goo.gl/N4KVpYEZF7G4jWbC6' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://maps.app.goo.gl/x72Q9zfYCDEZWMem9' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
     );
     map.insert(
         "events.travel_sardinia",
