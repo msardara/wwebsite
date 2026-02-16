@@ -134,11 +134,6 @@ jobs:
         with:
           target: wasm32-unknown-unknown
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install just
         uses: extractions/setup-just@v2
 
