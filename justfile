@@ -222,13 +222,13 @@ dev-all: _install-trunk _install-tailwindcss _require-env
 # Build project (debug mode)
 build: _install-trunk _build-css _require-env
     @echo "Building project..."
-    @set -a && . ./.env && set +a && {{ tools_dir }}/bin/trunk build
+    @set -a && { [ -f ./.env ] && . ./.env || true; } && set +a && {{ tools_dir }}/bin/trunk build
 
 # Build for production (optimized)
 build-release: _install-trunk _install-tailwindcss _require-env
     @echo "Building for production..."
     {{ tools_dir }}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --minify
-    @set -a && . ./.env && set +a && {{ tools_dir }}/bin/trunk build --release
+    @set -a && { [ -f ./.env ] && . ./.env || true; } && set +a && {{ tools_dir }}/bin/trunk build --release
     @just _optimize-wasm
 
 _require-env:
