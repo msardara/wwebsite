@@ -20,7 +20,7 @@ lib-features = ["csr"]
 lib-default-features = false
 
 [lib]
-crate-type = ["rlib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde", "wasmbind"] }
