@@ -1,14 +1,15 @@
 # Wedding Website - Justfile
 # Build automation for Leptos/WASM project
-
 # Load environment variables from .env file
-set dotenv-load
+
+set dotenv-load := true
 
 # Default recipe - show available commands
 default:
     @just --list
 
 # Tools directory for local binary installations
+
 tools_dir := ".tools"
 
 # ============================================================================
@@ -22,12 +23,12 @@ setup: _install-rust _install-trunk _install-wasm-opt _install-tailwindcss _buil
 # Install standalone TailwindCSS CLI binary (idempotent)
 _install-tailwindcss:
     #!/usr/bin/env sh
-    if [ -f {{tools_dir}}/bin/tailwindcss ]; then
+    if [ -f {{ tools_dir }}/bin/tailwindcss ]; then
         echo "TailwindCSS CLI already installed."
         exit 0
     fi
-    echo "Installing standalone TailwindCSS CLI to {{tools_dir}}/..."
-    mkdir -p {{tools_dir}}/bin
+    echo "Installing standalone TailwindCSS CLI to {{ tools_dir }}/..."
+    mkdir -p {{ tools_dir }}/bin
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
     if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
@@ -49,8 +50,8 @@ _install-tailwindcss:
     VERSION="v3.4.17"
     URL="https://github.com/tailwindlabs/tailwindcss/releases/download/${VERSION}/tailwindcss-${PLATFORM}"
     echo "Downloading $URL..."
-    curl -L -o {{tools_dir}}/bin/tailwindcss "$URL"
-    chmod +x {{tools_dir}}/bin/tailwindcss
+    curl -L -o {{ tools_dir }}/bin/tailwindcss "$URL"
+    chmod +x {{ tools_dir }}/bin/tailwindcss
     echo "TailwindCSS CLI installed successfully."
 
 # Install Rust via rustup (idempotent)
@@ -66,12 +67,12 @@ _install-rust:
 # Install Trunk build tool (idempotent)
 _install-trunk:
     #!/usr/bin/env sh
-    if [ -f {{tools_dir}}/bin/trunk ]; then
-        echo "Trunk already installed: $({{tools_dir}}/bin/trunk --version)"
+    if [ -f {{ tools_dir }}/bin/trunk ]; then
+        echo "Trunk already installed: $({{ tools_dir }}/bin/trunk --version)"
         exit 0
     fi
-    echo "Installing Trunk from GitHub releases to {{tools_dir}}/..."
-    mkdir -p {{tools_dir}}/bin
+    echo "Installing Trunk from GitHub releases to {{ tools_dir }}/..."
+    mkdir -p {{ tools_dir }}/bin
     PROJECT_DIR=$(pwd)
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
@@ -98,20 +99,20 @@ _install-trunk:
     cd /tmp
     curl -L -o "$FILENAME" "$URL"
     tar xzf "$FILENAME"
-    cp trunk "$PROJECT_DIR/{{tools_dir}}/bin/"
+    cp trunk "$PROJECT_DIR/{{ tools_dir }}/bin/"
     rm -f trunk "$FILENAME"
     cd "$PROJECT_DIR"
-    echo "Trunk installed successfully: $({{tools_dir}}/bin/trunk --version)"
+    echo "Trunk installed successfully: $({{ tools_dir }}/bin/trunk --version)"
 
 # Install wasm-opt from binaryen releases (idempotent)
 _install-wasm-opt:
     #!/usr/bin/env sh
-    if [ -f {{tools_dir}}/bin/wasm-opt ]; then
-        echo "wasm-opt already installed: $({{tools_dir}}/bin/wasm-opt --version)"
+    if [ -f {{ tools_dir }}/bin/wasm-opt ]; then
+        echo "wasm-opt already installed: $({{ tools_dir }}/bin/wasm-opt --version)"
         exit 0
     fi
-    echo "Installing wasm-opt from binaryen to {{tools_dir}}/..."
-    mkdir -p {{tools_dir}}/bin
+    echo "Installing wasm-opt from binaryen to {{ tools_dir }}/..."
+    mkdir -p {{ tools_dir }}/bin
     PROJECT_DIR=$(pwd)
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
@@ -138,14 +139,14 @@ _install-wasm-opt:
     cd /tmp
     curl -L -o "$FILENAME" "$URL"
     tar xzf "$FILENAME"
-    mkdir -p "$PROJECT_DIR/{{tools_dir}}/lib"
-    cp "binaryen-$VERSION/bin/wasm-opt" "$PROJECT_DIR/{{tools_dir}}/bin/"
+    mkdir -p "$PROJECT_DIR/{{ tools_dir }}/lib"
+    cp "binaryen-$VERSION/bin/wasm-opt" "$PROJECT_DIR/{{ tools_dir }}/bin/"
     if [ -d "binaryen-$VERSION/lib" ]; then
-        cp -r "binaryen-$VERSION/lib/"* "$PROJECT_DIR/{{tools_dir}}/lib/"
+        cp -r "binaryen-$VERSION/lib/"* "$PROJECT_DIR/{{ tools_dir }}/lib/"
     fi
     rm -rf "binaryen-$VERSION" "$FILENAME"
     cd "$PROJECT_DIR"
-    echo "wasm-opt installed successfully: $({{tools_dir}}/bin/wasm-opt --version)"
+    echo "wasm-opt installed successfully: $({{ tools_dir }}/bin/wasm-opt --version)"
 
 # Install cargo-binstall for fast binary installations
 _install-binstall:
@@ -192,33 +193,26 @@ _install-supabase-cli:
 # ============================================================================
 
 # Run development server with hot reload (opens browser)
-dev: _install-trunk _build-css
+dev: _install-trunk _build-css _require-env
     @echo "Starting development server..."
-    @if [ -f .env ]; then \
-        set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk serve --open; \
-    else \
-        echo "Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
-        {{tools_dir}}/bin/trunk serve --open; \
-    fi
+    @set -a && . ./.env && set +a && {{ tools_dir }}/bin/trunk serve --open
 
 # Build CSS once
 _build-css: _install-tailwindcss
     @if [ ! -f "style/output.css" ] || [ "style/main.css" -nt "style/output.css" ]; then \
         echo "Building CSS..."; \
-        {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css; \
+        {{ tools_dir }}/bin/tailwindcss -i ./style/main.css -o ./style/output.css; \
     else \
         echo "CSS already up to date."; \
     fi
 
 # Run dev server and CSS watch in parallel
-dev-all: _install-trunk _install-tailwindcss
+dev-all: _install-trunk _install-tailwindcss _require-env
     #!/usr/bin/env sh
-    {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --watch &
+    set -a && . ./.env && set +a
+    {{ tools_dir }}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --watch &
     CSS_PID=$!
-    if [ -f .env ]; then
-        set -a && . ./.env && set +a
-    fi
-    {{tools_dir}}/bin/trunk serve
+    {{ tools_dir }}/bin/trunk serve
     kill $CSS_PID 2>/dev/null
 
 # ============================================================================
@@ -226,33 +220,34 @@ dev-all: _install-trunk _install-tailwindcss
 # ============================================================================
 
 # Build project (debug mode)
-build: _install-trunk _build-css
+build: _install-trunk _build-css _require-env
     @echo "Building project..."
-    @if [ -f .env ]; then \
-        set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk build; \
-    else \
-        echo "Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
-        {{tools_dir}}/bin/trunk build; \
-    fi
+    @set -a && . ./.env && set +a && {{ tools_dir }}/bin/trunk build
 
 # Build for production (optimized)
-build-release: _install-trunk _install-tailwindcss
+build-release: _install-trunk _install-tailwindcss _require-env
     @echo "Building for production..."
-    {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --minify
-    @if [ -f .env ]; then \
-        set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk build --release; \
-    else \
-        echo "Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
-        {{tools_dir}}/bin/trunk build --release; \
-    fi
+    {{ tools_dir }}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --minify
+    @set -a && . ./.env && set +a && {{ tools_dir }}/bin/trunk build --release
     @just _optimize-wasm
+
+_require-env:
+    @if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then \
+        exit 0; \
+    elif [ -f .env ]; then \
+        exit 0; \
+    else \
+        echo "Error: SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are not set and .env file not found."; \
+        echo "Run 'just db-configure' to set up environment variables."; \
+        exit 1; \
+    fi
 
 # Optimize WASM files with wasm-opt
 _optimize-wasm: _install-wasm-opt
     #!/usr/bin/env sh
     echo "Optimizing WASM with wasm-opt..."
-    if [ -f {{tools_dir}}/bin/wasm-opt ]; then
-        WASM_OPT="{{tools_dir}}/bin/wasm-opt"
+    if [ -f {{ tools_dir }}/bin/wasm-opt ]; then
+        WASM_OPT="{{ tools_dir }}/bin/wasm-opt"
     elif command -v wasm-opt >/dev/null 2>&1; then
         WASM_OPT="wasm-opt"
     else
@@ -336,21 +331,25 @@ check-deps: audit unused licenses
 
 # Login to Supabase CLI (run once)
 _db-login: _install-supabase-cli
-    @echo "Logging in to Supabase..."
-    @echo "This will open a browser window to authenticate."
-    @echo ""
-    supabase login
+    @if supabase projects list >/dev/null 2>&1; then \
+        echo "Already authenticated with Supabase."; \
+    else \
+        echo "Logging in to Supabase..."; \
+        supabase login; \
+    fi
 
 # Link to Supabase project
 _db-link: _install-supabase-cli _db-login
-    @echo "Linking to Supabase project..."
-    @echo ""
-    @supabase link || \
-        (echo ""; \
-         echo "Error: Failed to link. You may need to login first:"; \
-         echo "   just _db-login"; \
-         exit 1)
-    @echo "Successfully linked to project."
+    @if [ -f "supabase/.temp/project-ref" ]; then \
+        echo "Already linked to project: $$(cat supabase/.temp/project-ref)"; \
+    else \
+        echo "Linking to Supabase project..."; \
+        supabase link || \
+            (echo ""; \
+             echo "Error: Failed to link."; \
+             exit 1); \
+        echo "Successfully linked to project."; \
+    fi
 
 # Run database migrations
 db-migrate: _install-supabase-cli
@@ -400,8 +399,11 @@ db-configure: _install-supabase-cli _db-link
     echo ""
     echo "Next: Rebuild the project with 'just build' or 'just dev'"
 
-# Create admin user in Supabase Auth
-db-create-admin: _install-supabase-cli _db-link
+# Create admin user in Supabase Auth (pre-confirmed via Admin API)
+# Usage: just db-create-admin email=admin@example.com password=secret
+
+# just db-create-admin  (interactive prompts)
+db-create-admin email="" password="": _install-supabase-cli _db-link
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Creating admin user..."
@@ -411,33 +413,64 @@ db-create-admin: _install-supabase-cli _db-link
         exit 1
     fi
     PROJECT_REF=$(cat supabase/.temp/project-ref)
-    EMAIL="mauro.sardara@gmail.com"
-    PASSWORD=$(openssl rand -base64 16)
-    echo "Creating user with email: $EMAIL"
-    echo ""
-    ANON_KEY=$(supabase projects api-keys --project-ref $PROJECT_REF 2>/dev/null | grep "anon" | head -1 | awk '{print $3}')
-    if [ -z "$ANON_KEY" ]; then
-        echo "Error: Failed to fetch API key. You may need to login again: just _db-login"
+    EMAIL="{{ email }}"
+    PASSWORD="{{ password }}"
+    if [ -z "$EMAIL" ]; then
+        printf "Email: "
+        read -r EMAIL
+    fi
+    if [ -z "$EMAIL" ]; then
+        echo "Error: Email is required."
         exit 1
     fi
-    RESPONSE=$(curl -s -X POST "https://$PROJECT_REF.supabase.co/auth/v1/signup" \
-        -H "apikey: $ANON_KEY" \
+    if [ -z "$PASSWORD" ]; then
+        printf "Password (leave empty to generate one): "
+        read -r -s PASSWORD
+        echo ""
+    fi
+    if [ -z "$PASSWORD" ]; then
+        PASSWORD=$(openssl rand -base64 16)
+        echo "Generated password."
+    fi
+    SERVICE_KEY=$(supabase projects api-keys --project-ref "$PROJECT_REF" 2>/dev/null | grep "service_role" | head -1 | awk '{print $3}')
+    if [ -z "$SERVICE_KEY" ]; then
+        echo "Error: Failed to fetch service_role key."
+        exit 1
+    fi
+    echo "Creating user with email: $EMAIL"
+    echo ""
+    RESPONSE=$(curl -s -X POST "https://$PROJECT_REF.supabase.co/auth/v1/admin/users" \
+        -H "apikey: $SERVICE_KEY" \
+        -H "Authorization: Bearer $SERVICE_KEY" \
         -H "Content-Type: application/json" \
-        -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
-    if echo "$RESPONSE" | grep -q "email" || echo "$RESPONSE" | grep -q "already"; then
-        echo "Admin user created/updated."
+        -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"email_confirm\":true}")
+    if echo "$RESPONSE" | grep -q '"id"'; then
+        echo "Admin user created and confirmed."
+    elif echo "$RESPONSE" | grep -q "already been registered"; then
+        echo "User already exists. Updating password..."
+        USER_ID=$(curl -s "https://$PROJECT_REF.supabase.co/auth/v1/admin/users" \
+            -H "apikey: $SERVICE_KEY" \
+            -H "Authorization: Bearer $SERVICE_KEY" \
+            | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+        if [ -n "$USER_ID" ]; then
+            curl -s -X PUT "https://$PROJECT_REF.supabase.co/auth/v1/admin/users/$USER_ID" \
+                -H "apikey: $SERVICE_KEY" \
+                -H "Authorization: Bearer $SERVICE_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"password\":\"$PASSWORD\",\"email_confirm\":true}" > /dev/null
+            echo "Password updated."
+        else
+            echo "Warning: Could not find user ID to update."
+        fi
     else
-        echo "Warning: Response: $RESPONSE"
-        echo "User may already exist or there was an issue."
+        echo "Error: Unexpected response: $RESPONSE"
     fi
     echo ""
     echo "Login credentials:"
     echo "  Email: $EMAIL"
     echo "  Password: $PASSWORD"
     echo ""
-    echo "IMPORTANT: Save this password securely!"
-    echo ""
-    echo "Check your email to confirm the account (if email confirmation is enabled)."
+    echo "IMPORTANT: Save this password securely."
 
 # ============================================================================
 # CI
@@ -457,5 +490,5 @@ clean:
     cargo clean
     rm -rf dist/
     rm -rf style/output.css
-    rm -rf {{tools_dir}}/
+    rm -rf {{ tools_dir }}/
     @echo "Cleaned."

@@ -164,7 +164,10 @@ infrastructure minimal.
 authentication, and an auto-generated REST API without requiring
 a custom backend. Business logic lives in PostgreSQL functions
 rather than in an application server, reducing the attack
-surface and simplifying deployment.
+surface and simplifying deployment. The free tier is generous
+enough for a wedding website (500 MB database, 50,000 monthly
+active users, unlimited API requests), so the entire backend
+runs at zero cost.
 
 **RPC-first guest access** — Rather than exposing tables through
 PostgREST filters, all guest-facing data access goes through
@@ -190,19 +193,49 @@ The required Rust toolchain and compilation targets are declared
 in `rust-toolchain.toml`. Rustup reads this file automatically
 and installs the correct toolchain on first invocation.
 
+## Supabase Setup
+
+The backend requires a [Supabase](https://supabase.com/)
+project. If you do not already have one:
+
+1. Create an account at https://supabase.com.
+2. Click **New Project**. Choose a name, set a database
+   password, and select a region.
+3. Wait for the project to finish provisioning (usually
+   under a minute).
+
+Once the project is ready, configure the local environment,
+apply the database schema, and create an admin user:
+
+```sh
+# Write SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY to .env
+just db-configure
+
+# Push the schema from supabase/migrations/ to the database
+just db-migrate
+
+# Create an admin user for the /admin panel
+just db-create-admin
+```
+
+`just db-configure` reads the project reference and API keys
+from the Supabase CLI and writes them to `.env`. The Rust
+build embeds these values at compile time via `env!()`.
+
 ## Getting Started
 
 ```sh
-# Install tools and build CSS
+# Install Rust, Trunk, TailwindCSS CLI, wasm-opt, and
+# build the CSS
 just setup
 
-# Configure Supabase credentials
+# Configure Supabase credentials (see above)
 just db-configure
 
-# Run database migrations
+# Push the database schema
 just db-migrate
 
-# Start the development server
+# Start the development server (opens browser)
 just dev
 ```
 

@@ -20,11 +20,7 @@ lib-features = ["csr"]
 lib-default-features = false
 
 [lib]
-crate-type = ["cdylib", "rlib"]
-
-# [[bin]]
-# name = "migrate"
-# path = "src/bin/migrate.rs"
+crate-type = ["rlib"]
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde", "wasmbind"] }
