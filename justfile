@@ -26,17 +26,42 @@ tools_dir := ".tools"
 # ============================================================================
 
 # Install all required tools and dependencies
-setup: install-wasm-target install-trunk install-wasm-opt _install-npm-deps build-css
+setup: install-wasm-target install-trunk install-wasm-opt install-tailwindcss build-css
     @echo "✅ Setup complete! Run 'just dev' to start developing"
 
-# Internal recipe for npm install (only runs if needed)
-_install-npm-deps:
-    @if [ ! -d "node_modules" ]; then \
-        echo "📦 Installing Node.js dependencies..."; \
-        npm install; \
-    else \
-        echo "✅ Node.js dependencies already installed"; \
+# Install standalone TailwindCSS CLI binary (idempotent - skips if already installed)
+install-tailwindcss:
+    #!/usr/bin/env sh
+    if [ -f {{tools_dir}}/bin/tailwindcss ]; then
+        echo "✅ TailwindCSS CLI already installed"
+        exit 0
     fi
+    echo "📦 Installing standalone TailwindCSS CLI to {{tools_dir}}/..."
+    mkdir -p {{tools_dir}}/bin
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+        ARCH="arm64"
+    elif [ "$ARCH" = "x86_64" ]; then
+        ARCH="x64"
+    else
+        echo "❌ Unsupported architecture: $ARCH"
+        exit 1
+    fi
+    if [ "$OS" = "darwin" ]; then
+        PLATFORM="macos-${ARCH}"
+    elif [ "$OS" = "linux" ]; then
+        PLATFORM="linux-${ARCH}"
+    else
+        echo "❌ Unsupported OS: $OS"
+        exit 1
+    fi
+    VERSION="v3.4.17"
+    URL="https://github.com/tailwindlabs/tailwindcss/releases/download/${VERSION}/tailwindcss-${PLATFORM}"
+    echo "Downloading $URL..."
+    curl -L -o {{tools_dir}}/bin/tailwindcss "$URL"
+    chmod +x {{tools_dir}}/bin/tailwindcss
+    echo "✅ TailwindCSS CLI installed successfully"
 
 # Install WASM target (idempotent - skips if already installed)
 install-wasm-target:
@@ -161,16 +186,12 @@ install-supabase-cli:
         echo "📦 Installing Supabase CLI via Homebrew..."; \
         brew install supabase/tap/supabase; \
         echo "✅ Supabase CLI installed successfully!"; \
-    elif command -v npm >/dev/null 2>&1; then \
-        echo "📦 Installing Supabase CLI via npm..."; \
-        npm install -g supabase; \
-        echo "✅ Supabase CLI installed successfully!"; \
     else \
-        echo "❌ No package manager found (brew or npm)"; \
+        echo "❌ Homebrew not found"; \
         echo ""; \
         echo "Please install Supabase CLI manually:"; \
         echo "  macOS:   brew install supabase/tap/supabase"; \
-        echo "  npm:     npm install -g supabase"; \
+        echo "  Linux:   brew install supabase/tap/supabase"; \
         echo "  Windows: scoop install supabase"; \
         echo ""; \
         echo "See: https://supabase.com/docs/guides/cli/getting-started"; \
@@ -222,22 +243,28 @@ serve: install-wasm-target install-trunk build-css
     fi
 
 # Build CSS and watch for changes
-watch-css: _install-npm-deps
-    npm run watch:css
+watch-css: install-tailwindcss
+    {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --watch
 
 # Build CSS once
-build-css: _install-npm-deps
+build-css: install-tailwindcss
     @if [ ! -f "style/output.css" ] || [ "style/main.css" -nt "style/output.css" ]; then \
         echo "🎨 Building CSS..."; \
-        npm run build:css; \
+        {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css; \
     else \
         echo "✅ CSS already built and up to date"; \
     fi
 
-# Run both dev server and CSS watch in parallel (requires 'concurrently' npm package)
-dev-all: install-wasm-target install-trunk _install-npm-deps
-    @npm list concurrently >/dev/null 2>&1 || npm install -D concurrently
-    npx concurrently "{{tools_dir}}/bin/trunk serve" "npm run watch:css"
+# Run both dev server and CSS watch in parallel
+dev-all: install-wasm-target install-trunk install-tailwindcss
+    #!/usr/bin/env sh
+    {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --watch &
+    CSS_PID=$!
+    if [ -f .env ]; then
+        set -a && . ./.env && set +a
+    fi
+    {{tools_dir}}/bin/trunk serve
+    kill $CSS_PID 2>/dev/null
 
 # Open project in browser
 open:
@@ -267,9 +294,9 @@ build: install-trunk build-css
     fi
 
 # Build for production (optimized)
-build-release: install-trunk _install-npm-deps
+build-release: install-trunk install-tailwindcss
     @echo "🔨 Building for production..."
-    npm run build:css:prod
+    {{tools_dir}}/bin/tailwindcss -i ./style/main.css -o ./style/output.css --minify
     @if [ -f .env ]; then \
         set -a && . ./.env && set +a && {{tools_dir}}/bin/trunk build --release; \
     else \
@@ -585,7 +612,6 @@ pre-push: check-all
 # Update all dependencies
 update:
     cargo update
-    npm update
 
 # Update Rust toolchain
 update-rust:
@@ -615,7 +641,6 @@ clean:
 clean-all: clean
     @echo "🧹 Deep cleaning..."
     cargo clean
-    rm -rf node_modules/
     rm -rf {{tools_dir}}/
     @echo "✅ Deep cleaned!"
 
@@ -641,8 +666,7 @@ check-installed:
     @printf "Rust:          "; rustc --version 2>/dev/null || echo "❌ NOT INSTALLED"
     @printf "Cargo:         "; cargo --version 2>/dev/null || echo "❌ NOT INSTALLED"
     @printf "WASM target:   "; rustup target list | grep -q "wasm32-unknown-unknown (installed)" && echo "✅ installed" || echo "❌ NOT INSTALLED - run 'just install-wasm-target'"
-    @printf "Node:          "; node --version 2>/dev/null || echo "❌ NOT INSTALLED"
-    @printf "npm:           "; npm --version 2>/dev/null || echo "❌ NOT INSTALLED"
+    @printf "TailwindCSS:   "; if [ -f {{tools_dir}}/bin/tailwindcss ]; then echo "✅ installed"; else echo "❌ NOT INSTALLED - run 'just install-tailwindcss'"; fi
     @printf "Trunk:         "; if [ -f {{tools_dir}}/bin/trunk ]; then {{tools_dir}}/bin/trunk --version; else echo "❌ NOT INSTALLED - run 'just install-trunk'"; fi
     @printf "Supabase CLI:  "; supabase --version 2>/dev/null || echo "❌ NOT INSTALLED - run 'just install-supabase-cli'"
     @printf "Just:          "; just --version 2>/dev/null || echo "✅ (you're using it)"
@@ -660,7 +684,6 @@ info:
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "Rust version:    $(rustc --version)"
     @echo "Cargo version:   $(cargo --version)"
-    @echo "Node version:    $(node --version)"
     @echo "Trunk version:   $(trunk --version 2>/dev/null || echo 'not installed')"
     @echo "Supabase CLI:    $(supabase --version 2>/dev/null || echo 'not installed')"
     @echo "Build profile:   {{profile}}"
@@ -689,7 +712,7 @@ disk-usage:
     @echo "💾 Disk usage:"
     @du -sh target/ 2>/dev/null || echo "No target directory"
     @du -sh dist/ 2>/dev/null || echo "No dist directory"
-    @du -sh node_modules/ 2>/dev/null || echo "No node_modules directory"
+    @du -sh {{tools_dir}}/ 2>/dev/null || echo "No tools directory"
 
 # Show quick start guide
 quickstart:

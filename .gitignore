@@ -29,8 +29,7 @@ Thumbs.db
 .env
 .env.local
 
-# Node (if using npm for tailwind)
-node_modules/
+
 
 # Logs
 *.log
