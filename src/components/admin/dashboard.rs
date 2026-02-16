@@ -1,3 +1,4 @@
+use crate::components::common::{IconStatCard, StatCard};
 use crate::contexts::AdminContext;
 use crate::styles::*;
 use crate::types::AdminStats;
@@ -11,25 +12,26 @@ pub fn AdminDashboard() -> impl IntoView {
     let (loading, set_loading) = create_signal(true);
     let (error, set_error) = create_signal::<Option<String>>(None);
 
-    // Load statistics on mount
-    let admin_context_clone = admin_context;
-    create_effect(move |_| {
-        let admin_context = admin_context_clone;
-        spawn_local(async move {
-            set_loading.set(true);
-            set_error.set(None);
+    // Single action for both initial load and manual refresh
+    let load_stats = create_action(move |_: &()| async move {
+        set_loading.set(true);
+        set_error.set(None);
 
-            match admin_context.authenticated_client().get_admin_stats().await {
-                Ok(admin_stats) => {
-                    set_stats.set(Some(admin_stats));
-                    set_loading.set(false);
-                }
-                Err(e) => {
-                    set_error.set(Some(format!("Failed to load statistics: {}", e)));
-                    set_loading.set(false);
-                }
+        match admin_context.authenticated_client().get_admin_stats().await {
+            Ok(admin_stats) => {
+                set_stats.set(Some(admin_stats));
+                set_loading.set(false);
             }
-        });
+            Err(e) => {
+                set_error.set(Some(format!("Failed to load statistics: {}", e)));
+                set_loading.set(false);
+            }
+        }
+    });
+
+    // Load statistics on mount
+    create_effect(move |_| {
+        load_stats.dispatch(());
     });
 
     view! {
@@ -39,22 +41,7 @@ pub fn AdminDashboard() -> impl IntoView {
                     "Dashboard"
                 </h2>
                 <button
-                    on:click=move |_| {
-                        let admin_context = admin_context;
-                        spawn_local(async move {
-                            set_loading.set(true);
-                            match admin_context.authenticated_client().get_admin_stats().await {
-                                Ok(admin_stats) => {
-                                    set_stats.set(Some(admin_stats));
-                                    set_loading.set(false);
-                                }
-                                Err(e) => {
-                                    set_error.set(Some(format!("Failed to load statistics: {}", e)));
-                                    set_loading.set(false);
-                                }
-                            }
-                        });
-                    }
+                    on:click=move |_| load_stats.dispatch(())
                     class=REFRESH_BUTTON
                 >
                     "↻ Refresh"
@@ -111,14 +98,14 @@ pub fn AdminDashboard() -> impl IntoView {
                                     "Location Breakdown"
                                 </h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <LocationCard
+                                    <IconStatCard
                                         icon="🏖️"
-                                        location="Sardinia"
+                                        label="Sardinia"
                                         count=s.sardinia_guests
                                     />
-                                    <LocationCard
+                                    <IconStatCard
                                         icon="🌴"
-                                        location="Tunisia"
+                                        label="Tunisia"
                                         count=s.tunisia_guests
                                     />
                                 </div>
@@ -133,32 +120,32 @@ pub fn AdminDashboard() -> impl IntoView {
                                     "Dietary Restrictions"
                                 </h3>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <DietaryCard
+                                    <IconStatCard
                                         icon="🥗"
                                         label="Vegetarian"
                                         count=s.vegetarian_count
                                     />
-                                    <DietaryCard
+                                    <IconStatCard
                                         icon="🌱"
                                         label="Vegan"
                                         count=s.vegan_count
                                     />
-                                    <DietaryCard
+                                    <IconStatCard
                                         icon="☪️"
                                         label="Halal"
                                         count=s.halal_count
                                     />
-                                    <DietaryCard
+                                    <IconStatCard
                                         icon="🚫🐷"
                                         label="No Pork"
                                         count=s.no_pork_count
                                     />
-                                    <DietaryCard
+                                    <IconStatCard
                                         icon="🌾"
                                         label="Gluten-Free"
                                         count=s.gluten_free_count
                                     />
-                                    <DietaryCard
+                                    <IconStatCard
                                         icon="🍽️"
                                         label="Other Dietary"
                                         count=s.other_dietary_count
@@ -175,72 +162,6 @@ pub fn AdminDashboard() -> impl IntoView {
                     }.into_view()
                 }
             }}
-        </div>
-    }
-}
-
-#[component]
-fn StatCard(
-    icon: &'static str,
-    title: &'static str,
-    value: i32,
-    color: &'static str,
-) -> impl IntoView {
-    let bg_color = match color {
-        "blue" => "bg-blue-50",
-        "green" => "bg-green-50",
-        "yellow" => "bg-yellow-50",
-        "purple" => "bg-purple-50",
-        _ => "bg-gray-50",
-    };
-
-    let text_color = match color {
-        "blue" => "text-blue-600",
-        "green" => "text-green-600",
-        "yellow" => "text-yellow-600",
-        "purple" => "text-purple-600",
-        _ => "text-gray-600",
-    };
-
-    view! {
-        <div class={format!("rounded-lg shadow-md p-6 {}", bg_color)}>
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">{title}</p>
-                    <p class={format!("text-3xl font-bold {}", text_color)}>{value}</p>
-                </div>
-                <div class="text-4xl">{icon}</div>
-            </div>
-        </div>
-    }
-}
-
-#[component]
-fn LocationCard(icon: &'static str, location: &'static str, count: i32) -> impl IntoView {
-    view! {
-        <div class=INFO_CARD>
-            <div class="flex items-center space-x-3">
-                <span class="text-2xl">{icon}</span>
-                <div>
-                    <p class="text-sm font-medium text-gray-600">{location}</p>
-                    <p class="text-2xl font-bold text-gray-900">{count}</p>
-                </div>
-            </div>
-        </div>
-    }
-}
-
-#[component]
-fn DietaryCard(icon: &'static str, label: &'static str, count: i32) -> impl IntoView {
-    view! {
-        <div class=INFO_CARD>
-            <div class="flex items-center space-x-3">
-                <span class="text-2xl">{icon}</span>
-                <div>
-                    <p class="text-sm font-medium text-gray-600">{label}</p>
-                    <p class="text-2xl font-bold text-gray-900">{count}</p>
-                </div>
-            </div>
         </div>
     }
 }

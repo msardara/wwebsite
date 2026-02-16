@@ -1,19 +1,53 @@
-use crate::contexts::{use_supabase_rpc, GuestContext};
-use crate::i18n::Translations;
+use crate::components::common::{LanguageSelector, LoadingButton};
+use crate::contexts::{use_guest_context, use_language, use_supabase_rpc, GuestContext};
+use crate::i18n::{use_translations, Translations};
 use crate::styles::*;
-use crate::types::Language;
+use crate::supabase::SupabaseRpcClient;
 use crate::SupabaseError;
-use gloo_storage::{LocalStorage, Storage};
 use leptos::*;
 use leptos_router::*;
 
 use wasm_bindgen_futures::spawn_local;
 
+/// Shared lookup logic used by both auto-login (URL code) and the manual form submit.
+///
+/// On success the guest is logged in, signals are updated, and the caller is
+/// redirected to `/`. On failure the appropriate translated error is set.
+async fn lookup_guest_by_code(
+    code: &str,
+    client: &SupabaseRpcClient,
+    guest_ctx: GuestContext,
+    t: impl Fn() -> Translations,
+    set_loading: WriteSignal<bool>,
+    set_error: WriteSignal<Option<String>>,
+) {
+    match client.find_guest_by_code(code).await {
+        Ok(Some(guest)) => {
+            set_loading.set(false);
+            guest_ctx.login(guest);
+            let navigate = leptos_router::use_navigate();
+            navigate("/", Default::default());
+        }
+        Ok(None) => {
+            set_loading.set(false);
+            set_error.set(Some(t().t("rsvp.error_code_invalid")));
+        }
+        Err(e) => {
+            set_loading.set(false);
+            let error_msg = match e {
+                SupabaseError::NetworkError(_) => t().t("rsvp.error_network"),
+                SupabaseError::NotFound => t().t("rsvp.not_found"),
+                _ => t().t("rsvp.error_generic"),
+            };
+            set_error.set(Some(error_msg));
+        }
+    }
+}
+
 #[component]
 pub fn InvitationPage() -> impl IntoView {
-    let language = use_context::<ReadSignal<Language>>().expect("Language context not found");
-    let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
-    let translations = move || Translations::new(language.get());
+    let guest_context = use_guest_context();
+    let t = use_translations();
 
     // Get query parameters to check for pre-filled code
     let query = use_query_map();
@@ -35,30 +69,8 @@ pub fn InvitationPage() -> impl IntoView {
             let client = use_supabase_rpc();
 
             spawn_local(async move {
-                match client.find_guest_by_code(&code_value).await {
-                    Ok(Some(guest)) => {
-                        set_loading.set(false);
-                        guest_ctx.login(guest);
-                        // Redirect to home page
-                        let navigate = leptos_router::use_navigate();
-                        navigate("/", Default::default());
-                    }
-                    Ok(None) => {
-                        set_loading.set(false);
-                        set_error.set(Some(translations().t("rsvp.error_code_invalid")));
-                    }
-                    Err(e) => {
-                        set_loading.set(false);
-                        let error_msg = match e {
-                            SupabaseError::NetworkError(_) => {
-                                translations().t("rsvp.error_network")
-                            }
-                            SupabaseError::NotFound => translations().t("rsvp.not_found"),
-                            _ => translations().t("rsvp.error_generic"),
-                        };
-                        set_error.set(Some(error_msg));
-                    }
-                }
+                lookup_guest_by_code(&code_value, &client, guest_ctx, t, set_loading, set_error)
+                    .await;
             });
         }
     });
@@ -68,7 +80,7 @@ pub fn InvitationPage() -> impl IntoView {
 
         let code_value = code.get();
         if code_value.is_empty() {
-            set_error.set(Some(translations().t("rsvp.error_code_required")));
+            set_error.set(Some(t().t("rsvp.error_code_required")));
             return;
         }
 
@@ -78,34 +90,13 @@ pub fn InvitationPage() -> impl IntoView {
         let client = use_supabase_rpc();
 
         spawn_local(async move {
-            match client.find_guest_by_code(&code_value).await {
-                Ok(Some(guest)) => {
-                    set_loading.set(false);
-                    guest_ctx.login(guest);
-                    // Redirect to home page
-                    let navigate = leptos_router::use_navigate();
-                    navigate("/", Default::default());
-                }
-                Ok(None) => {
-                    set_loading.set(false);
-                    set_error.set(Some(translations().t("rsvp.error_code_invalid")));
-                }
-                Err(e) => {
-                    set_loading.set(false);
-                    let error_msg = match e {
-                        SupabaseError::NetworkError(_) => translations().t("rsvp.error_network"),
-                        SupabaseError::NotFound => translations().t("rsvp.not_found"),
-                        _ => translations().t("rsvp.error_generic"),
-                    };
-                    set_error.set(Some(error_msg));
-                }
-            }
+            lookup_guest_by_code(&code_value, &client, guest_ctx, t, set_loading, set_error).await;
         });
     };
 
     view! {
         <div class="min-h-screen flex flex-col bg-background">
-            <InvitationHeader language=language/>
+            <InvitationHeader/>
 
             <main class="flex-grow flex items-center justify-center px-4 py-12">
                 <div class="max-w-3xl w-full">
@@ -114,27 +105,27 @@ pub fn InvitationPage() -> impl IntoView {
                         "💍"
                     </h1>
                     <h2 class="text-3xl md:text-4xl font-serif font-bold text-primary-600 mb-4">
-                        {move || translations().t("home.title")}
+                        {move || t().t("home.title")}
                     </h2>
                     <p class="text-lg text-gray-600">
-                        {move || translations().t("rsvp.subtitle")}
+                        {move || t().t("rsvp.subtitle")}
                     </p>
                 </div>
 
                 <div class="bg-white rounded-lg shadow-xl p-8 md:p-12 animate-fade-in">
                     <h3 class="text-2xl font-serif font-bold text-gray-800 mb-6 text-center">
-                        {move || translations().t("rsvp.lookup")}
+                        {move || t().t("rsvp.lookup")}
                     </h3>
 
                     <form on:submit=handle_submit class="space-y-6">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                {move || translations().t("rsvp.code")}
+                                {move || t().t("rsvp.code")}
                             </label>
                             <input
                                 type="text"
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all text-center text-2xl tracking-widest"
-                                placeholder=move || translations().t("rsvp.code_placeholder")
+                                placeholder=move || t().t("rsvp.code_placeholder")
                                 prop:value=code
                                 on:input=move |ev| set_code.set(event_target_value(&ev))
                                 required
@@ -142,7 +133,7 @@ pub fn InvitationPage() -> impl IntoView {
                                 autofocus
                             />
                             <p class="text-sm text-gray-500 mt-2 text-center">
-                                {move || translations().t("rsvp.code_help")}
+                                {move || t().t("rsvp.code_help")}
                             </p>
                         </div>
 
@@ -152,24 +143,11 @@ pub fn InvitationPage() -> impl IntoView {
                             </div>
                         </Show>
 
-                        <button
-                            type="submit"
+                        <LoadingButton
+                            loading=move || loading.get()
+                            label=move || t().t("rsvp.find")
                             class=BUTTON_PRIMARY
-                            disabled=move || loading.get()
-                        >
-                            <Show
-                                when=move || loading.get()
-                                fallback=move || view! { <span>{move || translations().t("rsvp.find")}</span> }
-                            >
-                                <span class="flex items-center justify-center">
-                                    <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    {move || translations().t("common.loading")}
-                                </span>
-                            </Show>
-                        </button>
+                        />
                     </form>
                 </div>
 
@@ -180,19 +158,14 @@ pub fn InvitationPage() -> impl IntoView {
                 </div>
             </main>
 
-            <InvitationFooter translations=translations/>
+            <InvitationFooter/>
         </div>
     }
 }
 
 #[component]
-fn InvitationHeader(language: ReadSignal<Language>) -> impl IntoView {
-    let set_language = use_context::<WriteSignal<Language>>().expect("Language setter not found");
-
-    let change_language = move |lang: Language| {
-        set_language.set(lang);
-        let _ = LocalStorage::set("language", lang.code());
-    };
+fn InvitationHeader() -> impl IntoView {
+    let (language, change_language) = use_language();
 
     view! {
         <header class="bg-white shadow-md sticky top-0 z-50">
@@ -202,47 +175,7 @@ fn InvitationHeader(language: ReadSignal<Language>) -> impl IntoView {
                         "💍 Our Wedding"
                     </div>
 
-                    <div class="flex items-center space-x-2">
-                        <button
-                            class=move || {
-                                let base = "px-3 py-1 rounded-md text-sm transition-all duration-200 ";
-                                if language.get() == Language::English {
-                                    format!("{}bg-primary-400 text-white scale-110", base)
-                                } else {
-                                    format!("{}bg-gray-100 hover:bg-gray-200", base)
-                                }
-                            }
-                            on:click=move |_| change_language(Language::English)
-                        >
-                            "🇬🇧 EN"
-                        </button>
-                        <button
-                            class=move || {
-                                let base = "px-3 py-1 rounded-md text-sm transition-all duration-200 ";
-                                if language.get() == Language::French {
-                                    format!("{}bg-primary-400 text-white scale-110", base)
-                                } else {
-                                    format!("{}bg-gray-100 hover:bg-gray-200", base)
-                                }
-                            }
-                            on:click=move |_| change_language(Language::French)
-                        >
-                            "🇫🇷 FR"
-                        </button>
-                        <button
-                            class=move || {
-                                let base = "px-3 py-1 rounded-md text-sm transition-all duration-200 ";
-                                if language.get() == Language::Italian {
-                                    format!("{}bg-primary-400 text-white scale-110", base)
-                                } else {
-                                    format!("{}bg-gray-100 hover:bg-gray-200", base)
-                                }
-                            }
-                            on:click=move |_| change_language(Language::Italian)
-                        >
-                            "🇮🇹 IT"
-                        </button>
-                    </div>
+                    <LanguageSelector language=language on_change=change_language/>
                 </div>
             </nav>
         </header>
@@ -250,13 +183,15 @@ fn InvitationHeader(language: ReadSignal<Language>) -> impl IntoView {
 }
 
 #[component]
-fn InvitationFooter(translations: impl Fn() -> Translations + 'static + Copy) -> impl IntoView {
+fn InvitationFooter() -> impl IntoView {
+    let t = use_translations();
+
     view! {
         <footer class="bg-white border-t border-gray-200 mt-12">
             <div class="container mx-auto max-w-5xl px-4 py-8">
                 <div class="text-center text-gray-600">
                     <p class="text-sm">
-                        {move || translations().t("footer.copyright")}
+                        {move || t().t("footer.copyright")}
                     </p>
                 </div>
             </div>

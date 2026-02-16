@@ -1,7 +1,10 @@
-use crate::contexts::{use_supabase_rpc, GuestContext};
-use crate::i18n::Translations;
+use crate::components::common::{
+    AgeCategorySelector, DietaryCheckboxItem, LoadingButton, SuccessAlert, TranslatedErrorAlert,
+};
+use crate::contexts::{use_guest_context, use_supabase_rpc};
+use crate::i18n::{use_translations, Translations};
 use crate::styles::*;
-use crate::types::{DietaryPreferences, Guest, GuestGroup, Language, Location};
+use crate::types::{DietaryPreferences, Guest, GuestGroup, Location};
 use leptos::*;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
@@ -9,9 +12,8 @@ use wasm_bindgen_futures::spawn_local;
 
 #[component]
 pub fn RsvpPage() -> impl IntoView {
-    let language = use_context::<ReadSignal<Language>>().expect("Language context not found");
-    let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
-    let translations = move || Translations::new(language.get());
+    let guest_context = use_guest_context();
+    let translations = use_translations();
 
     view! {
         <div class="max-w-4xl mx-auto">
@@ -285,9 +287,7 @@ fn RsvpManager(
 
         if !empty_names.is_empty() {
             set_saving.set(false);
-            set_error.set(Some(
-                "rsvp.error_empty_names".to_string(),
-            ));
+            set_error.set(Some("rsvp.error_empty_names".to_string()));
             scroll_to_top();
             return;
         }
@@ -308,9 +308,7 @@ fn RsvpManager(
 
         if !no_locations.is_empty() {
             set_saving.set(false);
-            set_error.set(Some(
-                "rsvp.error_no_locations".to_string(),
-            ));
+            set_error.set(Some("rsvp.error_no_locations".to_string()));
             scroll_to_top();
             return;
         }
@@ -440,11 +438,7 @@ fn RsvpManager(
             <Show
                 when=move || success.get()
                 fallback=move || view! {
-                    <Show when=move || error.get().is_some()>
-                        <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm">
-                            {move || translations().t(&error.get().unwrap_or_default())}
-                        </div>
-                    </Show>
+                    <TranslatedErrorAlert message_key=Signal::derive(move || error.get()) />
 
                     <Show
                         when=move || !loading.get()
@@ -525,41 +519,22 @@ fn RsvpManager(
                         />
                     </div>
 
-                    <Show when=move || error.get().is_some()>
-                        <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm animate-fade-in">
-                            {move || translations().t(&error.get().unwrap_or_default())}
-                        </div>
-                    </Show>
+                    <TranslatedErrorAlert message_key=Signal::derive(move || error.get()) />
 
-                    <button
-                        type="submit"
+                    <LoadingButton
+                        loading=move || saving.get()
+                        label=move || translations().t("rsvp.submit")
                         class=BUTTON_PRIMARY
-                        disabled=move || saving.get()
-                    >
-                        <Show
-                            when=move || saving.get()
-                            fallback=move || view! {
-                                <span>{move || translations().t("rsvp.submit")}</span>
-                            }
-                        >
-                            <span class="flex items-center justify-center">
-                                <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                {move || translations().t("common.loading")}
-                            </span>
-                        </Show>
-                        </button>
+                    />
                     </form>
                 </Show>
             }
             >
-                <div class="bg-green-50 border-l-4 border-green-500 text-green-800 px-6 py-8 rounded-lg shadow-sm animate-fade-in text-center">
+                <SuccessAlert when=move || true>
                     <div class="text-5xl mb-4">"✓"</div>
                     <p class="text-2xl font-semibold mb-2">{move || translations().t("rsvp.success")}</p>
                     <p class="text-base mt-2 font-light">{move || translations().t("rsvp.success_refresh")}</p>
-                </div>
+                </SuccessAlert>
             </Show>
         </div>
     }
@@ -681,10 +656,7 @@ fn GuestCard(
                 let inv_code = invitation_code.get_value();
 
                 spawn_local(async move {
-                    match client
-                        .delete_guest_secure(&id, &group_id, &inv_code)
-                        .await
-                    {
+                    match client.delete_guest_secure(&id, &group_id, &inv_code).await {
                         Ok(_) => {
                             on_delete.call(id);
                         }
@@ -744,11 +716,8 @@ fn GuestCard(
                                             .unwrap_or(false)
                                     };
 
-                                    let (display_name, flag) = match location {
-                                        Location::Sardinia => ("Sardinia", "🇮🇹"),
-                                        Location::Tunisia => ("Tunisia", "🇹🇳"),
-                                        Location::Nice => ("Nice", "🇫🇷"),
-                                    };
+                                    let display_name = location.display_name();
+                                    let flag = location.flag_emoji();
 
                                     view! {
                                         <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
@@ -774,116 +743,45 @@ fn GuestCard(
                 // Age category selection
                 <div class="bg-gradient-to-br from-primary-50/50 to-accent-50/50 p-4 rounded-lg border border-primary-200">
                     <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.age_category")}</p>
-                    <div class="flex flex-wrap gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
-                            <input
-                                type="radio"
-                                name={format!("age_category_{}", guest_id)}
-                                class="w-4 h-4 text-secondary-600"
-                                prop:checked=move || age_category.get().as_str() == "adult"
-                                on:change=move |_| {
-                                    set_age_category.set(crate::types::AgeCategory::Adult);
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-sm font-light text-secondary-700">{move || translations().t("rsvp.adult")}</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
-                            <input
-                                type="radio"
-                                name={format!("age_category_{}", guest_id)}
-                                class="w-4 h-4 text-secondary-600"
-                                prop:checked=move || age_category.get().as_str() == "child_under_3"
-                                on:change=move |_| {
-                                    set_age_category.set(crate::types::AgeCategory::ChildUnder3);
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-sm font-light text-secondary-700">{move || translations().t("rsvp.child_under_3")}</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
-                            <input
-                                type="radio"
-                                name={format!("age_category_{}", guest_id)}
-                                class="w-4 h-4 text-secondary-600"
-                                prop:checked=move || age_category.get().as_str() == "child_under_10"
-                                on:change=move |_| {
-                                    set_age_category.set(crate::types::AgeCategory::ChildUnder10);
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-sm font-light text-secondary-700">{move || translations().t("rsvp.child_under_10")}</span>
-                        </label>
-                    </div>
+                    <AgeCategorySelector
+                        current=move || age_category.get()
+                        on_change=move |cat| {
+                            set_age_category.set(cat);
+                            save_changes.with_value(|f| f());
+                        }
+                        radio_name=format!("age_category_{}", guest_id)
+                        translations=translations
+                    />
                 </div>
 
                 <div class="pl-1">
                     <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.dietary_restrictions_label")}</p>
                     <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
-                                prop:checked=move || vegetarian.get()
-                                on:change=move |ev| {
-                                    set_vegetarian.set(event_target_checked(&ev));
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.vegetarian")}</span>
-                        </label>
-
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
-                                prop:checked=move || vegan.get()
-                                on:change=move |ev| {
-                                    set_vegan.set(event_target_checked(&ev));
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.vegan")}</span>
-                        </label>
-
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
-                                prop:checked=move || halal.get()
-                                on:change=move |ev| {
-                                    set_halal.set(event_target_checked(&ev));
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.halal")}</span>
-                        </label>
-
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
-                                prop:checked=move || no_pork.get()
-                                on:change=move |ev| {
-                                    set_no_pork.set(event_target_checked(&ev));
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.no_pork")}</span>
-                        </label>
-
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
-                                prop:checked=move || gluten_free.get()
-                                on:change=move |ev| {
-                                    set_gluten_free.set(event_target_checked(&ev));
-                                    save_changes.with_value(|f| f());
-                                }
-                            />
-                            <span class="text-xs text-secondary-700 font-light">{move || translations().t("rsvp.gluten_free")}</span>
-                        </label>
+                        <DietaryCheckboxItem
+                            checked=move || vegetarian.get()
+                            on_change=move |v| { set_vegetarian.set(v); save_changes.with_value(|f| f()); }
+                            label=move || translations().t("rsvp.vegetarian")
+                        />
+                        <DietaryCheckboxItem
+                            checked=move || vegan.get()
+                            on_change=move |v| { set_vegan.set(v); save_changes.with_value(|f| f()); }
+                            label=move || translations().t("rsvp.vegan")
+                        />
+                        <DietaryCheckboxItem
+                            checked=move || halal.get()
+                            on_change=move |v| { set_halal.set(v); save_changes.with_value(|f| f()); }
+                            label=move || translations().t("rsvp.halal")
+                        />
+                        <DietaryCheckboxItem
+                            checked=move || no_pork.get()
+                            on_change=move |v| { set_no_pork.set(v); save_changes.with_value(|f| f()); }
+                            label=move || translations().t("rsvp.no_pork")
+                        />
+                        <DietaryCheckboxItem
+                            checked=move || gluten_free.get()
+                            on_change=move |v| { set_gluten_free.set(v); save_changes.with_value(|f| f()); }
+                            label=move || translations().t("rsvp.gluten_free")
+                        />
                     </div>
 
                     <div class="mt-4">

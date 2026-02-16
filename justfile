@@ -133,36 +133,76 @@ install-wasm-opt:
     echo "✅ wasm-opt installed successfully: $({{tools_dir}}/bin/wasm-opt --version)"
 
 # Install cargo-llvm-cov for code coverage (idempotent - skips if already installed)
-install-cargo-llvm-cov:
-    @if cargo install --list | grep -q "^cargo-llvm-cov v"; then \
+# Install cargo-binstall for fast binary installations (the only cargo install in this file)
+install-binstall:
+    @if command -v cargo-binstall >/dev/null 2>&1; then \
+        echo "✅ cargo-binstall already installed"; \
+    else \
+        echo "📦 Installing cargo-binstall..."; \
+        cargo install cargo-binstall; \
+        echo "✅ cargo-binstall installed successfully!"; \
+    fi
+
+# Install cargo-llvm-cov for code coverage (idempotent - skips if already installed)
+install-cargo-llvm-cov: install-binstall
+    @if command -v cargo-llvm-cov >/dev/null 2>&1; then \
         echo "✅ cargo-llvm-cov already installed: $$(cargo llvm-cov --version | head -n1)"; \
     else \
         echo "📦 Installing cargo-llvm-cov..."; \
-        cargo install cargo-llvm-cov; \
+        cargo binstall -y cargo-llvm-cov; \
         echo "✅ cargo-llvm-cov installed successfully!"; \
     fi
 
-# Install development tools
-install-tools:
-    @echo "🔧 Installing development tools..."
-    @cargo install --list | grep -q "^cargo-audit v" || cargo install cargo-audit
-    @cargo install --list | grep -q "^cargo-machete v" || cargo install cargo-machete
-    @cargo install --list | grep -q "^cargo-deny v" || cargo install cargo-deny
-    @cargo install --list | grep -q "^cargo-sort v" || cargo install cargo-sort
-    @cargo install --list | grep -q "^typos-cli v" || cargo install typos-cli
-    @cargo install --list | grep -q "^cargo-llvm-cov v" || cargo install cargo-llvm-cov
-    @echo "✅ Tools installed!"
+# Install Supabase CLI (idempotent - skips if already installed)
+install-supabase-cli:
+    @if command -v supabase >/dev/null 2>&1; then \
+        echo "✅ Supabase CLI already installed: $$(supabase --version)"; \
+    elif command -v brew >/dev/null 2>&1; then \
+        echo "📦 Installing Supabase CLI via Homebrew..."; \
+        brew install supabase/tap/supabase; \
+        echo "✅ Supabase CLI installed successfully!"; \
+    elif command -v npm >/dev/null 2>&1; then \
+        echo "📦 Installing Supabase CLI via npm..."; \
+        npm install -g supabase; \
+        echo "✅ Supabase CLI installed successfully!"; \
+    else \
+        echo "❌ No package manager found (brew or npm)"; \
+        echo ""; \
+        echo "Please install Supabase CLI manually:"; \
+        echo "  macOS:   brew install supabase/tap/supabase"; \
+        echo "  npm:     npm install -g supabase"; \
+        echo "  Windows: scoop install supabase"; \
+        echo ""; \
+        echo "See: https://supabase.com/docs/guides/cli/getting-started"; \
+        exit 1; \
+    fi
 
-# Update all dependencies
-update:
-    cargo update
-    npm update
+# Install typos-cli for spell checking (idempotent - skips if already installed)
+install-typos: install-binstall
+    @if command -v typos >/dev/null 2>&1; then \
+        echo "✅ typos already installed: $$(typos --version)"; \
+    else \
+        echo "📦 Installing typos-cli..."; \
+        cargo binstall -y typos-cli; \
+        echo "✅ typos-cli installed successfully!"; \
+    fi
+
+# Install optional development tools
+install-tools: install-binstall
+    @echo "🔧 Installing development tools..."
+    @command -v cargo-audit >/dev/null 2>&1 || cargo binstall -y cargo-audit
+    @command -v cargo-machete >/dev/null 2>&1 || cargo binstall -y cargo-machete
+    @command -v cargo-deny >/dev/null 2>&1 || cargo binstall -y cargo-deny
+    @command -v cargo-sort >/dev/null 2>&1 || cargo binstall -y cargo-sort
+    @command -v typos >/dev/null 2>&1 || cargo binstall -y typos-cli
+    @command -v cargo-llvm-cov >/dev/null 2>&1 || cargo binstall -y cargo-llvm-cov
+    @echo "✅ Tools installed!"
 
 # ============================================================================
 # DEVELOPMENT
 # ============================================================================
 
-# Run development server with hot reload
+# Run development server with hot reload (opens browser)
 dev: install-wasm-target install-trunk build-css
     @echo "🚀 Starting development server..."
     @if [ -f .env ]; then \
@@ -197,14 +237,26 @@ build-css: _install-npm-deps
 # Run both dev server and CSS watch in parallel (requires 'concurrently' npm package)
 dev-all: install-wasm-target install-trunk _install-npm-deps
     @npm list concurrently >/dev/null 2>&1 || npm install -D concurrently
-    npx concurrently {{tools_dir}}/bin/trunk serve" "npm run watch:css"
+    npx concurrently "{{tools_dir}}/bin/trunk serve" "npm run watch:css"
+
+# Open project in browser
+open:
+    @echo "🌐 Opening http://127.0.0.1:3000 in browser..."
+    @open http://127.0.0.1:3000 2>/dev/null || xdg-open http://127.0.0.1:3000 2>/dev/null || echo "Please open http://127.0.0.1:3000 manually"
+
+# Watch for file changes and rebuild
+watch:
+    @if command -v cargo-watch >/dev/null 2>&1; then \
+        cargo watch -x check -x test; \
+    else \
+        echo "❌ cargo-watch not installed. Install with: cargo binstall cargo-watch"; \
+    fi
 
 # ============================================================================
-# BUILD
+# BUILD & DEPLOY
 # ============================================================================
 
-# Build the project (debug mode)
-# Build project
+# Build project (debug mode)
 build: install-trunk build-css
     @echo "🔨 Building project..."
     @if [ -f .env ]; then \
@@ -224,167 +276,7 @@ build-release: install-trunk _install-npm-deps
         echo "⚠️  Warning: .env file not found. Run 'just db-configure' to set up environment variables."; \
         {{tools_dir}}/bin/trunk build --release; \
     fi
-
     @just _optimize-wasm
-
-# Clean build artifacts
-clean:
-    @echo "🧹 Cleaning build artifacts..."
-    cargo clean
-    trunk clean
-    rm -rf dist/
-    rm -rf style/output.css
-    @echo "✅ Cleaned!"
-
-# Clean and rebuild
-rebuild: clean build
-
-# ============================================================================
-# CODE QUALITY
-# ============================================================================
-
-# Check code without building
-check:
-    @echo "🔍 Checking code..."
-    cargo check --all-targets --all-features
-
-# Format code
-fmt:
-    @echo "🎨 Formatting code..."
-    cargo fmt
-
-# Check if code is formatted
-fmt-check:
-    @echo "🔍 Checking code format..."
-    cargo fmt -- --check
-
-# Run clippy linter
-clippy:
-    @echo "📎 Running clippy..."
-    cargo clippy --all-targets --all-features -- -D warnings
-
-# Check for typos in code and docs
-typos:
-    @echo "🔤 Checking for typos..."
-    @if command -v typos >/dev/null 2>&1; then \
-        typos; \
-    else \
-        echo "⚠️  typos not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# Fix typos automatically
-typos-fix:
-    @echo "🔤 Fixing typos..."
-    @if command -v typos >/dev/null 2>&1; then \
-        typos --write-changes; \
-    else \
-        echo "⚠️  typos not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# Sort Cargo.toml dependencies
-sort:
-    @echo "📋 Sorting dependencies..."
-    @if cargo install --list | grep -q "^cargo-sort v"; then \
-        cargo sort; \
-    else \
-        echo "⚠️  cargo-sort not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# Check if dependencies are sorted
-sort-check:
-    @echo "🔍 Checking dependency order..."
-    @if cargo install --list | grep -q "^cargo-sort v"; then \
-        cargo sort --check; \
-    else \
-        echo "⚠️  cargo-sort not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# ============================================================================
-# SECURITY & DEPENDENCIES
-# ============================================================================
-
-# Check for security vulnerabilities
-audit:
-    @echo "🔒 Checking for vulnerabilities..."
-    @if cargo install --list | grep -q "^cargo-audit v"; then \
-        cargo audit; \
-    else \
-        echo "⚠️  cargo-audit not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# Check for unused dependencies
-unused:
-    @echo "🔍 Checking for unused dependencies..."
-    @if cargo install --list | grep -q "^cargo-machete v"; then \
-        cargo machete; \
-    else \
-        echo "⚠️  cargo-machete not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# Check licenses of dependencies
-licenses:
-    @echo "📜 Checking licenses..."
-    @if cargo install --list | grep -q "^cargo-deny v"; then \
-        cargo deny check licenses; \
-    else \
-        echo "⚠️  cargo-deny not installed. Run 'just install-tools' to install it."; \
-    fi
-
-# Check for security advisories (alias for audit)
-vuln: audit
-
-# Run all dependency checks
-check-deps: unused licenses audit
-
-# ============================================================================
-# TESTING
-# ============================================================================
-
-# Run all tests
-test:
-    @echo "🧪 Running tests..."
-    SUPABASE_URL=https://dummy.supabase.co SUPABASE_PUBLISHABLE_KEY=dummy-key cargo test --all-features
-
-# Run tests with coverage
-test-coverage: install-cargo-llvm-cov
-    @echo "🧪 Running tests with coverage..."
-    SUPABASE_URL=https://dummy.supabase.co SUPABASE_PUBLISHABLE_KEY=dummy-key cargo llvm-cov --lcov --output-path lcov.info --all-features
-
-# Build tests without running
-test-build:
-    @echo "🔨 Building tests..."
-    cargo test --no-run --all-features
-
-# ============================================================================
-# LINTING - RUN ALL CHECKS
-# ============================================================================
-
-# Run all linting checks
-lint: fmt-check clippy sort-check typos
-
-# Run all checks (lint + security + tests)
-check-all: lint audit unused test
-
-# Fix all auto-fixable issues
-fix: fmt sort typos-fix
-
-# ============================================================================
-# DOCUMENTATION
-# ============================================================================
-
-# Generate documentation
-doc:
-    @echo "📚 Generating documentation..."
-    cargo doc --no-deps --all-features
-
-# Generate and open documentation
-doc-open:
-    @echo "📚 Generating and opening documentation..."
-    cargo doc --no-deps --all-features --open
-
-# ============================================================================
-# DEPLOYMENT
-# ============================================================================
 
 # Optimize WASM files with wasm-opt
 _optimize-wasm: install-wasm-opt
@@ -416,33 +308,122 @@ serve-dist:
     fi
 
 # ============================================================================
-# DATABASE (SUPABASE) - Requires Supabase CLI
+# CODE QUALITY
 # ============================================================================
 
-# Check if Supabase CLI is installed
-# Install Supabase CLI (idempotent - skips if already installed)
-install-supabase-cli:
-    @if command -v supabase >/dev/null 2>&1; then \
-        echo "✅ Supabase CLI already installed: $$(supabase --version)"; \
-    elif command -v brew >/dev/null 2>&1; then \
-        echo "📦 Installing Supabase CLI via Homebrew..."; \
-        brew install supabase/tap/supabase; \
-        echo "✅ Supabase CLI installed successfully!"; \
-    elif command -v npm >/dev/null 2>&1; then \
-        echo "📦 Installing Supabase CLI via npm..."; \
-        npm install -g supabase; \
-        echo "✅ Supabase CLI installed successfully!"; \
+# Check code without building
+check:
+    @echo "🔍 Checking code..."
+    cargo check --all-targets --all-features
+
+# Format code
+fmt:
+    @echo "🎨 Formatting code..."
+    cargo fmt
+
+# Check if code is formatted
+fmt-check:
+    @echo "🔍 Checking code format..."
+    cargo fmt -- --check
+
+# Run clippy linter
+clippy:
+    @echo "📎 Running clippy..."
+    cargo clippy --all-targets --all-features -- -D warnings
+
+# Check for typos in code and docs
+typos: install-typos
+    @echo "🔤 Checking for typos..."
+    @typos
+
+# Fix typos automatically
+typos-fix: install-typos
+    @echo "🔤 Fixing typos..."
+    @typos --write-changes
+
+# Sort Cargo.toml dependencies
+sort:
+    @echo "📋 Sorting dependencies..."
+    @if command -v cargo-sort >/dev/null 2>&1; then \
+        cargo sort; \
     else \
-        echo "❌ No package manager found (brew or npm)"; \
-        echo ""; \
-        echo "Please install Supabase CLI manually:"; \
-        echo "  macOS:   brew install supabase/tap/supabase"; \
-        echo "  npm:     npm install -g supabase"; \
-        echo "  Windows: scoop install supabase"; \
-        echo ""; \
-        echo "See: https://supabase.com/docs/guides/cli/getting-started"; \
-        exit 1; \
+        echo "⚠️  cargo-sort not installed. Run 'just install-tools' to install it."; \
     fi
+
+# Check if dependencies are sorted
+sort-check:
+    @echo "🔍 Checking dependency order..."
+    @if command -v cargo-sort >/dev/null 2>&1; then \
+        cargo sort --check; \
+    else \
+        echo "⚠️  cargo-sort not installed. Run 'just install-tools' to install it."; \
+    fi
+
+# Run all linting checks
+lint: fmt-check clippy sort-check typos
+
+# Fix all auto-fixable issues
+fix: fmt sort typos-fix
+
+# ============================================================================
+# TESTING
+# ============================================================================
+
+# Run all tests
+test:
+    @echo "🧪 Running tests..."
+    SUPABASE_URL=https://dummy.supabase.co SUPABASE_PUBLISHABLE_KEY=dummy-key cargo test --all-features
+
+# Run tests with coverage
+test-coverage: install-cargo-llvm-cov
+    @echo "🧪 Running tests with coverage..."
+    SUPABASE_URL=https://dummy.supabase.co SUPABASE_PUBLISHABLE_KEY=dummy-key cargo llvm-cov --lcov --output-path lcov.info --all-features
+
+# Build tests without running
+test-build:
+    @echo "🔨 Building tests..."
+    cargo test --no-run --all-features
+
+# ============================================================================
+# SECURITY & AUDITING
+# ============================================================================
+
+# Check for security vulnerabilities
+audit:
+    @echo "🔒 Checking for vulnerabilities..."
+    @if command -v cargo-audit >/dev/null 2>&1; then \
+        cargo audit; \
+    else \
+        echo "⚠️  cargo-audit not installed. Run 'just install-tools' to install it."; \
+    fi
+
+# Check for unused dependencies
+unused:
+    @echo "🔍 Checking for unused dependencies..."
+    @if command -v cargo-machete >/dev/null 2>&1; then \
+        cargo machete; \
+    else \
+        echo "⚠️  cargo-machete not installed. Run 'just install-tools' to install it."; \
+    fi
+
+# Check licenses of dependencies
+licenses:
+    @echo "📜 Checking licenses..."
+    @if command -v cargo-deny >/dev/null 2>&1; then \
+        cargo deny check licenses; \
+    else \
+        echo "⚠️  cargo-deny not installed. Run 'just install-tools' to install it."; \
+    fi
+
+# Run all dependency checks (audit + unused + licenses)
+check-deps: audit unused licenses
+
+# Run all checks (lint + security + tests)
+check-all: lint audit unused test
+
+# ============================================================================
+# DATABASE (SUPABASE)
+# ============================================================================
 
 # Login to Supabase CLI (run once)
 db-login: install-supabase-cli
@@ -570,7 +551,87 @@ db-show-keys:
     @echo "4. Rebuild the project: just build"
 
 # ============================================================================
-# PROJECT INFO
+# DOCUMENTATION
+# ============================================================================
+
+# Generate documentation
+doc:
+    @echo "📚 Generating documentation..."
+    cargo doc --no-deps --all-features
+
+# Generate and open documentation
+doc-open:
+    @echo "📚 Generating and opening documentation..."
+    cargo doc --no-deps --all-features --open
+
+# ============================================================================
+# CI & GIT HOOKS
+# ============================================================================
+
+# Simulate CI pipeline locally
+ci: check-all build-release
+    @echo "✅ CI pipeline complete!"
+
+# Pre-commit checks (fast)
+pre-commit: fmt-check clippy test
+
+# Pre-push checks (comprehensive)
+pre-push: check-all
+
+# ============================================================================
+# MAINTENANCE
+# ============================================================================
+
+# Update all dependencies
+update:
+    cargo update
+    npm update
+
+# Update Rust toolchain
+update-rust:
+    rustup update
+
+# Update all cargo-installed tools
+update-tools: install-binstall
+    @echo "🔧 Updating development tools..."
+    @command -v cargo-audit >/dev/null 2>&1 && cargo binstall -y cargo-audit || true
+    @command -v cargo-machete >/dev/null 2>&1 && cargo binstall -y cargo-machete || true
+    @command -v cargo-deny >/dev/null 2>&1 && cargo binstall -y cargo-deny || true
+    @command -v cargo-sort >/dev/null 2>&1 && cargo binstall -y cargo-sort || true
+    @command -v typos >/dev/null 2>&1 && cargo binstall -y typos-cli || true
+    @command -v cargo-llvm-cov >/dev/null 2>&1 && cargo binstall -y cargo-llvm-cov || true
+    @echo "✅ Tools updated!"
+
+# Clean build artifacts
+clean:
+    @echo "🧹 Cleaning build artifacts..."
+    cargo clean
+    trunk clean
+    rm -rf dist/
+    rm -rf style/output.css
+    @echo "✅ Cleaned!"
+
+# Clean everything including caches and tools
+clean-all: clean
+    @echo "🧹 Deep cleaning..."
+    cargo clean
+    rm -rf node_modules/
+    rm -rf {{tools_dir}}/
+    @echo "✅ Deep cleaned!"
+
+# Clean and rebuild
+rebuild: clean build
+
+# Check for outdated dependencies
+outdated:
+    @if command -v cargo-outdated >/dev/null 2>&1; then \
+        cargo outdated; \
+    else \
+        echo "❌ cargo-outdated not installed. Install with: cargo binstall cargo-outdated"; \
+    fi
+
+# ============================================================================
+# PROJECT INFO & HELP
 # ============================================================================
 
 # Check which tools are installed
@@ -585,6 +646,7 @@ check-installed:
     @printf "Trunk:         "; if [ -f {{tools_dir}}/bin/trunk ]; then {{tools_dir}}/bin/trunk --version; else echo "❌ NOT INSTALLED - run 'just install-trunk'"; fi
     @printf "Supabase CLI:  "; supabase --version 2>/dev/null || echo "❌ NOT INSTALLED - run 'just install-supabase-cli'"
     @printf "Just:          "; just --version 2>/dev/null || echo "✅ (you're using it)"
+    @printf "Binstall:      "; cargo-binstall --version 2>/dev/null || echo "❌ NOT INSTALLED - run 'just install-binstall'"
     @echo ""
     @echo "Development tools (optional):"
     @printf "cargo-audit:   "; cargo audit --version 2>/dev/null || echo "❌ run 'just install-tools'"
@@ -603,9 +665,6 @@ info:
     @echo "Supabase CLI:    $(supabase --version 2>/dev/null || echo 'not installed')"
     @echo "Build profile:   {{profile}}"
     @echo "Target:          {{target}}"
-    @echo ""
-    @echo "Project status:  Phase 3 Complete (RSVP System)"
-    @echo "Next milestone:  Phase 4 (Admin Dashboard)"
 
 # Show project statistics
 stats:
@@ -617,24 +676,7 @@ stats:
     @echo "Pages:           $(find src/pages -name '*.rs' 2>/dev/null | wc -l)"
     @echo "Components:      $(find src/components -name '*.rs' 2>/dev/null | wc -l)"
 
-# ============================================================================
-# UTILITIES
-# ============================================================================
-
-# Open project in browser
-open:
-    @echo "🌐 Opening http://127.0.0.1:3000 in browser..."
-    @open http://127.0.0.1:3000 2>/dev/null || xdg-open http://127.0.0.1:3000 2>/dev/null || echo "Please open http://127.0.0.1:3000 manually"
-
-# Watch for file changes and rebuild
-watch:
-    @if command -v cargo-watch >/dev/null 2>&1; then \
-        cargo watch -x check -x test; \
-    else \
-        echo "❌ cargo-watch not installed. Install with: cargo install cargo-watch"; \
-    fi
-
-# Count lines of code
+# Count lines of code by type
 loc:
     @echo "📏 Lines of code by type:"
     @echo "Rust:       $(find src -name '*.rs' 2>/dev/null -exec cat {} \; | wc -l)"
@@ -649,85 +691,31 @@ disk-usage:
     @du -sh dist/ 2>/dev/null || echo "No dist directory"
     @du -sh node_modules/ 2>/dev/null || echo "No node_modules directory"
 
-# ============================================================================
-# CI/CD SIMULATION
-# ============================================================================
-
-# Simulate CI pipeline locally
-ci: check-all build-release
-    @echo "✅ CI pipeline complete!"
-
-# Pre-commit checks (fast)
-pre-commit: fmt-check clippy test
-
-# Pre-push checks (comprehensive)
-pre-push: check-all
-
-# ============================================================================
-# MAINTENANCE
-# ============================================================================
-
-# Update Rust toolchain
-update-rust:
-    rustup update
-
-# Update all tools
-update-tools:
-    @if command -v cargo-install-update >/dev/null 2>&1; then \
-        cargo install-update -a; \
-    else \
-        echo "❌ cargo-update not installed. Install with: cargo install cargo-update"; \
-    fi
-
-# Clean everything including caches
-clean-all: clean
-    @echo "🧹 Deep cleaning..."
-    cargo clean
-    rm -rf node_modules/
-    rm -rf {{tools_dir}}/
-    @echo "✅ Deep cleaned!"
-
-# Check for outdated dependencies
-outdated:
-    @if command -v cargo-outdated >/dev/null 2>&1; then \
-        cargo outdated; \
-    else \
-        echo "❌ cargo-outdated not installed. Install with: cargo install cargo-outdated"; \
-    fi
-
-# ============================================================================
-# HELP & DOCUMENTATION
-# ============================================================================
-
 # Show quick start guide
 quickstart:
     @echo "🚀 Quick Start Guide"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    @echo ""
     @echo "Frontend Setup:"
     @echo "  1. just check-installed     - Check what's installed"
     @echo "  2. just setup               - Install all dependencies"
     @echo "  3. just dev                 - Start development server"
     @echo ""
-    @echo "Database Setup (Phase 3 - RSVP System):"
+    @echo "Database Setup:"
     @echo "  4. just install-supabase-cli - Install Supabase CLI"
     @echo "  5. just db-login             - Login to Supabase (one time)"
-    @echo "  6. just db-init              - Set up schema + test data"
-    @echo "  7. Visit /rsvp and test with code: TEST123"
+    @echo "  6. just db-configure         - Set up .env automatically"
+    @echo "  7. just db-migrate           - Push schema migrations"
     @echo ""
     @echo "That's it! You're ready to go! 🎉"
     @echo ""
-    @echo "Database commands:"
-    @echo "  just db-setup   - Run schema migration only"
-    @echo "  just db-seed    - Add test data only"
-    @echo "  just db-check   - Test database connection"
-    @echo "  just db-info    - Show database information"
-    @echo ""
-    @echo "See README.md and docs/PHASE3_SETUP.md for full documentation"
+    @echo "See README.md for full documentation"
 
 # Show common commands
 help:
     @echo "🎯 Common Commands"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    @echo ""
     @echo "Setup:"
     @echo "  just check-installed  - Check installed tools"
     @echo "  just setup            - Install everything (run once)"
@@ -737,25 +725,26 @@ help:
     @echo ""
     @echo "Development:"
     @echo "  just dev              - Start dev server (handles deps)"
+    @echo "  just serve            - Start dev server (no browser open)"
     @echo "  just build            - Build project"
     @echo "  just test             - Run tests"
     @echo ""
-    @echo "Database (Phase 3 - Requires Supabase CLI):"
+    @echo "Database:"
     @echo "  just db-login         - Login to Supabase (one time)"
-    @echo "  just db-init          - Set up database (schema + test data)"
-    @echo "  just db-setup         - Run schema migration only"
-    @echo "  just db-seed          - Add test data only"
-    @echo "  just db-check         - Test database connection"
-    @echo "  just db-info          - Show schema information"
-    @echo "  just db-dashboard     - Open Supabase dashboard"
+    @echo "  just db-link          - Link to Supabase project"
+    @echo "  just db-configure     - Set up .env from Supabase CLI"
+    @echo "  just db-migrate       - Push schema migrations"
+    @echo "  just db-create-admin  - Create admin user"
+    @echo "  just db-show-keys     - Show API key instructions"
     @echo ""
     @echo "Code Quality:"
     @echo "  just lint             - Run all linters"
     @echo "  just fix              - Auto-fix issues"
+    @echo "  just check-all        - Run all checks + tests"
     @echo "  just audit            - Check security"
     @echo ""
     @echo "Deployment:"
     @echo "  just build-release    - Production build"
-    @echo "  just deploy-build     - Build for GitHub Pages"
+    @echo "  just serve-dist       - Serve production build locally"
     @echo ""
     @echo "Run 'just --list' for all commands"

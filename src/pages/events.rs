@@ -1,14 +1,12 @@
-use crate::contexts::GuestContext;
-use crate::i18n::Translations;
-use crate::types::Language;
+use crate::contexts::use_guest_context;
+use crate::i18n::{use_translations, Translations};
+use crate::types::Location;
 use leptos::*;
 
 #[component]
 pub fn EventsPage() -> impl IntoView {
-    let language = use_context::<ReadSignal<Language>>().expect("Language context not found");
-    let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
-
-    let translations = move || Translations::new(language.get());
+    let guest_context = use_guest_context();
+    let translations = use_translations();
 
     view! {
         <div class="max-w-4xl mx-auto">
@@ -39,18 +37,20 @@ pub fn EventsPage() -> impl IntoView {
             <div class="space-y-12">
                 {move || {
                     // Define all locations with their dates for sorting
-                    let mut locations = vec![
-                        ("sardinia", "events.sardinia", "/public/sardinia-flag.png", translations().t("events.sort_date_sardinia")),
-                        ("tunisia", "events.tunisia", "/public/tunisia-flag.png", translations().t("events.sort_date_tunisia")),
-                        ("nice", "events.nice", "/public/nice-flag.png", translations().t("events.sort_date_nice")),
+                    let mut locations: Vec<(Location, &str, String)> = vec![
+                        (Location::Sardinia, "events.sardinia", translations().t("events.sort_date_sardinia")),
+                        (Location::Tunisia, "events.tunisia", translations().t("events.sort_date_tunisia")),
+                        (Location::Nice, "events.nice", translations().t("events.sort_date_nice")),
                     ];
 
                     // Filter to only visible locations and sort by date
-                    locations.retain(|(loc, _, _, _)| guest_context.can_see_location(loc));
-                    locations.sort_by(|a, b| a.3.cmp(&b.3));
+                    locations.retain(|(loc, _, _)| guest_context.can_see_location(loc.as_str()));
+                    locations.sort_by(|a, b| a.2.cmp(&b.2));
 
                     // Render sorted locations
-                    locations.into_iter().map(|(location, title_key, flag, _)| {
+                    locations.into_iter().map(|(loc, title_key, _)| {
+                        let flag = loc.flag_image();
+                        let location = loc.as_str();
                         view! {
                             <LocationSection
                                 location=location

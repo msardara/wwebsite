@@ -1,6 +1,7 @@
+use crate::components::common::StatCard;
 use crate::contexts::AdminContext;
 use crate::styles::*;
-use crate::types::{Guest, GuestGroup};
+use crate::types::{Guest, GuestGroup, Location};
 use leptos::*;
 
 #[component]
@@ -140,60 +141,60 @@ pub fn RsvpManagement() -> impl IntoView {
                 </div>
             })}
 
-            {/* Summary Cards */}
+            {/* Summary Cards — using the shared StatCard component */}
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                <SummaryCard
+                <StatCard
                     icon="👥"
-                    label="Total Guests"
-                    value=move || totals().0
+                    title="Total Guests"
+                    value=Signal::derive(move || totals().0)
                     color="blue"
                 />
-                <SummaryCard
+                <StatCard
                     icon="🇮🇹"
-                    label="Sardinia"
-                    value=move || totals().1
+                    title="Sardinia"
+                    value=Signal::derive(move || totals().1)
                     color="blue"
                 />
-                <SummaryCard
+                <StatCard
                     icon="🇹🇳"
-                    label="Tunisia"
-                    value=move || totals().2
+                    title="Tunisia"
+                    value=Signal::derive(move || totals().2)
                     color="blue"
                 />
-                <SummaryCard
+                <StatCard
                     icon="🇫🇷"
-                    label="Nice"
-                    value=move || totals().3
+                    title="Nice"
+                    value=Signal::derive(move || totals().3)
                     color="blue"
                 />
-                <SummaryCard
+                <StatCard
                     icon="🥗"
-                    label="Vegetarian"
-                    value=move || totals().3
+                    title="Vegetarian"
+                    value=Signal::derive(move || totals().4)
                     color="yellow"
                 />
-                <SummaryCard
+                <StatCard
                     icon="🌱"
-                    label="Vegan"
-                    value=move || totals().4
+                    title="Vegan"
+                    value=Signal::derive(move || totals().5)
                     color="purple"
                 />
-                <SummaryCard
+                <StatCard
                     icon="☪️"
-                    label="Halal"
-                    value=move || totals().5
+                    title="Halal"
+                    value=Signal::derive(move || totals().6)
                     color="indigo"
                 />
-                <SummaryCard
+                <StatCard
                     icon="🚫🐷"
-                    label="No Pork"
-                    value=move || totals().6
+                    title="No Pork"
+                    value=Signal::derive(move || totals().7)
                     color="pink"
                 />
-                <SummaryCard
+                <StatCard
                     icon="🌾"
-                    label="Gluten-Free"
-                    value=move || totals().7
+                    title="Gluten-Free"
+                    value=Signal::derive(move || totals().8)
                     color="amber"
                 />
             </div>
@@ -208,131 +209,29 @@ pub fn RsvpManagement() -> impl IntoView {
                 } else {
                     view! {
                         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-8">
-                            {/* Sardinia Guests */}
-                            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                                <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
-                                    <h3 class="text-lg font-semibold text-blue-900 flex items-center gap-2">
-                                        "🇮🇹 Sardinia Guests"
-                                        <span class="text-sm font-normal text-blue-700">
-                                            "(" {move || sardinia_guests.get().len()} " guests)"
-                                        </span>
-                                    </h3>
-                                </div>
-                                <div class="p-6">
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full divide-y divide-gray-200">
-                                            <thead class="bg-gray-50">
-                                                <tr>
-                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                        "Name"
-                                                    </th>
-                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                        "Dietary"
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="bg-white divide-y divide-gray-200">
-                                                {move || sardinia_guests.get().into_iter().map(|guest| {
-                                                    let dietary = format_dietary(&guest);
-
-                                                    view! {
-                                                        <tr class="hover:bg-gray-50">
-                                                            <td class="px-4 py-2 text-sm text-gray-900">
-                                                                {guest.name}
-                                                            </td>
-                                                            <td class="px-4 py-2 text-sm text-gray-600">
-                                                                {dietary}
-                                                            </td>
-                                                        </tr>
-                                                    }
-                                                }).collect::<Vec<_>>()}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Tunisia Guests */}
-                            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                                <div class="bg-green-50 px-6 py-4 border-b border-green-200">
-                                    <h3 class="text-lg font-semibold text-green-900 flex items-center gap-2">
-                                        "🇹🇳 Tunisia Guests"
-                                        <span class="text-sm font-normal text-green-700">
-                                            "(" {move || tunisia_guests.get().len()} " guests)"
-                                        </span>
-                                    </h3>
-                                </div>
-                                <div class="p-6">
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full divide-y divide-gray-200">
-                                            <thead class="bg-gray-50">
-                                                <tr>
-                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                        "Name"
-                                                    </th>
-                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                        "Dietary"
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="bg-white divide-y divide-gray-200">
-                                                {move || tunisia_guests.get().into_iter().map(|guest| {
-                                                    let dietary = format_dietary(&guest);
-
-                                                    view! {
-                                                        <tr class="hover:bg-gray-50">
-                                                            <td class="px-4 py-2 text-sm text-gray-900">
-                                                                {guest.name}
-                                                            </td>
-                                                            <td class="px-4 py-2 text-sm text-gray-600">
-                                                                {dietary}
-                                                            </td>
-                                                        </tr>
-                                                    }
-                                                }).collect::<Vec<_>>()}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Nice Guests */}
-                            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                                <div class="bg-purple-50 px-6 py-4 border-b border-purple-200">
-                                    <h3 class="text-lg font-semibold text-purple-900 flex items-center gap-2">
-                                        "🇫🇷 Nice Guests"
-                                        <span class="text-sm font-normal text-purple-700">
-                                            "(" {move || nice_guests.get().len()} " guests)"
-                                        </span>
-                                    </h3>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">"Name"</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">"Dietary"</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            {move || nice_guests.get().into_iter().map(|guest| {
-                                                let dietary = format_dietary(&guest);
-
-                                                view! {
-                                                    <tr class="hover:bg-gray-50">
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                            {guest.name}
-                                                        </td>
-                                                        <td class="px-6 py-4 text-sm text-gray-500">
-                                                            {dietary}
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            }).collect::<Vec<_>>()}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            {
+                                let locations_and_signals: Vec<(Location, ReadSignal<Vec<Guest>>)> = vec![
+                                    (Location::Sardinia, sardinia_guests),
+                                    (Location::Tunisia, tunisia_guests),
+                                    (Location::Nice, nice_guests),
+                                ];
+                                locations_and_signals.into_iter().map(|(loc, sig)| {
+                                    let (hdr_bg, hdr_border, title_txt, count_txt) = loc.table_header_colors();
+                                    let title = Box::leak(format!("{} Guests", loc.display_name()).into_boxed_str()) as &'static str;
+                                    let flag = loc.flag_emoji();
+                                    view! {
+                                        <LocationGuestTable
+                                            title=title
+                                            flag=flag
+                                            header_bg=hdr_bg
+                                            header_border=hdr_border
+                                            title_text=title_txt
+                                            count_text=count_txt
+                                            guests=sig
+                                        />
+                                    }
+                                }).collect_view()
+                            }
                         </div>
                     }.into_view()
                 }
@@ -341,75 +240,62 @@ pub fn RsvpManagement() -> impl IntoView {
     }
 }
 
+/// A reusable guest-list table for a single location.
+///
+/// Replaces the three nearly-identical Sardinia / Tunisia / Nice blocks that
+/// were previously copy-pasted in this file.
 #[component]
-fn SummaryCard(
-    icon: &'static str,
-    label: &'static str,
-    value: impl Fn() -> i32 + 'static,
-    color: &'static str,
+fn LocationGuestTable(
+    title: &'static str,
+    flag: &'static str,
+    header_bg: &'static str,
+    header_border: &'static str,
+    title_text: &'static str,
+    count_text: &'static str,
+    guests: ReadSignal<Vec<Guest>>,
 ) -> impl IntoView {
-    let bg_color = match color {
-        "green" => "bg-green-50",
-        "blue" => "bg-blue-50",
-        "yellow" => "bg-yellow-50",
-        "purple" => "bg-purple-50",
-        "indigo" => "bg-indigo-50",
-        "pink" => "bg-pink-50",
-        "amber" => "bg-amber-50",
-        "orange" => "bg-orange-50",
-        _ => "bg-gray-50",
-    };
-
-    let text_color = match color {
-        "green" => "text-green-600",
-        "blue" => "text-blue-600",
-        "yellow" => "text-yellow-600",
-        "purple" => "text-purple-600",
-        "indigo" => "text-indigo-600",
-        "pink" => "text-pink-600",
-        "amber" => "text-amber-600",
-        "orange" => "text-orange-600",
-        _ => "text-gray-600",
-    };
-
     view! {
-        <div class={format!("rounded-lg shadow-md p-4 {}", bg_color)}>
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-600 mb-1">{label}</p>
-                    <p class={format!("text-2xl font-bold {}", text_color)}>{move || value()}</p>
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class={format!("{} px-6 py-4 border-b {}", header_bg, header_border)}>
+                <h3 class={format!("text-lg font-semibold {} flex items-center gap-2", title_text)}>
+                    {flag} " " {title}
+                    <span class={format!("text-sm font-normal {}", count_text)}>
+                        "(" {move || guests.get().len()} " guests)"
+                    </span>
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                    "Name"
+                                </th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                    "Dietary"
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {move || guests.get().into_iter().map(|guest| {
+                                let dietary = guest.dietary_preferences.format_display();
+
+                                view! {
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-2 text-sm text-gray-900">
+                                            {guest.name}
+                                        </td>
+                                        <td class="px-4 py-2 text-sm text-gray-600">
+                                            {dietary}
+                                        </td>
+                                    </tr>
+                                }
+                            }).collect::<Vec<_>>()}
+                        </tbody>
+                    </table>
                 </div>
-                <div class="text-3xl">{icon}</div>
             </div>
         </div>
-    }
-}
-
-fn format_dietary(guest: &Guest) -> String {
-    let mut items = Vec::new();
-
-    if guest.dietary_preferences.vegetarian {
-        items.push("🥗 Vegetarian".to_string());
-    }
-    if guest.dietary_preferences.vegan {
-        items.push("🌱 Vegan".to_string());
-    }
-    if guest.dietary_preferences.halal {
-        items.push("☪️ Halal".to_string());
-    }
-    if guest.dietary_preferences.no_pork {
-        items.push("🚫🐷 No Pork".to_string());
-    }
-    if guest.dietary_preferences.gluten_free {
-        items.push("🌾 Gluten-Free".to_string());
-    }
-    if !guest.dietary_preferences.other.is_empty() {
-        items.push(format!("📝 {}", guest.dietary_preferences.other));
-    }
-
-    if items.is_empty() {
-        "-".to_string()
-    } else {
-        items.join(", ")
     }
 }

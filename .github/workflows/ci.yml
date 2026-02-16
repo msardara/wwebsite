@@ -35,6 +35,11 @@ jobs:
       - name: Check formatting
         run: just fmt-check
 
+      - name: Install typos-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
+
       - name: Check typos
         run: just typos
 

@@ -1,14 +1,14 @@
-use crate::contexts::GuestContext;
+use crate::components::common::LanguageSelector;
+use crate::contexts::{use_guest_context, use_language};
+use crate::i18n::use_translations;
 use crate::types::Language;
 use leptos::*;
 use leptos_router::*;
 
-use crate::i18n::Translations;
-use gloo_storage::{LocalStorage, Storage};
-
 #[component]
 pub fn Layout() -> impl IntoView {
-    let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
+    let guest_context = use_guest_context();
+    let t = use_translations();
 
     // Show loading while checking authentication
     let (auth_checked, set_auth_checked) = create_signal(false);
@@ -23,18 +23,7 @@ pub fn Layout() -> impl IntoView {
         }
     });
 
-    // Get language context from app level
-    let language = use_context::<ReadSignal<Language>>().expect("Language context not found");
-    let set_language =
-        use_context::<WriteSignal<Language>>().expect("Language setter context not found");
-
-    let translations = move || Translations::new(language.get());
-
-    // Language change handler with localStorage persistence
-    let change_language = move |lang: Language| {
-        set_language.set(lang);
-        let _ = LocalStorage::set("language", lang.code());
-    };
+    let (language, change_language) = use_language();
 
     let (mobile_menu_open, set_mobile_menu_open) = create_signal(false);
 
@@ -45,7 +34,7 @@ pub fn Layout() -> impl IntoView {
                 <div class="min-h-screen flex items-center justify-center">
                     <div class="text-center">
                         <div class="text-4xl mb-4">"💍"</div>
-                        <p class="text-gray-600">{move || translations().t("common.loading")}</p>
+                        <p class="text-gray-600">{move || t().t("common.loading")}</p>
                     </div>
                 </div>
             }
@@ -54,7 +43,6 @@ pub fn Layout() -> impl IntoView {
                 <Header
                     language=language
                     on_language_change=change_language
-                    translations=translations
                     mobile_menu_open=mobile_menu_open
                     set_mobile_menu_open=set_mobile_menu_open
                 />
@@ -63,7 +51,7 @@ pub fn Layout() -> impl IntoView {
                     <Outlet/>
                 </main>
 
-                <Footer translations=translations/>
+                <Footer/>
             </div>
         </Show>
     }
@@ -73,11 +61,11 @@ pub fn Layout() -> impl IntoView {
 fn Header(
     language: ReadSignal<Language>,
     on_language_change: impl Fn(Language) + 'static + Copy,
-    translations: impl Fn() -> Translations + 'static + Copy,
     mobile_menu_open: ReadSignal<bool>,
     set_mobile_menu_open: WriteSignal<bool>,
 ) -> impl IntoView {
-    let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
+    let guest_context = use_guest_context();
+    let t = use_translations();
     let guest_ctx = guest_context; // Copy for closures
     let location = use_location();
 
@@ -107,13 +95,13 @@ fn Header(
                     // Desktop Navigation
                     <div class="hidden md:flex items-center space-x-1">
                         <A href="/" class=move || nav_link_class("/")>
-                            {move || translations().t("nav.home")}
+                            {move || t().t("nav.home")}
                         </A>
                         <A href="/events" class=move || nav_link_class("/events")>
-                            {move || translations().t("nav.events")}
+                            {move || t().t("nav.events")}
                         </A>
                         <A href="/rsvp" class=move || nav_link_class("/rsvp")>
-                            {move || translations().t("nav.rsvp")}
+                            {move || t().t("nav.rsvp")}
                         </A>
 
                         <div class="mx-6 border-l border-r border-secondary-300/40 px-6">
@@ -131,7 +119,7 @@ fn Header(
                                         navigate("/invitation", Default::default());
                                     }
                                 >
-                                    {move || translations().t("admin.logout")}
+                                    {move || t().t("admin.logout")}
                                 </button>
                             </Show>
                         </div>
@@ -166,21 +154,21 @@ fn Header(
                         class="block px-5 py-3 rounded-lg text-secondary-800 hover:bg-secondary-200/50 font-light tracking-wide transition-all"
                         on:click=move |_| set_mobile_menu_open.set(false)
                     >
-                        {move || translations().t("nav.home")}
+                        {move || t().t("nav.home")}
                     </A>
                     <A
                         href="/events"
                         class="block px-5 py-3 rounded-lg text-secondary-800 hover:bg-secondary-200/50 font-light tracking-wide transition-all"
                         on:click=move |_| set_mobile_menu_open.set(false)
                     >
-                        {move || translations().t("nav.events")}
+                        {move || t().t("nav.events")}
                     </A>
                     <A
                         href="/rsvp"
                         class="block px-5 py-3 rounded-lg text-secondary-800 hover:bg-secondary-200/50 font-light tracking-wide transition-all"
                         on:click=move |_| set_mobile_menu_open.set(false)
                     >
-                        {move || translations().t("nav.rsvp")}
+                        {move || t().t("nav.rsvp")}
                     </A>
 
                     <div class="pt-3 mt-3 border-t border-secondary-300/40">
@@ -193,68 +181,15 @@ fn Header(
 }
 
 #[component]
-fn LanguageSelector(
-    language: ReadSignal<Language>,
-    on_change: impl Fn(Language) + 'static + Copy,
-) -> impl IntoView {
-    view! {
-        <div class="flex items-center gap-2">
-            <button
-                class=move || {
-                    let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
-                    if language.get() == Language::English {
-                        format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
-                    } else {
-                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60", base)
-                    }
-                }
-                on:click=move |_| on_change(Language::English)
-                title="English"
-            >
-                "🇬🇧"
-            </button>
-            <button
-                class=move || {
-                    let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
-                    if language.get() == Language::French {
-                        format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
-                    } else {
-                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60", base)
-                    }
-                }
-                on:click=move |_| on_change(Language::French)
-                title="Français"
-            >
-                "🇫🇷"
-            </button>
-            <button
-                class=move || {
-                    let base = "px-3 py-2 rounded-full text-sm transition-all duration-300 ";
-                    if language.get() == Language::Italian {
-                        format!("{}bg-secondary-700 text-primary-50 shadow-md", base)
-                    } else {
-                        format!("{}bg-secondary-200/50 hover:bg-secondary-300/60", base)
-                    }
-                }
-                on:click=move |_| on_change(Language::Italian)
-                title="Italiano"
-            >
-                "🇮🇹"
-            </button>
-        </div>
-    }
-}
+fn Footer() -> impl IntoView {
+    let t = use_translations();
 
-#[component]
-fn Footer(
-    #[allow(unused_variables)] translations: impl Fn() -> Translations + 'static + Copy,
-) -> impl IntoView {
     view! {
         <footer class="bg-primary-50 border-t border-secondary-200/40">
             <div class="container mx-auto max-w-6xl px-6 py-10">
                 <div class="text-center text-secondary-700">
                     <p class="text-xs md:text-sm font-light tracking-wide">
-                        {move || translations().t("footer.copyright")}
+                        {move || t().t("footer.copyright")}
                     </p>
                 </div>
             </div>

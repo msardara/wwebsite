@@ -3,6 +3,38 @@ use crate::types::{GuestGroup, Language};
 use gloo_storage::{LocalStorage, Storage};
 use leptos::*;
 
+/// Hook to get the GuestContext from Leptos context.
+///
+/// Replaces the boilerplate repeated in every component:
+/// ```ignore
+/// let guest_context = use_context::<GuestContext>().expect("GuestContext not found");
+/// ```
+pub fn use_guest_context() -> GuestContext {
+    use_context::<GuestContext>()
+        .expect("GuestContext not found. Make sure it's provided at the app level.")
+}
+
+/// Hook to get the language signal and a change handler that persists to localStorage.
+///
+/// Replaces the boilerplate repeated in layout.rs, invitation.rs, etc.:
+/// ```ignore
+/// let language = use_context::<ReadSignal<Language>>().expect("...");
+/// let set_language = use_context::<WriteSignal<Language>>().expect("...");
+/// let change_language = move |lang: Language| { set_language.set(lang); LocalStorage::set(...); };
+/// ```
+///
+/// Returns `(language_signal, change_language_fn)`.
+pub fn use_language() -> (ReadSignal<Language>, impl Fn(Language) + Copy) {
+    let language = use_context::<ReadSignal<Language>>().expect("Language context not found");
+    let set_language =
+        use_context::<WriteSignal<Language>>().expect("Language setter context not found");
+    let change = move |lang: Language| {
+        set_language.set(lang);
+        let _ = LocalStorage::set(LANGUAGE_KEY, lang.code());
+    };
+    (language, change)
+}
+
 /// Context for managing the authenticated guest
 #[derive(Clone, Copy, Debug)]
 pub struct GuestContext {

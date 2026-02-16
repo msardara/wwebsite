@@ -1,12 +1,9 @@
-use crate::i18n::Translations;
-use crate::types::Language;
+use crate::i18n::use_translations;
 use leptos::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView {
-    let language = use_context::<ReadSignal<Language>>().expect("Language context not found");
-
-    let translations = move || Translations::new(language.get());
+    let translations = use_translations();
 
     view! {
         <div class="w-full -mt-8">
