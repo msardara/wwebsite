@@ -80,7 +80,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     );
     map.insert(
         "events.travel_sardinia",
-        "• Cagliari Airport (CA) is the closest<br/>• We recommend renting a car",
+        "• <a href='https://maps.app.goo.gl/uvofAX2NkqLeoi2D7' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cagliari Airport</a> (CA) is the closest<br/>• We recommend renting a car",
     );
     map.insert("events.date_tunisia", "June 27, 2026");
     map.insert("events.sort_date_tunisia", "2026-06-27");
@@ -93,7 +93,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     map.insert("events.accommodation_tunisia", "• Hotels in Monastir<br/>• Hotels can also be booked in the <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>tourist area of Monastir</a>");
     map.insert(
         "events.travel_tunisia",
-        "• Closest airport: Monastir<br/>• We recommend avoiding Tunisair airlines<br/>• Tap water is not drinkable in Tunisia",
+        "• Closest airport: <a href='https://maps.app.goo.gl/YyvPgoUmRDPqmzgy8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Monastir</a><br/>• We recommend avoiding Tunisair airlines<br/>• Tap water is not drinkable in Tunisia",
     );
     map.insert("events.date_nice", "April 8, 2026");
     map.insert("events.sort_date_nice", "2026-04-08");

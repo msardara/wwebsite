@@ -79,9 +79,9 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     );
     map.insert(
         "events.accommodation_sardinia",
-        "• Hôtels recommandés à <a href='https://www.google.com/maps/place/Oristano,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://www.google.com/maps/place/Cabras,+OR,+Italy' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
+        "• Hôtels recommandés à <a href='https://maps.app.goo.gl/N4KVpYEZF7G4jWbC6' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Oristano</a> / <a href='https://maps.app.goo.gl/x72Q9zfYCDEZWMem9' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cabras</a>",
     );
-    map.insert("events.travel_sardinia", "• L'aéroport de Cagliari (CA) est le plus proche<br/>• Nous recommandons de louer une voiture");
+    map.insert("events.travel_sardinia", "• L'aéroport de <a href='https://maps.app.goo.gl/uvofAX2NkqLeoi2D7' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Cagliari</a> (CA) est le plus proche<br/>• Nous recommandons de louer une voiture");
     map.insert("events.date_tunisia", "27 Juin 2026");
     map.insert("events.sort_date_tunisia", "2026-06-27");
     map.insert("events.schedule_tunisia", "Début à 21h00");
@@ -93,7 +93,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     map.insert("events.accommodation_tunisia", "• Hôtels à Monastir<br/>• Les hôtels peuvent également être réservés dans la <a href='https://www.google.com/maps/d/edit?mid=1saWGZmjkgOkyQZxfyFeMldJy3JWWvg8&usp=sharing' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>zone touristique de Monastir</a>");
     map.insert(
         "events.travel_tunisia",
-        "• Aéroport le plus proche : Monastir<br/>• Nous recommandons d'éviter la compagnie aérienne Tunisair<br/>• L'eau du robinet n'est pas potable en Tunisie",
+        "• Aéroport le plus proche : <a href='https://maps.app.goo.gl/YyvPgoUmRDPqmzgy8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Monastir</a><br/>• Nous recommandons d'éviter la compagnie aérienne Tunisair<br/>• L'eau du robinet n'est pas potable en Tunisie",
     );
     map.insert("events.date_nice", "8 Avril 2026");
     map.insert("events.sort_date_nice", "2026-04-08");
@@ -170,7 +170,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
     map.insert("rsvp.success_thank_you", "Merci pour votre réponse !");
     map.insert(
         "rsvp.success_refresh",
-        "La page se rechargera dans 5 secondes.",
+        "Actualisation de la page dans 5 secondes.",
     );
     map.insert(
         "rsvp.error",
