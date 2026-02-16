@@ -69,9 +69,6 @@ fn RsvpManager(
         .collect();
     let (available_locations, _) = create_signal(available_locations_vec);
 
-    // Store invitation code for use in closures
-    let invitation_code = store_value(guest.invitation_code.clone());
-
     // Track which guests are attending which locations
     // Map of guest_id -> Set of location strings
     let (guest_location_map, set_guest_location_map) =
@@ -316,96 +313,26 @@ fn RsvpManager(
         let client = use_supabase_rpc();
         let group_id = guest_id_for_closures.get_value();
         let inv_code = guest.invitation_code.clone();
-        let original_party_size = guest.party_size;
 
         spawn_local(async move {
-            // Save all guests first (both temporary and existing)
-            let mut id_mapping: HashMap<String, String> = HashMap::new();
-
-            for guest in all_guests.iter() {
-                // Get attending locations from the map
-                let attending_locs: Vec<String> = current_location_map
-                    .get(&guest.id)
-                    .map(|locs| locs.iter().cloned().collect())
-                    .unwrap_or_default();
-
-                // Debug log to verify locations are being saved
-                web_sys::console::log_1(
-                    &format!(
-                        "Saving guest '{}' with locations: {:?}",
-                        guest.name, attending_locs
-                    )
-                    .into(),
-                );
-
-                if guest.id.starts_with("temp_") {
-                    match client
-                        .create_guest_secure(
-                            &guest.guest_group_id,
-                            &inv_code,
-                            &guest.name,
-                            &attending_locs,
-                            &guest.dietary_preferences,
-                            &guest.age_category,
-                        )
-                        .await
-                    {
-                        Ok(created_guest) => {
-                            id_mapping.insert(guest.id.clone(), created_guest.id.clone());
-                        }
-                        Err(e) => {
-                            set_saving.set(false);
-                            set_error
-                                .set(Some(format!("Error saving guest '{}': {}", guest.name, e)));
-                            scroll_to_top();
-                            return;
-                        }
-                    }
-                } else if let Err(e) = client
-                    .update_guest_secure(
-                        &guest.id,
-                        &guest.guest_group_id,
-                        &inv_code,
-                        &guest.name,
-                        &attending_locs,
-                        &guest.dietary_preferences,
-                        &guest.age_category,
-                    )
-                    .await
-                {
-                    set_saving.set(false);
-                    set_error.set(Some(format!(
-                        "Error updating guest '{}': {}",
-                        guest.name, e
-                    )));
-                    scroll_to_top();
-                    return;
-                }
-            }
-
-            // Update party size if needed
-            let total_guests = all_guests.len() as i32;
-            if total_guests > original_party_size {
-                if let Err(e) = client
-                    .update_guest_group_party_size(&group_id, &inv_code, total_guests)
-                    .await
-                {
-                    set_saving.set(false);
-                    set_error.set(Some(format!("Error updating party size: {}", e)));
-                    scroll_to_top();
-                    return;
-                }
-            }
-
-            // Save notes to guest group
-            if let Err(e) = client
-                .update_guest_group_notes(&group_id, &inv_code, &notes_value)
+            // Bulk save: creates/updates all guests + party_size + notes in one RPC call
+            match client
+                .save_rsvp(
+                    &group_id,
+                    &inv_code,
+                    &all_guests,
+                    &current_location_map,
+                    &notes_value,
+                )
                 .await
             {
-                set_saving.set(false);
-                set_error.set(Some(format!("Error saving notes: {}", e)));
-                scroll_to_top();
-                return;
+                Ok(_saved_guests) => {}
+                Err(e) => {
+                    set_saving.set(false);
+                    set_error.set(Some(format!("Error saving RSVP: {}", e)));
+                    scroll_to_top();
+                    return;
+                }
             }
 
             // Clear localStorage
@@ -469,21 +396,14 @@ fn RsvpManager(
                                 each=move || guests.get()
                                 key=|g| g.id.clone()
                                 children=move |guest: Guest| {
-                                    let on_card_error = Callback::new(move |msg: String| {
-                                        set_error.set(Some(msg));
-                                        window().scroll_to_with_x_and_y(0.0, 0.0);
-                                    });
                                     view! {
                                         <GuestCard
                                             guest=guest.clone()
-                                            guest_group_id=guest.guest_group_id.clone()
-                                            invitation_code=invitation_code.get_value()
                                             available_locations=available_locations.get()
                                             guest_location_map=guest_location_map
                                             on_toggle_location=toggle_guest_location
                                             on_update=update_guest
                                             on_delete=delete_guest
-                                            on_error=on_card_error
                                             translations=translations
                                         />
                                     }
@@ -543,20 +463,15 @@ fn RsvpManager(
 #[component]
 fn GuestCard(
     guest: Guest,
-    guest_group_id: String,
-    invitation_code: String,
     available_locations: Vec<Location>,
     guest_location_map: ReadSignal<HashMap<String, HashSet<String>>>,
     #[prop(into)] on_toggle_location: Callback<(String, String)>,
     #[prop(into)] on_update: Callback<Guest>,
     #[prop(into)] on_delete: Callback<String>,
-    #[prop(into)] on_error: Callback<String>,
     translations: impl Fn() -> Translations + 'static + Copy,
 ) -> impl IntoView {
     let guest_id = guest.id.clone();
     let guest_id_for_locations = store_value(guest.id.clone());
-    let guest_group_id = store_value(guest_group_id);
-    let invitation_code = store_value(invitation_code);
     let (name, set_name) = create_signal(guest.name.clone());
 
     // Auto-focus the name input for new guests
@@ -581,7 +496,6 @@ fn GuestCard(
 
     let save_changes = store_value({
         let guest_id = guest_id.clone();
-        let is_temp = guest_id.starts_with("temp_");
         move || {
             // Get attending locations from the map
             let attending_locs: Vec<String> = guest_location_map
@@ -594,7 +508,7 @@ fn GuestCard(
                 id: guest_id.clone(),
                 guest_group_id: guest.guest_group_id.clone(),
                 name: name.get(),
-                attending_locations: attending_locs.clone(),
+                attending_locations: attending_locs,
                 dietary_preferences: DietaryPreferences {
                     vegetarian: vegetarian.get(),
                     vegan: vegan.get(),
@@ -608,64 +522,16 @@ fn GuestCard(
                 updated_at: None,
             };
 
-            if is_temp {
-                on_update.call(updated_guest);
-            } else {
-                let client = use_supabase_rpc();
-                let guest_id = guest_id.clone();
-                let group_id = guest_group_id.get_value();
-                let inv_code = invitation_code.get_value();
-                let guest_name = name.get();
-                let dietary_prefs = updated_guest.dietary_preferences.clone();
-
-                spawn_local(async move {
-                    match client
-                        .update_guest_secure(
-                            &guest_id,
-                            &group_id,
-                            &inv_code,
-                            &guest_name,
-                            &attending_locs,
-                            &dietary_prefs,
-                            &age_category.get(),
-                        )
-                        .await
-                    {
-                        Ok(updated) => {
-                            on_update.call(updated);
-                        }
-                        Err(e) => {
-                            on_error.call(format!("Error updating guest '{}': {}", guest_name, e));
-                        }
-                    }
-                });
-            }
+            // Only update local state — actual persistence happens on submit via save_rsvp
+            on_update.call(updated_guest);
         }
     });
 
     let delete_guest = {
         let guest_id = guest_id.clone();
-        let is_temp = guest_id.starts_with("temp_");
         move |_| {
-            if is_temp {
-                on_delete.call(guest_id.clone());
-            } else {
-                let client = use_supabase_rpc();
-                let id = guest_id.clone();
-                let group_id = guest_group_id.get_value();
-                let inv_code = invitation_code.get_value();
-
-                spawn_local(async move {
-                    match client.delete_guest_secure(&id, &group_id, &inv_code).await {
-                        Ok(_) => {
-                            on_delete.call(id);
-                        }
-                        Err(e) => {
-                            on_error.call(format!("Error deleting guest: {}", e));
-                        }
-                    }
-                });
-            }
+            // Only update local state — actual deletion happens on submit via save_rsvp
+            on_delete.call(guest_id.clone());
         }
     };
 

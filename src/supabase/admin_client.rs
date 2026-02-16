@@ -410,6 +410,19 @@ impl SupabaseAdminClient {
     // GUEST LIST OPERATIONS (Admin)
     // ========================================================================
 
+    /// Get all guests (admin only)
+    pub async fn get_all_guests(&self) -> SupabaseResult<Vec<Guest>> {
+        let response = self
+            .client
+            .from(TABLE_GUESTS)
+            .select("*")
+            .execute()
+            .await
+            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
+
+        execute_and_parse(response).await
+    }
+
     /// Get all guests attending a specific location (admin only)
     pub async fn get_all_guests_for_location(&self, location: &str) -> SupabaseResult<Vec<Guest>> {
         let response = self
@@ -435,6 +448,7 @@ impl SupabaseAdminClient {
         // Get all guests
         let sardinia_guests_list = self.get_all_guests_for_location("sardinia").await?;
         let tunisia_guests_list = self.get_all_guests_for_location("tunisia").await?;
+        let nice_guests_list = self.get_all_guests_for_location("nice").await?;
 
         // Count actual individual guests in the guests table (total invited guests)
         let mut total_guests = 0i32;
@@ -474,16 +488,10 @@ impl SupabaseAdminClient {
         // Count guests by location
         let sardinia_guests = sardinia_guests_list.len() as i32;
         let tunisia_guests = tunisia_guests_list.len() as i32;
+        let nice_guests = nice_guests_list.len() as i32;
 
-        // Calculate guests invited to both locations
-        let both_locations_guests = guest_groups
-            .iter()
-            .filter(|g| {
-                g.locations.contains(&"sardinia".to_string())
-                    && g.locations.contains(&"tunisia".to_string())
-            })
-            .map(|g| g.party_size)
-            .sum::<i32>();
+        // Total number of guest groups
+        let total_guest_groups = guest_groups.len() as i32;
 
         // Count pending guests (guests with no location selections)
         let pending_guests = total_guests - total_confirmed;
@@ -540,7 +548,8 @@ impl SupabaseAdminClient {
             pending_rsvps: pending_guests,
             sardinia_guests,
             tunisia_guests,
-            both_locations_guests,
+            nice_guests,
+            total_guest_groups,
             vegetarian_count,
             vegan_count,
             halal_count,

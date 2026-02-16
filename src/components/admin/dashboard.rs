@@ -85,9 +85,9 @@ pub fn AdminDashboard() -> impl IntoView {
                                     color="yellow"
                                 />
                                 <StatCard
-                                    icon="📋"
-                                    title="Pending Group Invitations"
-                                    value=s.both_locations_guests
+                                    icon="👥"
+                                    title="Total Guest Groups"
+                                    value=s.total_guest_groups
                                     color="purple"
                                 />
                             </div>
@@ -107,6 +107,11 @@ pub fn AdminDashboard() -> impl IntoView {
                                         icon="🌴"
                                         label="Tunisia"
                                         count=s.tunisia_guests
+                                    />
+                                    <IconStatCard
+                                        icon="🏔️"
+                                        label="Nice"
+                                        count=s.nice_guests
                                     />
                                 </div>
                                 <p class="text-sm text-gray-500 mt-2 italic">

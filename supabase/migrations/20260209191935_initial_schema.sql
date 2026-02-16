@@ -371,38 +371,6 @@ $$;
 -- No REVOKE needed: IMMUTABLE, no data access, safe for anyone.
 
 -- ---------------------------------------------------------------------------
--- 5d. validate_location_for_group
---
--- Validates a single location string against valid_locations() and against
--- a group's invited locations.  Used by the per-location attendance RPCs.
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION validate_location_for_group(
-  p_location TEXT,
-  p_group_locations TEXT[]
-)
-RETURNS VOID
-LANGUAGE plpgsql
-IMMUTABLE
-AS $$
-BEGIN
-  IF p_location IS NULL THEN
-    RAISE EXCEPTION 'Location cannot be null';
-  END IF;
-
-  IF NOT (p_location = ANY(valid_locations())) THEN
-    RAISE EXCEPTION 'Invalid location. Must be one of: %', array_to_string(valid_locations(), ', ');
-  END IF;
-
-  IF NOT (p_location = ANY(p_group_locations)) THEN
-    RAISE EXCEPTION 'Location ''%'' is not available for this group. Group locations: %',
-      p_location, array_to_string(p_group_locations, ', ');
-  END IF;
-END;
-$$;
-
--- No REVOKE needed: IMMUTABLE, no data access, safe for anyone.
-
--- ---------------------------------------------------------------------------
 -- 5e. project_guest_group_public_info  (helper for RETURNING clauses)
 --
 -- Builds a guest_group_public_info record from a guest_groups row.
@@ -487,360 +455,180 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 6c. create_guest_for_group
+-- 6c. save_rsvp
+--
+-- Bulk RSVP save: creates/updates/deletes guests and updates group notes +
+-- party_size in a single transaction. The submitted guest list is the source
+-- of truth: any guest belonging to the group that is absent from p_guests
+-- will be removed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION create_guest_for_group(
+CREATE OR REPLACE FUNCTION save_rsvp(
   p_guest_group_id UUID,
   p_invitation_code UUID,
-  p_name TEXT,
-  p_attending_locations TEXT[],
-  p_dietary_preferences JSONB,
-  p_age_category TEXT DEFAULT 'adult'
+  p_guests JSONB,            -- JSON array of guest objects
+  p_additional_notes TEXT DEFAULT NULL
 )
-RETURNS guests
+RETURNS SETOF guests
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_guest guests;
-  v_current_guest_count INTEGER;
-  v_party_size INTEGER;
   v_group_locations TEXT[];
+  v_guest_obj JSONB;
+  v_guest_id UUID;
+  v_name TEXT;
+  v_attending_locations TEXT[];
+  v_dietary_preferences JSONB;
+  v_age_category TEXT;
+  v_guest guests;
+  v_new_party_size INTEGER;
+  v_current_party_size INTEGER;
+  v_submitted_ids UUID[] := ARRAY[]::UUID[];  -- track valid UUIDs we processed
 BEGIN
-  -- Auth
-  v_group_locations := validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
+  -- ========================================================================
+  -- 1. Auth & basic validation
+  -- ========================================================================
+  v_group_locations := validate_invitation_code_and_get_locations(
+    p_guest_group_id, p_invitation_code
+  );
 
-  -- Lock the group row and check guest count atomically (prevents TOCTOU race)
-  SELECT gg.party_size INTO v_party_size
+  IF p_guests IS NULL OR jsonb_typeof(p_guests) != 'array' THEN
+    RAISE EXCEPTION 'p_guests must be a JSON array';
+  END IF;
+
+  v_new_party_size := jsonb_array_length(p_guests);
+
+  IF v_new_party_size < 1 THEN
+    RAISE EXCEPTION 'At least one guest is required';
+  END IF;
+
+  IF v_new_party_size > 20 THEN
+    RAISE EXCEPTION 'Cannot submit more than 20 guests at once';
+  END IF;
+
+  -- Lock the group row to prevent concurrent modifications
+  SELECT gg.party_size INTO v_current_party_size
   FROM guest_groups gg
   WHERE gg.id = p_guest_group_id
   FOR UPDATE;
 
-  SELECT COUNT(*) INTO v_current_guest_count
-  FROM guests
-  WHERE guest_group_id = p_guest_group_id;
+  -- ========================================================================
+  -- 2. Process each guest: create or update
+  -- ========================================================================
+  FOR v_guest_obj IN SELECT * FROM jsonb_array_elements(p_guests)
+  LOOP
+    -- Extract fields from the JSON object
+    v_name := v_guest_obj ->> 'name';
+    v_age_category := COALESCE(v_guest_obj ->> 'age_category', 'adult');
+    v_dietary_preferences := COALESCE(v_guest_obj -> 'dietary_preferences', '{}'::JSONB);
 
-  IF v_current_guest_count >= v_party_size THEN
-    RAISE EXCEPTION 'Maximum of % guests allowed for this group (currently %)',
-      v_party_size, v_current_guest_count;
-  END IF;
+    -- Extract attending_locations from JSON array to TEXT[]
+    SELECT COALESCE(array_agg(elem::TEXT), ARRAY[]::TEXT[])
+    INTO v_attending_locations
+    FROM jsonb_array_elements_text(
+      COALESCE(v_guest_obj -> 'attending_locations', '[]'::JSONB)
+    ) AS elem;
 
-  -- Validate & normalize all guest fields
-  SELECT f.p_name, f.p_attending_locations
-  INTO p_name, p_attending_locations
-  FROM validate_and_normalize_guest_fields(
-    p_name, p_attending_locations,
-    p_dietary_preferences, p_age_category,
-    v_group_locations
-  ) f;
+    -- Validate & normalize fields using existing helper
+    SELECT f.p_name, f.p_attending_locations
+    INTO v_name, v_attending_locations
+    FROM validate_and_normalize_guest_fields(
+      v_name, v_attending_locations,
+      v_dietary_preferences, v_age_category,
+      v_group_locations
+    ) f;
 
-  -- Insert
-  INSERT INTO guests (guest_group_id, name, attending_locations, dietary_preferences, age_category)
-  VALUES (p_guest_group_id, p_name, p_attending_locations, p_dietary_preferences, p_age_category)
-  RETURNING * INTO v_guest;
+    -- Determine if this is a new or existing guest
+    -- New guests have null id or an id starting with "temp_"
+    v_guest_id := NULL;
+    BEGIN
+      v_guest_id := (v_guest_obj ->> 'id')::UUID;
+    EXCEPTION WHEN OTHERS THEN
+      -- Not a valid UUID (e.g. "temp_xxx"), treat as new guest
+      v_guest_id := NULL;
+    END;
 
-  RETURN v_guest;
-END;
-$$;
+    IF v_guest_id IS NOT NULL THEN
+      -- ----------------------------------------------------------------
+      -- UPDATE existing guest
+      -- ----------------------------------------------------------------
+      -- Verify membership in this group
+      PERFORM validate_guest_membership(v_guest_id, p_guest_group_id);
 
--- ---------------------------------------------------------------------------
--- 6d. update_guest_for_group
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION update_guest_for_group(
-  p_guest_id UUID,
-  p_guest_group_id UUID,
-  p_invitation_code UUID,
-  p_name TEXT,
-  p_attending_locations TEXT[],
-  p_dietary_preferences JSONB,
-  p_age_category TEXT DEFAULT 'adult'
-)
-RETURNS guests
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_guest guests;
-  v_group_locations TEXT[];
-BEGIN
-  -- Auth
-  v_group_locations := validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
+      UPDATE guests
+      SET name = v_name,
+          attending_locations = v_attending_locations,
+          dietary_preferences = v_dietary_preferences,
+          age_category = v_age_category
+      WHERE id = v_guest_id
+        AND guest_group_id = p_guest_group_id
+      RETURNING * INTO v_guest;
 
-  -- Membership check
-  PERFORM validate_guest_membership(p_guest_id, p_guest_group_id);
+      -- Track this ID so we know it was submitted
+      v_submitted_ids := array_append(v_submitted_ids, v_guest_id);
 
-  -- Validate & normalize all guest fields
-  SELECT f.p_name, f.p_attending_locations
-  INTO p_name, p_attending_locations
-  FROM validate_and_normalize_guest_fields(
-    p_name, p_attending_locations,
-    p_dietary_preferences, p_age_category,
-    v_group_locations
-  ) f;
+      RETURN NEXT v_guest;
+    ELSE
+      -- ----------------------------------------------------------------
+      -- CREATE new guest
+      -- ----------------------------------------------------------------
+      INSERT INTO guests (
+        guest_group_id, name, attending_locations,
+        dietary_preferences, age_category
+      )
+      VALUES (
+        p_guest_group_id, v_name, v_attending_locations,
+        v_dietary_preferences, v_age_category
+      )
+      RETURNING * INTO v_guest;
 
-  -- Update
-  UPDATE guests
-  SET name = p_name,
-      attending_locations = p_attending_locations,
-      dietary_preferences = p_dietary_preferences,
-      age_category = p_age_category
-  WHERE id = p_guest_id
-  AND guest_group_id = p_guest_group_id
-  RETURNING * INTO v_guest;
+      -- Track newly created ID too
+      v_submitted_ids := array_append(v_submitted_ids, v_guest.id);
 
-  RETURN v_guest;
-END;
-$$;
+      RETURN NEXT v_guest;
+    END IF;
+  END LOOP;
 
--- ---------------------------------------------------------------------------
--- 6e. delete_guest_for_group
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION delete_guest_for_group(
-  p_guest_id UUID,
-  p_guest_group_id UUID,
-  p_invitation_code UUID
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  -- Auth
-  PERFORM validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
-
-  -- Membership check
-  PERFORM validate_guest_membership(p_guest_id, p_guest_group_id);
-
-  -- Delete
+  -- ========================================================================
+  -- 3. Delete guests that belong to this group but were NOT submitted
+  -- ========================================================================
   DELETE FROM guests
-  WHERE id = p_guest_id
-  AND guest_group_id = p_guest_group_id;
+  WHERE guest_group_id = p_guest_group_id
+    AND id != ALL(v_submitted_ids);
 
-  RETURN TRUE;
-END;
-$$;
-
--- ---------------------------------------------------------------------------
--- 6f. update_guest_group_party_size
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION update_guest_group_party_size(
-  p_guest_group_id UUID,
-  p_invitation_code UUID,
-  p_new_party_size INTEGER
-)
-RETURNS SETOF guest_group_public_info
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  -- Auth
-  PERFORM validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
-
-  -- Validate
-  IF p_new_party_size IS NULL THEN
-    RAISE EXCEPTION 'Party size cannot be null';
-  END IF;
-  IF p_new_party_size < 1 OR p_new_party_size > 20 THEN
+  -- ========================================================================
+  -- 4. Update party_size to match the submitted guest count
+  -- ========================================================================
+  IF v_new_party_size > 20 THEN
     RAISE EXCEPTION 'Party size must be between 1 and 20';
   END IF;
 
-  -- Prevent setting party_size below current guest count
-  IF p_new_party_size < (
-    SELECT COUNT(*)::INTEGER FROM guests WHERE guest_group_id = p_guest_group_id
-  ) THEN
-    RAISE EXCEPTION 'Cannot set party size to % — there are already more guests in this group',
-      p_new_party_size;
-  END IF;
-
-  -- Update
   UPDATE guest_groups
-  SET party_size = p_new_party_size
+  SET party_size = v_new_party_size
   WHERE id = p_guest_group_id;
 
-  -- Return updated row via shared projection helper
-  RETURN QUERY SELECT * FROM project_guest_group_public_info(p_guest_group_id);
-END;
-$$;
-
-COMMENT ON FUNCTION update_guest_group_party_size(UUID, UUID, INTEGER) IS
-  'Securely updates party_size for a guest_group by validating the invitation code. Returns explicit columns excluding invitation_code.';
-
--- ---------------------------------------------------------------------------
--- 6g. update_guest_group_notes
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION update_guest_group_notes(
-  p_guest_group_id UUID,
-  p_invitation_code UUID,
-  p_additional_notes TEXT
-)
-RETURNS SETOF guest_group_public_info
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  -- Auth
-  PERFORM validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
-
-  -- Validate
+  -- ========================================================================
+  -- 5. Update additional notes
+  -- ========================================================================
   IF p_additional_notes IS NOT NULL AND length(p_additional_notes) > 2000 THEN
     RAISE EXCEPTION 'Additional notes must be 2000 characters or less';
   END IF;
 
-  -- Update
   UPDATE guest_groups
   SET additional_notes = p_additional_notes
   WHERE id = p_guest_group_id;
 
-  -- Return updated row via shared projection helper
-  RETURN QUERY SELECT * FROM project_guest_group_public_info(p_guest_group_id);
+  RETURN;
 END;
 $$;
+
+COMMENT ON FUNCTION save_rsvp(UUID, UUID, JSONB, TEXT) IS
+  'Bulk RSVP save: creates/updates/deletes guests and updates group notes + party_size in a single transaction. The submitted guest list is the source of truth.';
 
 
 -- ############################################################################
--- SECTION 7: GUEST LOCATION ATTENDANCE FUNCTIONS
--- ############################################################################
-
--- ---------------------------------------------------------------------------
--- 7a. set_guest_location_attendance
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION set_guest_location_attendance(
-  p_guest_id UUID,
-  p_guest_group_id UUID,
-  p_invitation_code UUID,
-  p_location TEXT,
-  p_attending BOOLEAN
-)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_group_locations TEXT[];
-BEGIN
-  -- Auth
-  v_group_locations := validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
-
-  -- Validate attending flag
-  IF p_attending IS NULL THEN
-    RAISE EXCEPTION 'Attending flag cannot be null';
-  END IF;
-
-  -- Membership check
-  PERFORM validate_guest_membership(p_guest_id, p_guest_group_id);
-
-  -- Location validation
-  PERFORM validate_location_for_group(p_location, v_group_locations);
-
-  IF p_attending THEN
-    -- Add location to array if not already present
-    UPDATE guests
-    SET attending_locations = array_append(attending_locations, p_location)
-    WHERE id = p_guest_id
-    AND guest_group_id = p_guest_group_id
-    AND NOT (p_location = ANY(attending_locations));
-  ELSE
-    -- Remove location from array
-    UPDATE guests
-    SET attending_locations = array_remove(attending_locations, p_location)
-    WHERE id = p_guest_id
-    AND guest_group_id = p_guest_group_id;
-  END IF;
-END;
-$$;
-
--- ---------------------------------------------------------------------------
--- 7b. get_attending_guests_for_location
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION get_attending_guests_for_location(
-  p_guest_group_id UUID,
-  p_invitation_code UUID,
-  p_location TEXT
-)
-RETURNS TABLE (
-  guest_id UUID,
-  guest_name TEXT,
-  dietary_preferences JSONB
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_group_locations TEXT[];
-BEGIN
-  -- Auth
-  v_group_locations := validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
-
-  -- Location validation
-  PERFORM validate_location_for_group(p_location, v_group_locations);
-
-  RETURN QUERY
-  SELECT
-    g.id as guest_id,
-    g.name as guest_name,
-    g.dietary_preferences
-  FROM guests g
-  WHERE g.guest_group_id = p_guest_group_id
-  AND p_location = ANY(g.attending_locations)
-  ORDER BY g.name;
-END;
-$$;
-
--- ---------------------------------------------------------------------------
--- 7c. bulk_update_guest_location_attendance
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION bulk_update_guest_location_attendance(
-  p_guest_group_id UUID,
-  p_invitation_code UUID,
-  p_location TEXT,
-  p_guest_ids UUID[]
-)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_group_locations TEXT[];
-BEGIN
-  -- Auth
-  v_group_locations := validate_invitation_code_and_get_locations(p_guest_group_id, p_invitation_code);
-
-  -- Validate guest_ids
-  IF p_guest_ids IS NULL THEN
-    RAISE EXCEPTION 'Guest IDs array cannot be null';
-  END IF;
-  IF array_length(p_guest_ids, 1) > 20 THEN
-    RAISE EXCEPTION 'Cannot update more than 20 guests at once';
-  END IF;
-
-  -- Location validation
-  PERFORM validate_location_for_group(p_location, v_group_locations);
-
-  -- Remove location from all guests in this group
-  UPDATE guests
-  SET attending_locations = array_remove(attending_locations, p_location)
-  WHERE guest_group_id = p_guest_group_id;
-
-  -- Add location to specified guests
-  UPDATE guests
-  SET attending_locations = array_append(attending_locations, p_location)
-  WHERE id = ANY(p_guest_ids)
-  AND guest_group_id = p_guest_group_id
-  AND NOT (p_location = ANY(attending_locations));
-END;
-$$;
-
-
--- ############################################################################
--- SECTION 8: PRIVILEGE GRANTS (all in one place for auditability)
+-- SECTION 7: PRIVILEGE GRANTS (all in one place for auditability)
 -- ############################################################################
 
 -- --- Helper functions (internal, no public/anon access) ---------------------
@@ -851,29 +639,15 @@ $$;
 -- --- Guest-facing RPC functions ---------------------------------------------
 REVOKE EXECUTE ON FUNCTION authenticate_guest_group(UUID) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION get_guests_for_group(UUID, UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_guest_for_group(UUID, UUID, TEXT, TEXT[], JSONB, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, UUID, TEXT, TEXT[], JSONB, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION update_guest_group_party_size(UUID, UUID, INTEGER) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION update_guest_group_notes(UUID, UUID, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION set_guest_location_attendance(UUID, UUID, UUID, TEXT, BOOLEAN) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_attending_guests_for_location(UUID, UUID, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION bulk_update_guest_location_attendance(UUID, UUID, TEXT, UUID[]) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION save_rsvp(UUID, UUID, JSONB, TEXT) FROM PUBLIC;
 
 GRANT EXECUTE ON FUNCTION authenticate_guest_group(UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_guests_for_group(UUID, UUID) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION create_guest_for_group(UUID, UUID, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION update_guest_for_group(UUID, UUID, UUID, TEXT, TEXT[], JSONB, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION delete_guest_for_group(UUID, UUID, UUID) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION update_guest_group_party_size(UUID, UUID, INTEGER) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION update_guest_group_notes(UUID, UUID, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION set_guest_location_attendance(UUID, UUID, UUID, TEXT, BOOLEAN) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION get_attending_guests_for_location(UUID, UUID, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION bulk_update_guest_location_attendance(UUID, UUID, TEXT, UUID[]) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION save_rsvp(UUID, UUID, JSONB, TEXT) TO anon, authenticated;
 
 
 -- ############################################################################
--- SECTION 9: ROW LEVEL SECURITY
+-- SECTION 8: ROW LEVEL SECURITY
 -- ############################################################################
 
 ALTER TABLE guest_groups ENABLE ROW LEVEL SECURITY;
@@ -937,7 +711,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON guests TO authenticated;
 
 
 -- ############################################################################
--- SECTION 10: VIEWS - Statistics and Reports
+-- SECTION 9: VIEWS - Statistics and Reports
 -- ############################################################################
 
 -- (Reserved for future use)
@@ -962,7 +736,6 @@ BEGIN
   RAISE NOTICE '  • validate_invitation_code_and_get_locations()';
   RAISE NOTICE '  • validate_guest_membership()';
   RAISE NOTICE '  • validate_and_normalize_guest_fields()';
-  RAISE NOTICE '  • validate_location_for_group()';
   RAISE NOTICE '  • project_guest_group_public_info()';
   RAISE NOTICE '';
   RAISE NOTICE '🔒 Security Features:';
@@ -982,14 +755,7 @@ BEGIN
   RAISE NOTICE '  3. Frontend MUST use RPC functions for guest/RSVP operations:';
   RAISE NOTICE '     • authenticate_guest_group(invitation_code)';
   RAISE NOTICE '     • get_guests_for_group(guest_group_id, invitation_code)';
-  RAISE NOTICE '     • create_guest_for_group(guest_group_id, invitation_code, name, ...)';
-  RAISE NOTICE '     • update_guest_for_group(guest_id, guest_group_id, invitation_code, ...)';
-  RAISE NOTICE '     • delete_guest_for_group(guest_id, guest_group_id, invitation_code)';
-  RAISE NOTICE '     • update_guest_group_party_size(guest_group_id, invitation_code, size)';
-  RAISE NOTICE '     • update_guest_group_notes(guest_group_id, invitation_code, notes)';
-  RAISE NOTICE '     • set_guest_location_attendance(guest_id, group_id, code, location, bool)';
-  RAISE NOTICE '     • get_attending_guests_for_location(group_id, code, location)';
-  RAISE NOTICE '     • bulk_update_guest_location_attendance(group_id, code, location, ids)';
+  RAISE NOTICE '     • save_rsvp(group_id, code, guests_jsonb, notes)';
   RAISE NOTICE '  ⚠️  WARNING: Direct table queries for guests will FAIL for anon users';
   RAISE NOTICE '';
   RAISE NOTICE '============================================================================';

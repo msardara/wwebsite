@@ -27,32 +27,31 @@ pub fn RsvpManagement() -> impl IntoView {
             .get_all_guest_groups()
             .await;
 
-        // Load location-specific guest lists
-        let sardinia_result = admin_context
-            .authenticated_client()
-            .get_all_guests_for_location("sardinia")
-            .await;
+        // Load all guests in a single query
+        let all_guests_result = admin_context.authenticated_client().get_all_guests().await;
 
-        let tunisia_result = admin_context
-            .authenticated_client()
-            .get_all_guests_for_location("tunisia")
-            .await;
-
-        let nice_result = admin_context
-            .authenticated_client()
-            .get_all_guests_for_location("nice")
-            .await;
-
-        match (groups_result, sardinia_result, tunisia_result, nice_result) {
-            (Ok(groups), Ok(sardinia_list), Ok(tunisia_list), Ok(nice_list)) => {
+        match (groups_result, all_guests_result) {
+            (Ok(groups), Ok(guests)) => {
                 set_guest_groups.set(groups);
 
-                // Combine all location guests for total counts
-                let mut all = sardinia_list.clone();
-                all.extend(tunisia_list.clone());
-                all.extend(nice_list.clone());
-                set_all_guests.set(all);
+                // Filter by location client-side
+                let sardinia_list: Vec<Guest> = guests
+                    .iter()
+                    .filter(|g| g.attending_locations.iter().any(|l| l == "sardinia"))
+                    .cloned()
+                    .collect();
+                let tunisia_list: Vec<Guest> = guests
+                    .iter()
+                    .filter(|g| g.attending_locations.iter().any(|l| l == "tunisia"))
+                    .cloned()
+                    .collect();
+                let nice_list: Vec<Guest> = guests
+                    .iter()
+                    .filter(|g| g.attending_locations.iter().any(|l| l == "nice"))
+                    .cloned()
+                    .collect();
 
+                set_all_guests.set(guests);
                 set_sardinia_guests.set(sardinia_list);
                 set_tunisia_guests.set(tunisia_list);
                 set_nice_guests.set(nice_list);

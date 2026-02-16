@@ -16,8 +16,10 @@ pub struct AdminStats {
     pub sardinia_guests: i32,
     /// Total guests attending Tunisia
     pub tunisia_guests: i32,
-    /// Total guests invited to both locations
-    pub both_locations_guests: i32,
+    /// Total guests attending Nice
+    pub nice_guests: i32,
+    /// Total number of guest groups
+    pub total_guest_groups: i32,
     pub vegetarian_count: i32,
     pub vegan_count: i32,
     pub halal_count: i32,

@@ -3,10 +3,11 @@
 //! Only has access to secure RPC functions that validate invitation codes.
 //! This keeps the attack surface minimal for unauthenticated visitors.
 
-use super::error::{SupabaseError, SupabaseResult};
-use super::helpers::{execute_rpc, execute_rpc_flexible, execute_rpc_option, execute_rpc_void};
+use super::error::SupabaseResult;
+use super::helpers::{execute_rpc, execute_rpc_option};
+
 use crate::constants::SUPABASE_REST_PATH;
-use crate::types::{DietaryPreferences, Guest, GuestGroup};
+use crate::types::{Guest, GuestGroup};
 use postgrest::Postgrest;
 
 /// Supabase RPC client for guest/anonymous users.
@@ -58,46 +59,6 @@ impl SupabaseRpcClient {
         }))
     }
 
-    /// Update party_size for a guest group with invitation code validation (RPC)
-    pub async fn update_guest_group_party_size(
-        &self,
-        guest_group_id: &str,
-        invitation_code: &str,
-        new_party_size: i32,
-    ) -> SupabaseResult<()> {
-        execute_rpc_void(
-            &self.client,
-            "update_guest_group_party_size",
-            serde_json::json!({
-                "p_guest_group_id": guest_group_id,
-                "p_invitation_code": invitation_code,
-                "p_new_party_size": new_party_size
-            })
-            .to_string(),
-        )
-        .await
-    }
-
-    /// Update additional_notes for a guest group with invitation code validation (RPC)
-    pub async fn update_guest_group_notes(
-        &self,
-        guest_group_id: &str,
-        invitation_code: &str,
-        additional_notes: &str,
-    ) -> SupabaseResult<()> {
-        execute_rpc_void(
-            &self.client,
-            "update_guest_group_notes",
-            serde_json::json!({
-                "p_guest_group_id": guest_group_id,
-                "p_invitation_code": invitation_code,
-                "p_additional_notes": additional_notes
-            })
-            .to_string(),
-        )
-        .await
-    }
-
     // ========================================================================
     // GUEST OPERATIONS (RPC)
     // ========================================================================
@@ -120,74 +81,46 @@ impl SupabaseRpcClient {
         .await
     }
 
-    /// Create a new guest with invitation code validation (RPC)
-    #[allow(clippy::too_many_arguments)]
-    pub async fn create_guest_secure(
+    /// Bulk save the entire RSVP in a single RPC call.
+    ///
+    /// Creates new guests (those with temp IDs), updates existing ones,
+    /// and updates party_size + additional_notes on the guest group —
+    /// all in one transactional round-trip.
+    pub async fn save_rsvp(
         &self,
         guest_group_id: &str,
         invitation_code: &str,
-        name: &str,
-        attending_locations: &[String],
-        dietary_preferences: &DietaryPreferences,
-        age_category: &crate::types::AgeCategory,
-    ) -> SupabaseResult<Guest> {
-        let params = serde_json::json!({
-            "p_guest_group_id": guest_group_id,
-            "p_invitation_code": invitation_code,
-            "p_name": name,
-            "p_attending_locations": attending_locations,
-            "p_dietary_preferences": serde_json::to_value(dietary_preferences)
-                .map_err(|e| SupabaseError::ParseError(e.to_string()))?,
-            "p_age_category": age_category.as_str()
-        });
+        guests: &[Guest],
+        guest_location_map: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+        additional_notes: &str,
+    ) -> SupabaseResult<Vec<Guest>> {
+        // Build the JSON guest array expected by the DB function
+        let guests_json: Vec<serde_json::Value> = guests
+            .iter()
+            .map(|g| {
+                let attending_locs: Vec<String> = guest_location_map
+                    .get(&g.id)
+                    .map(|locs| locs.iter().cloned().collect())
+                    .unwrap_or_default();
 
-        execute_rpc_flexible(&self.client, "create_guest_for_group", params.to_string()).await
-    }
-
-    /// Update a guest with invitation code validation (RPC)
-    #[allow(clippy::too_many_arguments)]
-    pub async fn update_guest_secure(
-        &self,
-        guest_id: &str,
-        guest_group_id: &str,
-        invitation_code: &str,
-        name: &str,
-        attending_locations: &[String],
-        dietary_preferences: &DietaryPreferences,
-        age_category: &crate::types::AgeCategory,
-    ) -> SupabaseResult<Guest> {
-        let params = serde_json::json!({
-            "p_guest_id": guest_id,
-            "p_guest_group_id": guest_group_id,
-            "p_invitation_code": invitation_code,
-            "p_name": name,
-            "p_attending_locations": attending_locations,
-            "p_dietary_preferences": serde_json::to_value(dietary_preferences)
-                .map_err(|e| SupabaseError::ParseError(e.to_string()))?,
-            "p_age_category": age_category.as_str()
-        });
-
-        execute_rpc_flexible(&self.client, "update_guest_for_group", params.to_string()).await
-    }
-
-    /// Delete a guest with invitation code validation (RPC)
-    pub async fn delete_guest_secure(
-        &self,
-        guest_id: &str,
-        guest_group_id: &str,
-        invitation_code: &str,
-    ) -> SupabaseResult<()> {
-        execute_rpc_void(
-            &self.client,
-            "delete_guest_for_group",
-            serde_json::json!({
-                "p_guest_id": guest_id,
-                "p_guest_group_id": guest_group_id,
-                "p_invitation_code": invitation_code
+                serde_json::json!({
+                    "id": g.id,
+                    "name": g.name,
+                    "attending_locations": attending_locs,
+                    "dietary_preferences": serde_json::to_value(&g.dietary_preferences).unwrap_or_default(),
+                    "age_category": g.age_category.as_str()
+                })
             })
-            .to_string(),
-        )
-        .await
+            .collect();
+
+        let params = serde_json::json!({
+            "p_guest_group_id": guest_group_id,
+            "p_invitation_code": invitation_code,
+            "p_guests": guests_json,
+            "p_additional_notes": additional_notes
+        });
+
+        execute_rpc(&self.client, "save_rsvp", params.to_string()).await
     }
 }
 
