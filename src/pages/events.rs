@@ -19,10 +19,10 @@ pub fn EventsPage() -> impl IntoView {
                 <p class="text-lg md:text-xl text-secondary-600 font-light mb-8">
                     {move || {
                         let visible_count = [
-                            guest_context.can_see_location("sardinia"),
-                            guest_context.can_see_location("tunisia"),
-                            guest_context.can_see_location("nice"),
-                        ].iter().filter(|&&x| x).count();
+                            (Location::Sardinia, "sardinia"),
+                            (Location::Tunisia, "tunisia"),
+                            (Location::Nice, "nice"),
+                        ].iter().filter(|&&(ref loc, name)| guest_context.can_see_location(name) && !loc.is_past()).count();
 
                         if visible_count > 1 {
                             translations().t("events.subtitle_multiple")
@@ -43,8 +43,8 @@ pub fn EventsPage() -> impl IntoView {
                         (Location::Nice, "events.nice", translations().t("events.sort_date_nice")),
                     ];
 
-                    // Filter to only visible locations and sort by date
-                    locations.retain(|(loc, _, _)| guest_context.can_see_location(loc.as_str()));
+                    // Filter to only visible and non-past locations, then sort by date
+                    locations.retain(|(loc, _, _)| guest_context.can_see_location(loc.as_str()) && !loc.is_past());
                     locations.sort_by(|a, b| a.2.cmp(&b.2));
 
                     // Render sorted locations

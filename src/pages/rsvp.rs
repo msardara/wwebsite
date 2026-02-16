@@ -66,6 +66,7 @@ fn RsvpManager(
         .locations
         .iter()
         .filter_map(|loc_str| Location::from_str(loc_str))
+        .filter(|loc| !loc.is_past())
         .collect();
     let (available_locations, _) = create_signal(available_locations_vec);
 

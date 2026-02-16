@@ -1,3 +1,4 @@
+use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -29,6 +30,21 @@ impl Location {
 
     pub fn includes(&self, other: &Location) -> bool {
         self == other
+    }
+
+    /// The date of the event at this location.
+    pub fn event_date(&self) -> NaiveDate {
+        match self {
+            Location::Sardinia => NaiveDate::from_ymd_opt(2026, 9, 19).unwrap(),
+            Location::Tunisia => NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
+            Location::Nice => NaiveDate::from_ymd_opt(2026, 4, 8).unwrap(),
+        }
+    }
+
+    /// Returns `true` if the event date for this location has already passed.
+    pub fn is_past(&self) -> bool {
+        let today = Utc::now().date_naive();
+        today > self.event_date()
     }
 
     // ========================================================================
