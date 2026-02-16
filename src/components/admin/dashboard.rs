@@ -1,8 +1,10 @@
+use super::csv_export;
 use crate::components::common::{IconStatCard, StatCard};
 use crate::contexts::AdminContext;
 use crate::styles::*;
 use crate::types::AdminStats;
 use leptos::*;
+use std::collections::HashMap;
 
 #[component]
 pub fn AdminDashboard() -> impl IntoView {
@@ -11,6 +13,9 @@ pub fn AdminDashboard() -> impl IntoView {
     let (stats, set_stats) = create_signal::<Option<AdminStats>>(None);
     let (loading, set_loading) = create_signal(true);
     let (error, set_error) = create_signal::<Option<String>>(None);
+    let (export_error, set_export_error) = create_signal::<Option<String>>(None);
+    let (exporting_groups, set_exporting_groups) = create_signal(false);
+    let (exporting_guests, set_exporting_guests) = create_signal(false);
 
     // Single action for both initial load and manual refresh
     let load_stats = create_action(move |_: &()| async move {
@@ -29,6 +34,61 @@ pub fn AdminDashboard() -> impl IntoView {
         }
     });
 
+    // Export guest groups as CSV
+    let export_guest_groups = create_action(move |_: &()| async move {
+        set_exporting_groups.set(true);
+        set_export_error.set(None);
+
+        let client = admin_context.authenticated_client();
+        match client.get_all_guest_groups().await {
+            Ok(groups) => {
+                let csv = csv_export::guest_groups_to_csv(&groups);
+                if let Err(e) = csv_export::trigger_csv_download(&csv, "guest_groups.csv") {
+                    set_export_error.set(Some(format!("Download failed: {}", e)));
+                }
+            }
+            Err(e) => {
+                set_export_error.set(Some(format!("Failed to fetch guest groups: {}", e)));
+            }
+        }
+
+        set_exporting_groups.set(false);
+    });
+
+    // Export guests as CSV
+    let export_guests = create_action(move |_: &()| async move {
+        set_exporting_guests.set(true);
+        set_export_error.set(None);
+
+        let client = admin_context.authenticated_client();
+
+        // Fetch groups first to build a name lookup map
+        let groups_result = client.get_all_guest_groups().await;
+        let guests_result = client.get_all_guests().await;
+
+        match (groups_result, guests_result) {
+            (Ok(groups), Ok(guests)) => {
+                let group_lookup: HashMap<String, String> = groups
+                    .iter()
+                    .map(|g| (g.id.clone(), g.name.clone()))
+                    .collect();
+
+                let csv = csv_export::guests_to_csv(&guests, &group_lookup);
+                if let Err(e) = csv_export::trigger_csv_download(&csv, "guests.csv") {
+                    set_export_error.set(Some(format!("Download failed: {}", e)));
+                }
+            }
+            (Err(e), _) => {
+                set_export_error.set(Some(format!("Failed to fetch guest groups: {}", e)));
+            }
+            (_, Err(e)) => {
+                set_export_error.set(Some(format!("Failed to fetch guests: {}", e)));
+            }
+        }
+
+        set_exporting_guests.set(false);
+    });
+
     // Load statistics on mount
     create_effect(move |_| {
         load_stats.dispatch(());
@@ -40,13 +100,35 @@ pub fn AdminDashboard() -> impl IntoView {
                 <h2 class=PAGE_HEADER>
                     "Dashboard"
                 </h2>
-                <button
-                    on:click=move |_| load_stats.dispatch(())
-                    class=REFRESH_BUTTON
-                >
-                    "↻ Refresh"
-                </button>
+                <div class="flex items-center gap-2">
+                    <button
+                        on:click=move |_| export_guest_groups.dispatch(())
+                        class=BUTTON_SECONDARY_INLINE
+                        disabled=move || exporting_groups.get()
+                    >
+                        {move || if exporting_groups.get() { "⏳ Exporting…" } else { "📥 Groups CSV" }}
+                    </button>
+                    <button
+                        on:click=move |_| export_guests.dispatch(())
+                        class=BUTTON_SECONDARY_INLINE
+                        disabled=move || exporting_guests.get()
+                    >
+                        {move || if exporting_guests.get() { "⏳ Exporting…" } else { "📥 Guests CSV" }}
+                    </button>
+                    <button
+                        on:click=move |_| load_stats.dispatch(())
+                        class=REFRESH_BUTTON
+                    >
+                        "↻ Refresh"
+                    </button>
+                </div>
             </div>
+
+            {move || export_error.get().map(|err| view! {
+                <div class=ALERT_ERROR>
+                    {err}
+                </div>
+            })}
 
             {move || {
                 if loading.get() {
@@ -115,7 +197,7 @@ pub fn AdminDashboard() -> impl IntoView {
                                     />
                                 </div>
                                 <p class="text-sm text-gray-500 mt-2 italic">
-                                    "Note: Guests attending both locations are counted in each location."
+                                    "Note: Guests attending multiple locations are counted in each location."
                                 </p>
                             </div>
 

@@ -2489,6 +2489,7 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "gloo-storage",
+ "js-sys",
  "leptos",
  "leptos_meta",
  "leptos_router",
