@@ -269,6 +269,11 @@ fn RsvpManager(
         set_error.set(None);
         set_success.set(false);
 
+        // Helper: scroll to top to make error/success banners visible
+        let scroll_to_top = || {
+            window().scroll_to_with_x_and_y(0.0, 0.0);
+        };
+
         let all_guests = guests.get();
         let notes_value = notes.get();
 
@@ -281,8 +286,32 @@ fn RsvpManager(
         if !empty_names.is_empty() {
             set_saving.set(false);
             set_error.set(Some(
-                "Please fill in all guest names before submitting".to_string(),
+                "rsvp.error_empty_names".to_string(),
             ));
+            scroll_to_top();
+            return;
+        }
+
+        // Read location map once, before validation and spawn_local
+        let current_location_map = guest_location_map.get_untracked();
+
+        // Validate that all guests have at least one location selected
+        let no_locations: Vec<_> = all_guests
+            .iter()
+            .filter(|g| {
+                current_location_map
+                    .get(&g.id)
+                    .map(|locs| locs.is_empty())
+                    .unwrap_or(true)
+            })
+            .collect();
+
+        if !no_locations.is_empty() {
+            set_saving.set(false);
+            set_error.set(Some(
+                "rsvp.error_no_locations".to_string(),
+            ));
+            scroll_to_top();
             return;
         }
 
@@ -294,7 +323,6 @@ fn RsvpManager(
         spawn_local(async move {
             // Save all guests first (both temporary and existing)
             let mut id_mapping: HashMap<String, String> = HashMap::new();
-            let current_location_map = guest_location_map.get_untracked();
 
             for guest in all_guests.iter() {
                 // Get attending locations from the map
@@ -331,6 +359,7 @@ fn RsvpManager(
                             set_saving.set(false);
                             set_error
                                 .set(Some(format!("Error saving guest '{}': {}", guest.name, e)));
+                            scroll_to_top();
                             return;
                         }
                     }
@@ -351,6 +380,7 @@ fn RsvpManager(
                         "Error updating guest '{}': {}",
                         guest.name, e
                     )));
+                    scroll_to_top();
                     return;
                 }
             }
@@ -364,18 +394,20 @@ fn RsvpManager(
                 {
                     set_saving.set(false);
                     set_error.set(Some(format!("Error updating party size: {}", e)));
+                    scroll_to_top();
                     return;
                 }
             }
 
-            // Save notes to guest group if provided
-            if !notes_value.trim().is_empty() {
-                if let Err(e) = client
-                    .update_guest_group_notes(&group_id, &inv_code, &notes_value)
-                    .await
-                {
-                    web_sys::console::warn_1(&format!("⚠️ Failed to save notes: {}", e).into());
-                }
+            // Save notes to guest group
+            if let Err(e) = client
+                .update_guest_group_notes(&group_id, &inv_code, &notes_value)
+                .await
+            {
+                set_saving.set(false);
+                set_error.set(Some(format!("Error saving notes: {}", e)));
+                scroll_to_top();
+                return;
             }
 
             // Clear localStorage
@@ -389,6 +421,9 @@ fn RsvpManager(
             set_saving.set(false);
             set_success.set(true);
             set_error.set(None);
+
+            // Scroll to top so the success message is visible
+            window().scroll_to_with_x_and_y(0.0, 0.0);
 
             // Reload the page after 5 seconds to show the saved state
             set_timeout(
@@ -407,7 +442,7 @@ fn RsvpManager(
                 fallback=move || view! {
                     <Show when=move || error.get().is_some()>
                         <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm">
-                            {move || error.get().unwrap_or_default()}
+                            {move || translations().t(&error.get().unwrap_or_default())}
                         </div>
                     </Show>
 
@@ -440,6 +475,10 @@ fn RsvpManager(
                                 each=move || guests.get()
                                 key=|g| g.id.clone()
                                 children=move |guest: Guest| {
+                                    let on_card_error = Callback::new(move |msg: String| {
+                                        set_error.set(Some(msg));
+                                        window().scroll_to_with_x_and_y(0.0, 0.0);
+                                    });
                                     view! {
                                         <GuestCard
                                             guest=guest.clone()
@@ -450,6 +489,7 @@ fn RsvpManager(
                                             on_toggle_location=toggle_guest_location
                                             on_update=update_guest
                                             on_delete=delete_guest
+                                            on_error=on_card_error
                                             translations=translations
                                         />
                                     }
@@ -487,7 +527,7 @@ fn RsvpManager(
 
                     <Show when=move || error.get().is_some()>
                         <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm animate-fade-in">
-                            {move || error.get().unwrap_or_default()}
+                            {move || translations().t(&error.get().unwrap_or_default())}
                         </div>
                     </Show>
 
@@ -535,6 +575,7 @@ fn GuestCard(
     #[prop(into)] on_toggle_location: Callback<(String, String)>,
     #[prop(into)] on_update: Callback<Guest>,
     #[prop(into)] on_delete: Callback<String>,
+    #[prop(into)] on_error: Callback<String>,
     translations: impl Fn() -> Translations + 'static + Copy,
 ) -> impl IntoView {
     let guest_id = guest.id.clone();
@@ -603,7 +644,7 @@ fn GuestCard(
                 let dietary_prefs = updated_guest.dietary_preferences.clone();
 
                 spawn_local(async move {
-                    if let Ok(updated) = client
+                    match client
                         .update_guest_secure(
                             &guest_id,
                             &group_id,
@@ -615,7 +656,12 @@ fn GuestCard(
                         )
                         .await
                     {
-                        on_update.call(updated);
+                        Ok(updated) => {
+                            on_update.call(updated);
+                        }
+                        Err(e) => {
+                            on_error.call(format!("Error updating guest '{}': {}", guest_name, e));
+                        }
                     }
                 });
             }
@@ -635,12 +681,16 @@ fn GuestCard(
                 let inv_code = invitation_code.get_value();
 
                 spawn_local(async move {
-                    if client
+                    match client
                         .delete_guest_secure(&id, &group_id, &inv_code)
                         .await
-                        .is_ok()
                     {
-                        on_delete.call(id);
+                        Ok(_) => {
+                            on_delete.call(id);
+                        }
+                        Err(e) => {
+                            on_error.call(format!("Error deleting guest: {}", e));
+                        }
                     }
                 });
             }

@@ -204,6 +204,14 @@ impl Translations {
             "An error occurred. Please try again later.",
         );
         map.insert(
+            "rsvp.error_empty_names",
+            "Please fill in all guest names before submitting.",
+        );
+        map.insert(
+            "rsvp.error_no_locations",
+            "Please select at least one location for each guest.",
+        );
+        map.insert(
             "rsvp.not_found",
             "Guest not found. Please check your information.",
         );
@@ -481,6 +489,14 @@ impl Translations {
             "Une erreur s'est produite. Veuillez réessayer plus tard.",
         );
         map.insert(
+            "rsvp.error_empty_names",
+            "Veuillez remplir les noms de tous les invités avant de soumettre.",
+        );
+        map.insert(
+            "rsvp.error_no_locations",
+            "Veuillez sélectionner au moins un lieu pour chaque invité.",
+        );
+        map.insert(
             "rsvp.not_found",
             "Invité non trouvé. Veuillez vérifier vos informations.",
         );
@@ -728,6 +744,14 @@ impl Translations {
         map.insert(
             "rsvp.error_generic",
             "Si è verificato un errore. Riprova più tardi.",
+        );
+        map.insert(
+            "rsvp.error_empty_names",
+            "Compila i nomi di tutti gli ospiti prima di inviare.",
+        );
+        map.insert(
+            "rsvp.error_no_locations",
+            "Seleziona almeno una location per ogni ospite.",
         );
         map.insert(
             "rsvp.not_found",
