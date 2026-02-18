@@ -228,6 +228,7 @@ pub fn GuestgroupModal(
                         locations: Some(get_locations_value()),
                         default_language: Some(default_language.get()),
                         additional_notes: None,
+                        invitation_sent: None,
                     };
 
                     // Update guest group

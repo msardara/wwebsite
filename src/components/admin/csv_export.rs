@@ -23,7 +23,7 @@ fn csv_escape(value: &str) -> String {
 /// Build a CSV string for guest groups.
 pub fn guest_groups_to_csv(groups: &[GuestGroup]) -> String {
     let mut out = String::from(
-        "id,name,email,invitation_code,party_size,locations,default_language,additional_notes\n",
+        "id,name,email,invitation_code,party_size,locations,default_language,additional_notes,invitation_sent\n",
     );
 
     for g in groups {
@@ -46,6 +46,8 @@ pub fn guest_groups_to_csv(groups: &[GuestGroup]) -> String {
         out.push_str(&csv_escape(&g.default_language));
         out.push(',');
         out.push_str(&csv_escape(notes));
+        out.push(',');
+        out.push_str(if g.invitation_sent { "true" } else { "false" });
         out.push('\n');
     }
 

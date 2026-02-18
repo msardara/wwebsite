@@ -2,7 +2,7 @@ use super::guest_group_modal::GuestgroupModal;
 use crate::components::common::LocationBadge;
 use crate::contexts::AdminContext;
 use crate::styles::*;
-use crate::types::{Guest, GuestGroup, GuestGroupWithCount, Location};
+use crate::types::{Guest, GuestGroup, GuestGroupUpdate, GuestGroupWithCount, Location};
 use leptos::*;
 
 #[component]
@@ -16,6 +16,7 @@ pub fn GuestManagement() -> impl IntoView {
     let (edit_guest, set_edit_guest) = create_signal::<Option<GuestGroup>>(None);
     let (search_query, set_search_query) = create_signal(String::new());
     let (location_filter, set_location_filter) = create_signal::<Option<String>>(None);
+    let (invitation_filter, set_invitation_filter) = create_signal::<Option<bool>>(None);
     let (expanded_guest, set_expanded_guest) = create_signal::<Option<String>>(None);
     let (guest_invitees, set_guest_invitees) = create_signal::<Vec<Guest>>(Vec::new());
     let (loading_invitees, set_loading_invitees) = create_signal(false);
@@ -52,6 +53,7 @@ pub fn GuestManagement() -> impl IntoView {
     let filtered_guests = move || {
         let query = search_query.get().to_lowercase();
         let loc_filter = location_filter.get();
+        let inv_filter = invitation_filter.get();
 
         guests
             .get()
@@ -70,7 +72,10 @@ pub fn GuestManagement() -> impl IntoView {
                     .as_ref()
                     .is_none_or(|loc| guest.locations.join(", ") == *loc);
 
-                matches_search && matches_location
+                let matches_invitation =
+                    inv_filter.is_none_or(|sent| guest.invitation_sent == sent);
+
+                matches_search && matches_location && matches_invitation
             })
             .collect::<Vec<_>>()
     };
@@ -131,7 +136,7 @@ pub fn GuestManagement() -> impl IntoView {
 
             {/* Search and Filter */}
             <div class=FILTER_SECTION>
-                <div class=GRID_2_COLS>
+                <div class=GRID_3_COLS>
                     <div>
                         <label class=FORM_LABEL>
                             "Search"
@@ -159,6 +164,26 @@ pub fn GuestManagement() -> impl IntoView {
                             <option value="sardinia">"Sardinia"</option>
                             <option value="tunisia">"Tunisia"</option>
                             <option value="both">"Both"</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class=FORM_LABEL>
+                            "Filter by Invitation"
+                        </label>
+                        <select
+                            class=FORM_SELECT
+                            on:change=move |ev| {
+                                let value = event_target_value(&ev);
+                                set_invitation_filter.set(match value.as_str() {
+                                    "sent" => Some(true),
+                                    "not_sent" => Some(false),
+                                    _ => None,
+                                });
+                            }
+                        >
+                            <option value="">"All"</option>
+                            <option value="sent">"Sent"</option>
+                            <option value="not_sent">"Not Sent"</option>
                         </select>
                     </div>
                 </div>
@@ -197,6 +222,8 @@ pub fn GuestManagement() -> impl IntoView {
                                     let guest_id_for_expand2 = guest.id.clone();
                                     let guest_id_for_delete = guest.id.clone();
                                     let guest_for_edit = guest.clone();
+                                    let guest_id_for_invite = guest.id.clone();
+                                    let (invitation_sent, set_invitation_sent) = create_signal(guest.invitation_sent);
 
                                     view! {
                                         <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 overflow-hidden">
@@ -324,6 +351,46 @@ pub fn GuestManagement() -> impl IntoView {
                                                                 <div class="px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg inline-block border-2 border-gray-300">
                                                                     {guest.locations.join(", ")}
                                                                 </div>
+                                                            </div>
+
+                                                            {/* Invitation Status */}
+                                                            <div class="flex-1">
+                                                                <div class="text-sm font-extrabold text-gray-900 uppercase mb-2">"INVITATION"</div>
+                                                                <button
+                                                                    on:click={
+                                                                        let guest_id = guest_id_for_invite.clone();
+                                                                        move |_| {
+                                                                            let guest_id = guest_id.clone();
+                                                                            let new_value = !invitation_sent.get_untracked();
+                                                                            set_invitation_sent.set(new_value);
+                                                                            spawn_local(async move {
+                                                                                let update = GuestGroupUpdate {
+                                                                                    name: None,
+                                                                                    email: None,
+                                                                                    party_size: None,
+                                                                                    locations: None,
+                                                                                    default_language: None,
+                                                                                    additional_notes: None,
+                                                                                    invitation_sent: Some(new_value),
+                                                                                };
+                                                                                if let Err(e) = admin_context.authenticated_client().update_guest_group(&guest_id, &update).await {
+                                                                                    set_invitation_sent.set(!new_value);
+                                                                                    set_error.set(Some(format!("Failed to update invitation status: {}", e)));
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                    class=move || {
+                                                                        if invitation_sent.get() {
+                                                                            "px-5 py-3 text-xl font-bold rounded-lg shadow-lg inline-block border-2 bg-green-100 text-green-800 border-green-400 hover:bg-green-200 transition-all cursor-pointer"
+                                                                        } else {
+                                                                            "px-5 py-3 text-xl font-bold rounded-lg shadow-lg inline-block border-2 bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200 transition-all cursor-pointer"
+                                                                        }
+                                                                    }
+                                                                    title="Click to toggle invitation status"
+                                                                >
+                                                                    {move || if invitation_sent.get() { "Sent" } else { "Not Sent" }}
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>

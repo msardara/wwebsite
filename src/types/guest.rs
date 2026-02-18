@@ -17,6 +17,8 @@ pub struct GuestGroup {
     pub locations: Vec<String>,
     pub default_language: String,
     pub additional_notes: Option<String>,
+    #[serde(default)]
+    pub invitation_sent: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -40,12 +42,20 @@ pub struct GuestGroupInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GuestGroupUpdate {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub party_size: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub locations: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub default_language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invitation_sent: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

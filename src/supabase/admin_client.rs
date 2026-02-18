@@ -213,6 +213,8 @@ impl SupabaseAdminClient {
             party_size: i32,
             locations: Vec<String>,
             default_language: String,
+            #[serde(default)]
+            invitation_sent: bool,
             created_at: Option<String>,
             updated_at: Option<String>,
             guests: Vec<GuestCountInfo>,
@@ -237,6 +239,7 @@ impl SupabaseAdminClient {
                         locations: raw.locations,
                         default_language: raw.default_language,
                         additional_notes: None,
+                        invitation_sent: raw.invitation_sent,
                         created_at: raw.created_at.and_then(|s| {
                             DateTime::parse_from_rfc3339(&s)
                                 .ok()
