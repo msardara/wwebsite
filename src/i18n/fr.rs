@@ -112,6 +112,11 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
         "• Aéroport le plus proche : <a href='https://maps.app.goo.gl/8KRRidQakgL2C97t8' target='_blank' class='text-secondary-700 underline hover:text-secondary-900'>Nice Côte d'Azur</a>",
     );
 
+    // Location names (short, for RSVP checkboxes etc.)
+    map.insert("location.sardinia", "Sardaigne");
+    map.insert("location.tunisia", "Tunisie");
+    map.insert("location.nice", "Nice");
+
     // RSVP
     map.insert("rsvp.title", "RSVP");
     map.insert(

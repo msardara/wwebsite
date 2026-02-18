@@ -583,7 +583,7 @@ fn GuestCard(
                                             .unwrap_or(false)
                                     };
 
-                                    let display_name = location.display_name();
+                                    let i18n_key = format!("location.{}", location.as_str());
                                     let flag = location.flag_emoji();
 
                                     view! {
@@ -597,7 +597,7 @@ fn GuestCard(
                                                 }
                                             />
                                             <span class="text-sm font-light text-secondary-700">
-                                                {flag} " " {display_name}
+                                                {flag} " " {move || translations().t(&i18n_key)}
                                             </span>
                                         </label>
                                     }
