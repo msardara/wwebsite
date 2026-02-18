@@ -1,0 +1,2 @@
+ALTER TABLE guest_groups
+  ADD COLUMN invitation_sent BOOLEAN NOT NULL DEFAULT FALSE;
