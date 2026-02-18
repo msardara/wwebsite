@@ -89,8 +89,8 @@ pub fn AdminDashboard() -> impl IntoView {
         set_exporting_guests.set(false);
     });
 
-    // Load statistics on mount
-    create_effect(move |_| {
+    // Load statistics on mount (fire once, not inside a reactive effect)
+    request_animation_frame(move || {
         load_stats.dispatch(());
     });
 

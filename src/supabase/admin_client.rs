@@ -423,80 +423,23 @@ impl SupabaseAdminClient {
         execute_and_parse(response).await
     }
 
-    /// Get all guests attending a specific location (admin only)
-    pub async fn get_all_guests_for_location(&self, location: &str) -> SupabaseResult<Vec<Guest>> {
-        let response = self
-            .client
-            .from(TABLE_GUESTS)
-            .select("*")
-            .cs("attending_locations", format!("{{{}}}", location))
-            .execute()
-            .await
-            .map_err(|e| SupabaseError::NetworkError(e.to_string()))?;
-
-        execute_and_parse(response).await
-    }
-
     // ========================================================================
     // ADMIN STATISTICS
     // ========================================================================
 
     /// Get comprehensive admin statistics
     pub async fn get_admin_stats(&self) -> SupabaseResult<AdminStats> {
+        // Only 2 API calls instead of 3N+4
         let guest_groups = self.get_all_guest_groups().await?;
+        let all_guests = self.get_all_guests().await?;
 
-        // Get all guests
-        let sardinia_guests_list = self.get_all_guests_for_location("sardinia").await?;
-        let tunisia_guests_list = self.get_all_guests_for_location("tunisia").await?;
-        let nice_guests_list = self.get_all_guests_for_location("nice").await?;
-
-        // Count actual individual guests in the guests table (total invited guests)
-        let mut total_guests = 0i32;
-        for guest_group in guest_groups.iter() {
-            match self.get_guests_admin(&guest_group.id).await {
-                Ok(guests) => total_guests += guests.len() as i32,
-                Err(e) => {
-                    web_sys::console::warn_1(
-                        &format!("Failed to fetch guests for group {}: {}", guest_group.id, e)
-                            .into(),
-                    );
-                }
-            }
-        }
-
-        // Count guests who have selected at least one location (confirmed attending)
-        let mut guests_with_locations = std::collections::HashSet::new();
-        for guest_group in guest_groups.iter() {
-            match self.get_guests_admin(&guest_group.id).await {
-                Ok(guests) => {
-                    for guest in guests {
-                        if !guest.attending_locations.is_empty() {
-                            guests_with_locations.insert(guest.id);
-                        }
-                    }
-                }
-                Err(e) => {
-                    web_sys::console::warn_1(
-                        &format!("Failed to fetch guests for group {}: {}", guest_group.id, e)
-                            .into(),
-                    );
-                }
-            }
-        }
-        let total_confirmed = guests_with_locations.len() as i32;
-
-        // Count guests by location
-        let sardinia_guests = sardinia_guests_list.len() as i32;
-        let tunisia_guests = tunisia_guests_list.len() as i32;
-        let nice_guests = nice_guests_list.len() as i32;
-
-        // Total number of guest groups
+        let total_guests = all_guests.len() as i32;
         let total_guest_groups = guest_groups.len() as i32;
 
-        // Count pending guests (guests with no location selections)
-        let pending_guests = total_guests - total_confirmed;
-
-        // Count dietary preferences (from all guests with location selections)
+        let mut total_confirmed = 0i32;
+        let mut sardinia_guests = 0i32;
+        let mut tunisia_guests = 0i32;
+        let mut nice_guests = 0i32;
         let mut vegetarian_count = 0i32;
         let mut vegan_count = 0i32;
         let mut halal_count = 0i32;
@@ -504,40 +447,40 @@ impl SupabaseAdminClient {
         let mut gluten_free_count = 0i32;
         let mut other_dietary_count = 0i32;
 
-        for guest_group in guest_groups.iter() {
-            match self.get_guests_admin(&guest_group.id).await {
-                Ok(guests) => {
-                    for guest in guests {
-                        if !guest.attending_locations.is_empty() {
-                            if guest.dietary_preferences.vegetarian {
-                                vegetarian_count += 1;
-                            }
-                            if guest.dietary_preferences.vegan {
-                                vegan_count += 1;
-                            }
-                            if guest.dietary_preferences.halal {
-                                halal_count += 1;
-                            }
-                            if guest.dietary_preferences.no_pork {
-                                no_pork_count += 1;
-                            }
-                            if guest.dietary_preferences.gluten_free {
-                                gluten_free_count += 1;
-                            }
-                            if !guest.dietary_preferences.other.is_empty() {
-                                other_dietary_count += 1;
-                            }
-                        }
-                    }
+        for guest in &all_guests {
+            let confirmed = !guest.attending_locations.is_empty();
+
+            if confirmed {
+                total_confirmed += 1;
+            }
+
+            for loc in &guest.attending_locations {
+                match loc.as_str() {
+                    "sardinia" => sardinia_guests += 1,
+                    "tunisia" => tunisia_guests += 1,
+                    "nice" => nice_guests += 1,
+                    _ => {}
                 }
-                Err(e) => {
-                    web_sys::console::warn_1(
-                        &format!(
-                            "Failed to fetch dietary info for group {}: {}",
-                            guest_group.id, e
-                        )
-                        .into(),
-                    );
+            }
+
+            if confirmed {
+                if guest.dietary_preferences.vegetarian {
+                    vegetarian_count += 1;
+                }
+                if guest.dietary_preferences.vegan {
+                    vegan_count += 1;
+                }
+                if guest.dietary_preferences.halal {
+                    halal_count += 1;
+                }
+                if guest.dietary_preferences.no_pork {
+                    no_pork_count += 1;
+                }
+                if guest.dietary_preferences.gluten_free {
+                    gluten_free_count += 1;
+                }
+                if !guest.dietary_preferences.other.is_empty() {
+                    other_dietary_count += 1;
                 }
             }
         }
@@ -545,7 +488,7 @@ impl SupabaseAdminClient {
         Ok(AdminStats {
             total_guests,
             total_confirmed,
-            pending_rsvps: pending_guests,
+            pending_rsvps: total_guests - total_confirmed,
             sardinia_guests,
             tunisia_guests,
             nice_guests,

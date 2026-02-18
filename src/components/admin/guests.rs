@@ -43,8 +43,8 @@ pub fn GuestManagement() -> impl IntoView {
         })
     };
 
-    // Load guests on mount
-    create_effect(move |_| {
+    // Load guests on mount (fire once, not inside a reactive effect)
+    request_animation_frame(move || {
         load_guests.dispatch(());
     });
 

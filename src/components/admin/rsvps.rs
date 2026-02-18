@@ -64,8 +64,8 @@ pub fn RsvpManagement() -> impl IntoView {
         }
     });
 
-    // Load data on mount
-    create_effect(move |_| {
+    // Load data on mount (fire once, not inside a reactive effect)
+    request_animation_frame(move || {
         load_data.dispatch(());
     });
 
