@@ -61,14 +61,16 @@ pub fn guest_groups_to_csv(groups: &[GuestGroup]) -> String {
 ///
 /// `group_lookup` maps `guest_group_id` → group name.
 /// `group_invited_by_lookup` maps `guest_group_id` → invited_by list.
+/// `group_language_lookup` maps `guest_group_id` → default_language.
 pub fn guests_to_csv(
     guests: &[Guest],
     group_lookup: &std::collections::HashMap<String, String>,
     group_invited_by_lookup: &std::collections::HashMap<String, Vec<String>>,
+    group_language_lookup: &std::collections::HashMap<String, String>,
 ) -> String {
     let mut out = String::from(
         "id,guest_group_id,guest_group_name,name,attending_locations,age_category,\
-         vegetarian,vegan,halal,no_pork,gluten_free,other_dietary,invited_by\n",
+         vegetarian,vegan,halal,no_pork,gluten_free,other_dietary,invited_by,default_language\n",
     );
 
     for g in guests {
@@ -80,6 +82,10 @@ pub fn guests_to_csv(
             .get(&g.guest_group_id)
             .map(|v| v.join("; "))
             .unwrap_or_default();
+        let language = group_language_lookup
+            .get(&g.guest_group_id)
+            .map(|s| s.as_str())
+            .unwrap_or("");
         let locations = g.attending_locations.join("; ");
 
         out.push_str(&csv_escape(&g.id));
@@ -127,6 +133,8 @@ pub fn guests_to_csv(
         out.push_str(&csv_escape(&g.dietary_preferences.other));
         out.push(',');
         out.push_str(&csv_escape(&invited_by));
+        out.push(',');
+        out.push_str(&csv_escape(language));
         out.push('\n');
     }
 

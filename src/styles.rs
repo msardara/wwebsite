@@ -243,13 +243,13 @@ pub const PAGE_LAYOUT: &str = "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8";
 pub const ADMIN_CONTAINER: &str = "space-y-6";
 
 /// Common page header structure.
-pub const PAGE_HEADER_CONTAINER: &str = "flex items-center justify-between mb-6";
+pub const PAGE_HEADER_CONTAINER: &str = "flex flex-wrap items-center justify-between gap-2 mb-4";
 
 /// Common refresh button (used in admin pages) - uses inline style.
 pub const REFRESH_BUTTON: &str = "btn-primary-inline";
 
 /// Common search/filter section.
-pub const FILTER_SECTION: &str = "bg-white rounded-lg shadow-md p-4";
+pub const FILTER_SECTION: &str = "bg-white rounded-lg shadow-md p-3 sm:p-4";
 
 /// Common grid for filter inputs.
 pub const FILTER_GRID: &str = "grid grid-cols-1 md:grid-cols-3 gap-4";

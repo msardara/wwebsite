@@ -76,9 +76,17 @@ pub fn AdminDashboard() -> impl IntoView {
                     .iter()
                     .map(|g| (g.id.clone(), g.invited_by.clone()))
                     .collect();
+                let group_language_lookup: HashMap<String, String> = groups
+                    .iter()
+                    .map(|g| (g.id.clone(), g.default_language.clone()))
+                    .collect();
 
-                let csv =
-                    csv_export::guests_to_csv(&guests, &group_lookup, &group_invited_by_lookup);
+                let csv = csv_export::guests_to_csv(
+                    &guests,
+                    &group_lookup,
+                    &group_invited_by_lookup,
+                    &group_language_lookup,
+                );
                 if let Err(e) = csv_export::trigger_csv_download(&csv, "guests.csv") {
                     set_export_error.set(Some(format!("Download failed: {}", e)));
                 }
@@ -105,7 +113,7 @@ pub fn AdminDashboard() -> impl IntoView {
                 <h2 class=PAGE_HEADER>
                     "Dashboard"
                 </h2>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <button
                         on:click=move |_| export_guest_groups.dispatch(())
                         class=BUTTON_SECONDARY_INLINE

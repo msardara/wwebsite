@@ -83,7 +83,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Page Headers */
 @layer components {
   .page-header {
-    @apply text-3xl font-serif font-bold text-gray-900 mb-6;
+    @apply text-lg sm:text-2xl font-serif font-bold text-gray-900;
   }
   
   .section-title {
@@ -147,15 +147,15 @@ h1, h2, h3, h4, h5, h6 {
   
   /* Inline buttons (not full width) */
   .btn-primary-inline {
-    @apply bg-primary-400 hover:bg-primary-500 text-white font-light tracking-wide px-8 py-3 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-primary-400 hover:bg-primary-500 text-white font-light tracking-wide text-sm px-4 py-2 sm:px-6 sm:py-2.5 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
   }
-  
+
   .btn-secondary-inline {
-    @apply bg-secondary-600 hover:bg-secondary-700 text-white font-light tracking-wide px-8 py-3 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-secondary-600 hover:bg-secondary-700 text-white font-light tracking-wide text-sm px-4 py-2 sm:px-6 sm:py-2.5 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
   }
-  
+
   .btn-danger-inline {
-    @apply bg-red-500 hover:bg-red-600 text-white font-light tracking-wide px-8 py-3 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-red-500 hover:bg-red-600 text-white font-light tracking-wide text-sm px-4 py-2 sm:px-6 sm:py-2.5 rounded-full shadow-md hover:shadow-xl transform hover:scale-[1.03] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
   }
   
   /* Small buttons */

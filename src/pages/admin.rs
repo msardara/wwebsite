@@ -47,8 +47,8 @@ pub fn AdminPage() -> impl IntoView {
                             admin_context=admin_ctx
                         />
 
-                        <main class="flex-grow px-4 py-8">
-                            <div class="max-w-3xl mx-auto">
+                        <main class="flex-grow px-2 sm:px-4 py-4 sm:py-8">
+                            <div class="max-w-5xl mx-auto">
                                 {/* Tab Navigation */}
                                 <div class="bg-white rounded-lg shadow-md mb-6 p-2">
                                     <div class="flex flex-wrap gap-2">
