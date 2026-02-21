@@ -15,8 +15,11 @@ pub fn GuestManagement() -> impl IntoView {
     let (show_add_modal, set_show_add_modal) = create_signal(false);
     let (edit_guest, set_edit_guest) = create_signal::<Option<GuestGroup>>(None);
     let (search_query, set_search_query) = create_signal(String::new());
-    let (location_filter, set_location_filter) = create_signal::<Option<String>>(None);
+    let (loc_sardinia, set_loc_sardinia) = create_signal(false);
+    let (loc_tunisia, set_loc_tunisia) = create_signal(false);
+    let (loc_nice, set_loc_nice) = create_signal(false);
     let (invitation_filter, set_invitation_filter) = create_signal::<Option<bool>>(None);
+    let (invited_by_filter, set_invited_by_filter) = create_signal::<Option<String>>(None);
     let (expanded_guest, set_expanded_guest) = create_signal::<Option<String>>(None);
     let (guest_invitees, set_guest_invitees) = create_signal::<Vec<Guest>>(Vec::new());
     let (loading_invitees, set_loading_invitees) = create_signal(false);
@@ -52,14 +55,18 @@ pub fn GuestManagement() -> impl IntoView {
     // Filter guests based on search and location
     let filtered_guests = move || {
         let query = search_query.get().to_lowercase();
-        let loc_filter = location_filter.get();
+        let filter_sardinia = loc_sardinia.get();
+        let filter_tunisia = loc_tunisia.get();
+        let filter_nice = loc_nice.get();
         let inv_filter = invitation_filter.get();
+        let invited_filter = invited_by_filter.get();
 
         guests
             .get()
             .into_iter()
             .filter(|guest_with_count| {
                 let guest = &guest_with_count.guest_group;
+
                 let matches_search = query.is_empty()
                     || guest.name.to_lowercase().contains(&query)
                     || guest
@@ -68,14 +75,22 @@ pub fn GuestManagement() -> impl IntoView {
                         .is_some_and(|e| e.to_lowercase().contains(&query))
                     || guest.invitation_code.to_lowercase().contains(&query);
 
-                let matches_location = loc_filter
-                    .as_ref()
-                    .is_none_or(|loc| guest.locations.join(", ") == *loc);
+                // If no checkbox is ticked, show all; otherwise show groups that
+                // include at least one of the selected locations.
+                let any_loc_checked = filter_sardinia || filter_tunisia || filter_nice;
+                let matches_location = !any_loc_checked
+                    || (filter_sardinia && guest.locations.contains(&"sardinia".to_string()))
+                    || (filter_tunisia && guest.locations.contains(&"tunisia".to_string()))
+                    || (filter_nice && guest.locations.contains(&"nice".to_string()));
 
                 let matches_invitation =
                     inv_filter.is_none_or(|sent| guest.invitation_sent == sent);
 
-                matches_search && matches_location && matches_invitation
+                let matches_invited_by = invited_filter
+                    .as_ref()
+                    .is_none_or(|email| guest.invited_by.contains(email));
+
+                matches_search && matches_location && matches_invitation && matches_invited_by
             })
             .collect::<Vec<_>>()
     };
@@ -136,7 +151,7 @@ pub fn GuestManagement() -> impl IntoView {
 
             {/* Search and Filter */}
             <div class=FILTER_SECTION>
-                <div class=GRID_3_COLS>
+                <div class=GRID_4_COLS>
                     <div>
                         <label class=FORM_LABEL>
                             "Search"
@@ -153,18 +168,35 @@ pub fn GuestManagement() -> impl IntoView {
                         <label class=FORM_LABEL>
                             "Filter by Location"
                         </label>
-                        <select
-                            class=FORM_SELECT
-                            on:change=move |ev| {
-                                let value = event_target_value(&ev);
-                                set_location_filter.set(if value.is_empty() { None } else { Some(value) });
-                            }
-                        >
-                            <option value="">"All Locations"</option>
-                            <option value="sardinia">"Sardinia"</option>
-                            <option value="tunisia">"Tunisia"</option>
-                            <option value="both">"Both"</option>
-                        </select>
+                        <div class="flex flex-col gap-1 mt-1">
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    class="w-4 h-4 text-secondary-600 rounded"
+                                    prop:checked=move || loc_sardinia.get()
+                                    on:change=move |ev| set_loc_sardinia.set(event_target_checked(&ev))
+                                />
+                                "🇮🇹 Sardinia"
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    class="w-4 h-4 text-secondary-600 rounded"
+                                    prop:checked=move || loc_tunisia.get()
+                                    on:change=move |ev| set_loc_tunisia.set(event_target_checked(&ev))
+                                />
+                                "🇹🇳 Tunisia"
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    class="w-4 h-4 text-secondary-600 rounded"
+                                    prop:checked=move || loc_nice.get()
+                                    on:change=move |ev| set_loc_nice.set(event_target_checked(&ev))
+                                />
+                                "🇫🇷 Nice"
+                            </label>
+                        </div>
                     </div>
                     <div>
                         <label class=FORM_LABEL>
@@ -184,6 +216,22 @@ pub fn GuestManagement() -> impl IntoView {
                             <option value="">"All"</option>
                             <option value="sent">"Sent"</option>
                             <option value="not_sent">"Not Sent"</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class=FORM_LABEL>
+                            "Filter by Invited By"
+                        </label>
+                        <select
+                            class=FORM_SELECT
+                            on:change=move |ev| {
+                                let value = event_target_value(&ev);
+                                set_invited_by_filter.set(if value.is_empty() { None } else { Some(value) });
+                            }
+                        >
+                            <option value="">"All"</option>
+                            <option value="mauro.sardara@gmail.com">"Mauro"</option>
+                            <option value="munaamamu0@gmail.com">"Muna"</option>
                         </select>
                     </div>
                 </div>
@@ -226,173 +274,152 @@ pub fn GuestManagement() -> impl IntoView {
                                     let (invitation_sent, set_invitation_sent) = create_signal(guest.invitation_sent);
 
                                     view! {
-                                        <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 overflow-hidden">
+                                        <div class="bg-white rounded-lg shadow hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden">
                                             {/* Card Content */}
-                                            <div class="p-6">
-                                                <div class="flex items-start gap-8">
+                                            <div class="px-4 py-3">
+                                                <div class="flex items-center gap-3">
                                                     {/* Expand Button */}
                                                     <button
                                                         on:click={
                                                             let guest_id = guest_id.clone();
                                                             move |_| toggle_guest.with_value(|f| f(guest_id.clone()))
                                                         }
-                                                        class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-br from-secondary-500 to-secondary-700 hover:from-secondary-600 hover:to-secondary-800 transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl"
+                                                        class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-secondary-100 hover:bg-secondary-200 text-secondary-700 transition-all text-xs font-bold"
                                                         title="Click to view guest list"
                                                     >
                                                         {move || if expanded_guest.get().as_ref() == Some(&guest_id_for_expand) { "▼" } else { "▶" }}
                                                     </button>
 
-                                                    {/* Main Content */}
-                                                    <div class="flex-1">
-                                                        {/* Top Row - Name and Actions */}
-                                                        <div class="flex items-start justify-between gap-4 mb-6">
-                                                            {/* Name & Email */}
-                                                            <div>
-                                                                <h3 class="text-2xl font-bold text-gray-900">{guest.name.clone()}</h3>
-                                                                <p class="text-lg font-semibold text-gray-700">
-                                                                    {guest.email.clone().unwrap_or_else(|| "No email".to_string())}
-                                                                </p>
-                                                            </div>
+                                                    {/* Name & Email */}
+                                                    <div class="flex-1 min-w-0">
+                                                        <h3 class="text-sm font-bold text-gray-900 truncate">{guest.name.clone()}</h3>
+                                                        <p class="text-xs text-gray-500 truncate">
+                                                            {guest.email.clone().unwrap_or_else(|| "No email".to_string())}
+                                                        </p>
+                                                    </div>
 
-                                                            {/* Actions */}
-                                                            <div class="flex items-center gap-3">
-                                                                <button
-                                                                    on:click=move |_| set_edit_guest.set(Some(guest_for_edit.clone()))
-                                                                    class=BUTTON_PRIMARY_INLINE
-                                                                >
-                                                                    "✏️ Edit"
-                                                                </button>
+                                                    {/* Meta chips */}
+                                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                                        {/* Invitation code */}
+                                                        {
+                                                            let (copied, set_copied) = create_signal(false);
+                                                            let code_for_display = guest.invitation_code.chars().take(8).collect::<String>();
+                                                            view! {
                                                                 <button
                                                                     on:click={
+                                                                        let code = guest.invitation_code.clone();
                                                                         move |_| {
-                                                                            let confirmed = window().confirm_with_message("Are you sure you want to delete this guest group?").unwrap_or(false);
-                                                                            if confirmed {
-                                                                                let guest_id = guest_id_for_delete.clone();
-                                                                                spawn_local(async move {
-                                                                                    match admin_context.authenticated_client().delete_guest_group(&guest_id).await {
-                                                                                        Ok(_) => {
-                                                                                            load_guests.dispatch(());
-                                                                                        }
-                                                                                        Err(e) => {
-                                                                                            set_error.set(Some(format!("Failed to delete guest group: {}", e)));
-                                                                                        }
-                                                                                    }
-                                                                                });
+                                                                            let win = window();
+                                                                            if let Ok(origin) = win.location().origin() {
+                                                                                let invitation_url = format!("{}/invitation?code={}", origin, code);
+                                                                                let clipboard = win.navigator().clipboard();
+                                                                                let _ = clipboard.write_text(&invitation_url);
+                                                                                set_copied.set(true);
+                                                                                set_timeout(move || set_copied.set(false), std::time::Duration::from_secs(2));
                                                                             }
                                                                         }
                                                                     }
-                                                                    class=BUTTON_DANGER_INLINE
+                                                                    class=move || if copied.get() {
+                                                                        "px-2 py-1 bg-green-100 text-green-800 text-xs font-mono font-semibold rounded border border-green-300 cursor-pointer transition-all"
+                                                                    } else {
+                                                                        "px-2 py-1 bg-gray-100 text-gray-600 text-xs font-mono font-semibold rounded border border-gray-200 hover:bg-primary-50 hover:border-primary-300 cursor-pointer transition-all"
+                                                                    }
+                                                                    title="Click to copy invitation link"
                                                                 >
-                                                                    "🗑️"
+                                                                    {move || if copied.get() { "✓ Copied".to_string() } else { format!("{}…", code_for_display) }}
                                                                 </button>
-                                                            </div>
-                                                        </div>
+                                                            }
+                                                        }
 
-                                                        {/* Bottom Row - Details Flex */}
-                                                        <div class="flex items-start gap-8">
-                                                            {/* Invitation Code */}
-                                                            <div class="flex-1">
-                                                                <div class="text-sm font-extrabold text-gray-900 uppercase mb-2">"INVITATION CODE"</div>
-                                                                {
-                                                                    let (copied, set_copied) = create_signal(false);
-                                                                    let code_for_display = guest.invitation_code.clone();
+                                                        {/* Party size */}
+                                                        <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded border border-blue-200" title="Party size">
+                                                            {"👥 "}{guest_count}
+                                                        </span>
 
-                                                                    view! {
-                                                                        <button
-                                                                            on:click={
-                                                                                let code = guest.invitation_code.clone();
-                                                                                move |_| {
-                                                                                    let win = window();
-                                                                                    if let Ok(origin) = win.location().origin() {
-                                                                                        let invitation_url = format!("{}/invitation?code={}", origin, code);
+                                                        {/* Location */}
+                                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded border border-gray-200">
+                                                            {guest.locations.iter().map(|l| match l.as_str() {
+                                                                "sardinia" => "🇮🇹",
+                                                                "tunisia"  => "🇹🇳",
+                                                                "nice"     => "🇫🇷",
+                                                                _          => "📍",
+                                                            }).collect::<Vec<_>>().join(" ")}
+                                                        </span>
 
-                                                                                        // Use web-sys Clipboard API
-                                                                                        let clipboard = win.navigator().clipboard();
-                                                                                        let _ = clipboard.write_text(&invitation_url);
+                                                        {/* Invited by */}
+                                                        <span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs font-semibold rounded border border-purple-200">
+                                                            {
+                                                                let labels: Vec<&str> = guest.invited_by.iter().map(|e| match e.as_str() {
+                                                                    "mauro.sardara@gmail.com" => "Mauro",
+                                                                    "munaamamu0@gmail.com" => "Muna",
+                                                                    other => other,
+                                                                }).collect();
+                                                                if labels.is_empty() { "—".to_string() } else { labels.join(", ") }
+                                                            }
+                                                        </span>
 
-                                                                                        // Show visual feedback
-                                                                                        set_copied.set(true);
-                                                                                        set_timeout(move || {
-                                                                                            set_copied.set(false);
-                                                                                        }, std::time::Duration::from_secs(2));
-                                                                                    }
-                                                                                }
+                                                        {/* Invitation sent toggle */}
+                                                        <button
+                                                            on:click={
+                                                                let guest_id = guest_id_for_invite.clone();
+                                                                move |_| {
+                                                                    let guest_id = guest_id.clone();
+                                                                    let new_value = !invitation_sent.get_untracked();
+                                                                    set_invitation_sent.set(new_value);
+                                                                    spawn_local(async move {
+                                                                        let update = GuestGroupUpdate {
+                                                                            name: None,
+                                                                            email: None,
+                                                                            party_size: None,
+                                                                            locations: None,
+                                                                            default_language: None,
+                                                                            additional_notes: None,
+                                                                            invitation_sent: Some(new_value),
+                                                                            invited_by: None,
+                                                                        };
+                                                                        if let Err(e) = admin_context.authenticated_client().update_guest_group(&guest_id, &update).await {
+                                                                            set_invitation_sent.set(!new_value);
+                                                                            set_error.set(Some(format!("Failed to update invitation status: {}", e)));
+                                                                        }
+                                                                    });
+                                                                }
+                                                            }
+                                                            class=move || if invitation_sent.get() {
+                                                                "px-2 py-1 text-xs font-semibold rounded border bg-green-100 text-green-700 border-green-300 hover:bg-green-200 cursor-pointer transition-all"
+                                                            } else {
+                                                                "px-2 py-1 text-xs font-semibold rounded border bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200 cursor-pointer transition-all"
+                                                            }
+                                                            title="Click to toggle invitation status"
+                                                        >
+                                                            {move || if invitation_sent.get() { "✉️ Sent" } else { "✉️ —" }}
+                                                        </button>
+
+                                                        {/* Actions */}
+                                                        <button
+                                                            on:click=move |_| set_edit_guest.set(Some(guest_for_edit.clone()))
+                                                            class="px-2 py-1 text-xs font-semibold rounded border bg-primary-50 text-primary-700 border-primary-200 hover:bg-primary-100 transition-all"
+                                                        >
+                                                            "✏️"
+                                                        </button>
+                                                        <button
+                                                            on:click={
+                                                                move |_| {
+                                                                    let confirmed = window().confirm_with_message("Are you sure you want to delete this guest group?").unwrap_or(false);
+                                                                    if confirmed {
+                                                                        let guest_id = guest_id_for_delete.clone();
+                                                                        spawn_local(async move {
+                                                                            match admin_context.authenticated_client().delete_guest_group(&guest_id).await {
+                                                                                Ok(_) => load_guests.dispatch(()),
+                                                                                Err(e) => set_error.set(Some(format!("Failed to delete guest group: {}", e))),
                                                                             }
-                                                                            class=move || {
-                                                                                if copied.get() {
-                                                                                    "px-5 py-3 bg-green-100 text-green-900 text-xl font-mono font-bold rounded-lg shadow-lg border-2 border-green-400 transition-all cursor-pointer inline-block w-[220px] text-center"
-                                                                                } else {
-                                                                                    "px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg border-2 border-gray-300 hover:bg-primary-100 hover:border-primary-400 transition-all cursor-pointer inline-block w-[220px] text-center"
-                                                                                }
-                                                                            }
-                                                                            title="Click to copy invitation link"
-                                                                        >
-                                                                            {move || if copied.get() {
-                                                                                "✓Copied!".to_string()
-                                                                            } else {
-                                                                                code_for_display.clone()
-                                                                            }}
-                                                                        </button>
+                                                                        });
                                                                     }
                                                                 }
-                                                            </div>
-
-                                                            {/* Party Size */}
-                                                            <div class="flex-1">
-                                                                <div class="text-sm font-extrabold text-gray-900 uppercase mb-2">"PARTY SIZE"</div>
-                                                                <div class="px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg inline-block border-2 border-gray-300">
-                                                                    {guest_count}
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Location */}
-                                                            <div class="flex-1">
-                                                                <div class="text-sm font-extrabold text-gray-900 uppercase mb-2">"LOCATION"</div>
-                                                                <div class="px-5 py-3 bg-gray-100 text-gray-900 text-xl font-mono font-bold rounded-lg shadow-lg inline-block border-2 border-gray-300">
-                                                                    {guest.locations.join(", ")}
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Invitation Status */}
-                                                            <div class="flex-1">
-                                                                <div class="text-sm font-extrabold text-gray-900 uppercase mb-2">"INVITATION"</div>
-                                                                <button
-                                                                    on:click={
-                                                                        let guest_id = guest_id_for_invite.clone();
-                                                                        move |_| {
-                                                                            let guest_id = guest_id.clone();
-                                                                            let new_value = !invitation_sent.get_untracked();
-                                                                            set_invitation_sent.set(new_value);
-                                                                            spawn_local(async move {
-                                                                                let update = GuestGroupUpdate {
-                                                                                    name: None,
-                                                                                    email: None,
-                                                                                    party_size: None,
-                                                                                    locations: None,
-                                                                                    default_language: None,
-                                                                                    additional_notes: None,
-                                                                                    invitation_sent: Some(new_value),
-                                                                                };
-                                                                                if let Err(e) = admin_context.authenticated_client().update_guest_group(&guest_id, &update).await {
-                                                                                    set_invitation_sent.set(!new_value);
-                                                                                    set_error.set(Some(format!("Failed to update invitation status: {}", e)));
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    }
-                                                                    class=move || {
-                                                                        if invitation_sent.get() {
-                                                                            "px-5 py-3 text-xl font-bold rounded-lg shadow-lg inline-block border-2 bg-green-100 text-green-800 border-green-400 hover:bg-green-200 transition-all cursor-pointer"
-                                                                        } else {
-                                                                            "px-5 py-3 text-xl font-bold rounded-lg shadow-lg inline-block border-2 bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200 transition-all cursor-pointer"
-                                                                        }
-                                                                    }
-                                                                    title="Click to toggle invitation status"
-                                                                >
-                                                                    {move || if invitation_sent.get() { "Sent" } else { "Not Sent" }}
-                                                                </button>
-                                                            </div>
-                                                        </div>
+                                                            }
+                                                            class="px-2 py-1 text-xs font-semibold rounded border bg-red-50 text-red-600 border-red-200 hover:bg-red-100 transition-all"
+                                                        >
+                                                            "🗑️"
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -401,19 +428,14 @@ pub fn GuestManagement() -> impl IntoView {
                                             {move || if expanded_guest.get().as_ref() == Some(&guest_id_for_expand2) {
                                                 let guest_notes = guest.additional_notes.clone();
                                                 view! {
-                                                    <div class="bg-gradient-to-br from-secondary-50 to-secondary-100 border-t-2 border-secondary-200 p-6">
-                                                        {/* Additional Notes Section */}
+                                                    <div class="bg-gray-50 border-t border-gray-200 px-4 py-3">
+                                                        {/* Additional Notes */}
                                                         {guest_notes.as_ref().and_then(|notes| {
                                                             if !notes.trim().is_empty() {
                                                                 Some(view! {
-                                                                    <div class="bg-amber-50 rounded-xl shadow-lg p-5 mb-6 border-2 border-amber-200">
-                                                                        <div class="flex items-start gap-3">
-                                                                            <span class="flex-shrink-0 text-2xl">"📝"</span>
-                                                                            <div class="flex-1">
-                                                                                <h5 class="text-sm font-bold text-amber-900 uppercase tracking-wide mb-2">"Additional Notes"</h5>
-                                                                                <p class="text-sm text-amber-900 whitespace-pre-wrap leading-relaxed">{notes.clone()}</p>
-                                                                            </div>
-                                                                        </div>
+                                                                    <div class="flex items-start gap-2 mb-3 bg-amber-50 border border-amber-200 rounded p-2">
+                                                                        <span class="text-sm flex-shrink-0">"📝"</span>
+                                                                        <p class="text-xs text-amber-800 whitespace-pre-wrap">{notes.clone()}</p>
                                                                     </div>
                                                                 })
                                                             } else {
@@ -421,103 +443,75 @@ pub fn GuestManagement() -> impl IntoView {
                                                             }
                                                         })}
 
-                                                        <div class="bg-white rounded-xl shadow-lg p-6 border-2 border-secondary-200">
-                                                            <h4 class="text-lg font-bold text-secondary-800 mb-5 flex items-center gap-3 pb-4 border-b-2 border-secondary-200">
-                                                                <span class="text-2xl">"👥"</span>
-                                                                <span>"Guest List"</span>
-                                                            </h4>
-                                                            {move || if loading_invitees.get() {
+                                                        {move || if loading_invitees.get() {
+                                                            view! {
+                                                                <div class="flex items-center gap-2 py-2 text-gray-500">
+                                                                    <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-secondary-600"></div>
+                                                                    <span class="text-xs">"Loading..."</span>
+                                                                </div>
+                                                            }.into_view()
+                                                        } else {
+                                                            let invitees_list = guest_invitees.get();
+                                                            if invitees_list.is_empty() {
                                                                 view! {
-                                                                    <div class="flex items-center justify-center gap-3 py-8 text-gray-500">
-                                                                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-secondary-600"></div>
-                                                                        <span class="text-sm font-medium">"Loading guests..."</span>
-                                                                    </div>
+                                                                    <p class="text-xs text-gray-400 italic py-2">"No guests added yet"</p>
                                                                 }.into_view()
                                                             } else {
-                                                                let invitees_list = guest_invitees.get();
-                                                                if invitees_list.is_empty() {
-                                                                    view! {
-                                                                        <div class="text-center py-8">
-                                                                            <p class="text-gray-500 text-sm italic">"No guests have been added to this group yet"</p>
-                                                                        </div>
-                                                                    }.into_view()
-                                                                } else {
-                                                                    view! {
-                                                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                                            {invitees_list.into_iter().map(|invitee| {
-                                                                                let has_dietary = invitee.dietary_preferences.has_any();
-                                                                                let dietary_badges = invitee.dietary_preferences.as_badges();
-                                                                                let other_badge = invitee.dietary_preferences.other_badge();
+                                                                view! {
+                                                                    <div class="flex flex-wrap gap-2">
+                                                                        {invitees_list.into_iter().map(|invitee| {
+                                                                            let has_dietary = invitee.dietary_preferences.has_any();
+                                                                            let dietary_badges = invitee.dietary_preferences.as_badges();
+                                                                            let other_badge = invitee.dietary_preferences.other_badge();
+                                                                            let attending_locs = invitee.attending_locations.clone();
+                                                                            let has_attending = !attending_locs.is_empty();
+                                                                            let age_display = invitee.age_category.display_name().to_string();
 
-                                                                                let attending_locs = invitee.attending_locations.clone();
-                                                                                let has_attending = !attending_locs.is_empty();
-                                                                                let age_display = invitee.age_category.display_name().to_string();
-
-                                                                                view! {
-                                                                                    <div class="bg-white rounded-lg border-2 border-secondary-200 p-4 hover:shadow-lg transition-all duration-200">
-                                                                                        <div class="flex flex-col gap-3">
-                                                                                            {/* Guest Name */}
-                                                                                            <div class="flex items-center gap-2">
-                                                                                                <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-secondary-500 to-secondary-700 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md">
-                                                                                                    {invitee.name.chars().next().unwrap_or('?').to_uppercase().to_string()}
-                                                                                                </div>
-                                                                                                <div class="flex-1">
-                                                                                                    <p class="text-base font-bold text-gray-900">{invitee.name}</p>
-                                                                                                    <p class="text-xs text-gray-500">
-                                                                                                        {age_display}
-                                                                                                    </p>
-                                                                                                </div>
-                                                                                            </div>
-
-                                                                                            {/* Attending Locations */}
-                                                                                            <div class="border-t border-gray-100 pt-2">
-                                                                                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">"Attending"</p>
-                                                                                                {if has_attending {
-                                                                                                    view! {
-                                                                                                        <div class="flex flex-wrap gap-1.5">
-                                                                                                            {attending_locs.iter().filter_map(|loc| {
-                                                                                                                Location::from_str(loc).map(|l| view! { <LocationBadge location=l /> })
-                                                                                                            }).collect::<Vec<_>>()}
-                                                                                                        </div>
-                                                                                                    }.into_view()
-                                                                                                } else {
-                                                                                                    view! {
-                                                                                                        <p class="text-xs text-gray-400 italic">"Not confirmed yet"</p>
-                                                                                                    }.into_view()
-                                                                                                }}
-                                                                                            </div>
-
-                                                                                            {/* Dietary Preferences */}
-                                                                                            <div class="border-t border-gray-100 pt-2">
-                                                                                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">"Dietary Preferences"</p>
-                                                                                                {if has_dietary {
-                                                                                                    view! {
-                                                                                                        <div class="flex flex-wrap gap-1.5">
-                                                                                                            {dietary_badges.iter().map(|(label, css)| {
-                                                                                                                view! {
-                                                                                                                    <span class={format!("px-2 py-1 text-xs font-semibold rounded-full border {}", css)}>{*label}</span>
-                                                                                                                }
-                                                                                                            }).collect::<Vec<_>>()}
-                                                                                                            {other_badge.map(|(label, css)| view! {
-                                                                                                                <span class={format!("px-2 py-1 text-xs font-semibold rounded-full border {}", css)}>{label}</span>
-                                                                                                            })}
-                                                                                                        </div>
-                                                                                                    }.into_view()
-                                                                                                } else {
-                                                                                                    view! {
-                                                                                                        <p class="text-xs text-gray-400 italic">"None specified"</p>
-                                                                                                    }.into_view()
-                                                                                                }}
-                                                                                            </div>
+                                                                            view! {
+                                                                                <div class="bg-white rounded border border-gray-200 px-3 py-2 flex flex-col gap-1 min-w-[140px]">
+                                                                                    <div class="flex items-center gap-1.5">
+                                                                                        <div class="w-5 h-5 bg-secondary-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                                                                            {invitee.name.chars().next().unwrap_or('?').to_uppercase().to_string()}
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <p class="text-xs font-semibold text-gray-900 leading-tight">{invitee.name}</p>
+                                                                                            <p class="text-xs text-gray-400 leading-tight">{age_display}</p>
                                                                                         </div>
                                                                                     </div>
-                                                                                }
-                                                                            }).collect::<Vec<_>>()}
-                                                                        </div>
-                                                                    }.into_view()
-                                                                }
-                                                            }}
-                                                        </div>
+                                                                                    {if has_attending {
+                                                                                        view! {
+                                                                                            <div class="flex flex-wrap gap-1">
+                                                                                                {attending_locs.iter().filter_map(|loc| {
+                                                                                                    Location::from_str(loc).map(|l| view! { <LocationBadge location=l /> })
+                                                                                                }).collect::<Vec<_>>()}
+                                                                                            </div>
+                                                                                        }.into_view()
+                                                                                    } else {
+                                                                                        view! {
+                                                                                            <p class="text-xs text-gray-300 italic">"Not confirmed"</p>
+                                                                                        }.into_view()
+                                                                                    }}
+                                                                                    {if has_dietary {
+                                                                                        view! {
+                                                                                            <div class="flex flex-wrap gap-1">
+                                                                                                {dietary_badges.iter().map(|(label, css)| view! {
+                                                                                                    <span class={format!("px-1.5 py-0.5 text-xs font-semibold rounded-full border {}", css)}>{*label}</span>
+                                                                                                }).collect::<Vec<_>>()}
+                                                                                                {other_badge.map(|(label, css)| view! {
+                                                                                                    <span class={format!("px-1.5 py-0.5 text-xs font-semibold rounded-full border {}", css)}>{label}</span>
+                                                                                                })}
+                                                                                            </div>
+                                                                                        }.into_view()
+                                                                                    } else {
+                                                                                        ().into_view()
+                                                                                    }}
+                                                                                </div>
+                                                                            }
+                                                                        }).collect::<Vec<_>>()}
+                                                                    </div>
+                                                                }.into_view()
+                                                            }
+                                                        }}
                                                     </div>
                                                 }.into_view()
                                             } else {

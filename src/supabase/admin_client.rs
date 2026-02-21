@@ -215,6 +215,8 @@ impl SupabaseAdminClient {
             default_language: String,
             #[serde(default)]
             invitation_sent: bool,
+            #[serde(default)]
+            invited_by: Vec<String>,
             created_at: Option<String>,
             updated_at: Option<String>,
             guests: Vec<GuestCountInfo>,
@@ -240,6 +242,7 @@ impl SupabaseAdminClient {
                         default_language: raw.default_language,
                         additional_notes: None,
                         invitation_sent: raw.invitation_sent,
+                        invited_by: raw.invited_by,
                         created_at: raw.created_at.and_then(|s| {
                             DateTime::parse_from_rfc3339(&s)
                                 .ok()

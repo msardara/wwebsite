@@ -23,13 +23,14 @@ fn csv_escape(value: &str) -> String {
 /// Build a CSV string for guest groups.
 pub fn guest_groups_to_csv(groups: &[GuestGroup]) -> String {
     let mut out = String::from(
-        "id,name,email,invitation_code,party_size,locations,default_language,additional_notes,invitation_sent\n",
+        "id,name,email,invitation_code,party_size,locations,default_language,additional_notes,invitation_sent,invited_by\n",
     );
 
     for g in groups {
         let email = g.email.as_deref().unwrap_or("");
         let locations = g.locations.join("; ");
         let notes = g.additional_notes.as_deref().unwrap_or("");
+        let invited_by = g.invited_by.join("; ");
 
         out.push_str(&csv_escape(&g.id));
         out.push(',');
@@ -48,6 +49,8 @@ pub fn guest_groups_to_csv(groups: &[GuestGroup]) -> String {
         out.push_str(&csv_escape(notes));
         out.push(',');
         out.push_str(if g.invitation_sent { "true" } else { "false" });
+        out.push(',');
+        out.push_str(&csv_escape(&invited_by));
         out.push('\n');
     }
 
@@ -56,15 +59,16 @@ pub fn guest_groups_to_csv(groups: &[GuestGroup]) -> String {
 
 /// Build a CSV string for guests.
 ///
-/// `group_lookup` maps `guest_group_id` → group name so the export is
-/// human-readable without having to cross-reference another file.
+/// `group_lookup` maps `guest_group_id` → group name.
+/// `group_invited_by_lookup` maps `guest_group_id` → invited_by list.
 pub fn guests_to_csv(
     guests: &[Guest],
     group_lookup: &std::collections::HashMap<String, String>,
+    group_invited_by_lookup: &std::collections::HashMap<String, Vec<String>>,
 ) -> String {
     let mut out = String::from(
         "id,guest_group_id,guest_group_name,name,attending_locations,age_category,\
-         vegetarian,vegan,halal,no_pork,gluten_free,other_dietary\n",
+         vegetarian,vegan,halal,no_pork,gluten_free,other_dietary,invited_by\n",
     );
 
     for g in guests {
@@ -72,6 +76,10 @@ pub fn guests_to_csv(
             .get(&g.guest_group_id)
             .map(|s| s.as_str())
             .unwrap_or("Unknown");
+        let invited_by = group_invited_by_lookup
+            .get(&g.guest_group_id)
+            .map(|v| v.join("; "))
+            .unwrap_or_default();
         let locations = g.attending_locations.join("; ");
 
         out.push_str(&csv_escape(&g.id));
@@ -117,6 +125,8 @@ pub fn guests_to_csv(
         });
         out.push(',');
         out.push_str(&csv_escape(&g.dietary_preferences.other));
+        out.push(',');
+        out.push_str(&csv_escape(&invited_by));
         out.push('\n');
     }
 

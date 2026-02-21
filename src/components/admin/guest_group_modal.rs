@@ -63,6 +63,15 @@ pub fn GuestgroupModal(
     let (nice_selected, set_nice_selected) =
         create_signal(initial_locations.contains(&"nice".to_string()));
 
+    let initial_invited_by = guest
+        .as_ref()
+        .map(|g| g.invited_by.clone())
+        .unwrap_or_default();
+    let (mauro_selected, set_mauro_selected) =
+        create_signal(initial_invited_by.contains(&"mauro.sardara@gmail.com".to_string()));
+    let (muna_selected, set_muna_selected) =
+        create_signal(initial_invited_by.contains(&"munaamamu0@gmail.com".to_string()));
+
     let (default_language, set_default_language) = create_signal(
         guest
             .as_ref()
@@ -85,6 +94,17 @@ pub fn GuestgroupModal(
             locs.push("sardinia".to_string()); // Default
         }
         locs
+    };
+
+    let get_invited_by_value = move || -> Vec<String> {
+        let mut admins = Vec::new();
+        if mauro_selected.get() {
+            admins.push("mauro.sardara@gmail.com".to_string());
+        }
+        if muna_selected.get() {
+            admins.push("munaamamu0@gmail.com".to_string());
+        }
+        admins
     };
 
     let language_select_ref = create_node_ref::<html::Select>();
@@ -229,6 +249,7 @@ pub fn GuestgroupModal(
                         default_language: Some(default_language.get()),
                         additional_notes: None,
                         invitation_sent: None,
+                        invited_by: Some(get_invited_by_value()),
                     };
 
                     // Update guest group
@@ -297,6 +318,7 @@ pub fn GuestgroupModal(
                         locations: get_locations_value(),
                         default_language: default_language.get(),
                         additional_notes: None,
+                        invited_by: get_invited_by_value(),
                     };
 
                     // Create the guest group
@@ -581,6 +603,35 @@ pub fn GuestgroupModal(
                                         on:change=move |ev| set_nice_selected.set(event_target_checked(&ev))
                                     />
                                     <span class="font-semibold text-gray-800">"🇫🇷 Nice"</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                "Invited By"
+                            </label>
+                            <p class="text-xs text-gray-600 mb-3">"Which admin(s) invited this group:"</p>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 hover:border-secondary-500 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        class="w-5 h-5 text-secondary-600 rounded focus:ring-2 focus:ring-secondary-500"
+                                        prop:checked=move || mauro_selected.get()
+                                        on:change=move |ev| set_mauro_selected.set(event_target_checked(&ev))
+                                    />
+                                    <span class="font-semibold text-gray-800">"Mauro"</span>
+                                    <span class="text-xs text-gray-500">"(mauro.sardara@gmail.com)"</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 hover:border-secondary-500 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        class="w-5 h-5 text-secondary-600 rounded focus:ring-2 focus:ring-secondary-500"
+                                        prop:checked=move || muna_selected.get()
+                                        on:change=move |ev| set_muna_selected.set(event_target_checked(&ev))
+                                    />
+                                    <span class="font-semibold text-gray-800">"Muna"</span>
+                                    <span class="text-xs text-gray-500">"(munaamamu0@gmail.com)"</span>
                                 </label>
                             </div>
                         </div>

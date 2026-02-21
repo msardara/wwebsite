@@ -72,8 +72,13 @@ pub fn AdminDashboard() -> impl IntoView {
                     .iter()
                     .map(|g| (g.id.clone(), g.name.clone()))
                     .collect();
+                let group_invited_by_lookup: HashMap<String, Vec<String>> = groups
+                    .iter()
+                    .map(|g| (g.id.clone(), g.invited_by.clone()))
+                    .collect();
 
-                let csv = csv_export::guests_to_csv(&guests, &group_lookup);
+                let csv =
+                    csv_export::guests_to_csv(&guests, &group_lookup, &group_invited_by_lookup);
                 if let Err(e) = csv_export::trigger_csv_download(&csv, "guests.csv") {
                     set_export_error.set(Some(format!("Download failed: {}", e)));
                 }
