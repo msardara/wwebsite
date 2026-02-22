@@ -107,20 +107,12 @@ fn RsvpManager(
                         }
                     }
                 }
-                // Build location map from guest attending_locations arrays
+                // Build location map from guest attending_locations arrays.
+                // Use DB values directly — empty means the guest explicitly declined.
                 let mut guest_loc_map: HashMap<String, HashSet<String>> = HashMap::new();
                 for guest in &invitees_list {
                     let locs: HashSet<String> = guest.attending_locations.iter().cloned().collect();
-                    // If guest has no locations, auto-select all available locations
-                    if locs.is_empty() {
-                        let mut auto_locs = HashSet::new();
-                        for loc in available_locations.get_untracked() {
-                            auto_locs.insert(loc.as_str().to_string());
-                        }
-                        guest_loc_map.insert(guest.id.clone(), auto_locs);
-                    } else {
-                        guest_loc_map.insert(guest.id.clone(), locs);
-                    }
+                    guest_loc_map.insert(guest.id.clone(), locs);
                 }
 
                 set_guests.set(invitees_list.clone());
@@ -138,17 +130,6 @@ fn RsvpManager(
                                 guest_loc_map.entry(guest_id).or_default().extend(locs);
                             }
                         }
-                    }
-                }
-
-                // If no saved state and guests exist, select all locations for all guests by default
-                if guest_loc_map.is_empty() && !invitees_list.is_empty() {
-                    for guest in &invitees_list {
-                        let mut locs = HashSet::new();
-                        for loc in available_locations.get_untracked() {
-                            locs.insert(loc.as_str().to_string());
-                        }
-                        guest_loc_map.insert(guest.id.clone(), locs);
                     }
                 }
 
