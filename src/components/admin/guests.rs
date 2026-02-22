@@ -104,6 +104,13 @@ pub fn GuestManagement() -> impl IntoView {
             .map(|g| (g.guest_group.id.clone(), g.guest_group.invitation_sent))
             .collect::<std::collections::HashMap<_, _>>()
     };
+    let group_rsvp_submitted_lookup = move || {
+        guests
+            .get()
+            .into_iter()
+            .map(|g| (g.guest_group.id.clone(), g.guest_group.rsvp_submitted))
+            .collect::<std::collections::HashMap<_, _>>()
+    };
 
     // Sort state for All Guests tab
     let (sort_col, set_sort_col) = create_signal("name");
@@ -512,6 +519,15 @@ pub fn GuestManagement() -> impl IntoView {
                                                     >
                                                         {move || if invitation_sent.get() { "✉️ Sent" } else { "✉️ —" }}
                                                     </button>
+
+                                                    {/* RSVP status (read-only) */}
+                                                    <span class=move || if guest.rsvp_submitted {
+                                                        "px-2 py-0.5 text-xs font-semibold rounded border bg-green-100 text-green-700 border-green-300"
+                                                    } else {
+                                                        "px-2 py-0.5 text-xs font-semibold rounded border bg-amber-50 text-amber-600 border-amber-200"
+                                                    }>
+                                                        {if guest.rsvp_submitted { "✓ Responded" } else { "⏳ Pending" }}
+                                                    </span>
                                                 </div>
                                             </div>
 
@@ -766,6 +782,7 @@ pub fn GuestManagement() -> impl IntoView {
                         let inv_by_lookup  = group_invited_by_lookup();
                         let locs_lookup    = group_locations_lookup();
                         let inv_sent_lookup = group_invitation_sent_lookup();
+                        let rsvp_submitted_lookup = group_rsvp_submitted_lookup();
                         let query          = all_guests_search.get().to_lowercase();
                         let col            = sort_col.get();
                         let asc            = sort_asc.get();
@@ -877,6 +894,7 @@ pub fn GuestManagement() -> impl IntoView {
                                     let attending_locs = g.attending_locations.clone();
                                     let has_attending  = !attending_locs.is_empty();
                                     let age_display    = g.age_category.display_name().to_string();
+                                    let submitted      = rsvp_submitted_lookup.get(&g.guest_group_id).copied().unwrap_or(false);
 
                                     view! {
                                         <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
@@ -892,8 +910,10 @@ pub fn GuestManagement() -> impl IntoView {
                                                             }).collect::<Vec<_>>()}
                                                         </div>
                                                     }.into_view()
+                                                } else if submitted {
+                                                    view! { <span class="px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-red-50 text-red-500 border-red-200">"✗ Declined"</span> }.into_view()
                                                 } else {
-                                                    view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
+                                                    view! { <span class="px-1.5 py-0.5 text-xs font-semibold rounded-full border bg-amber-50 text-amber-500 border-amber-200">"⏳ Pending"</span> }.into_view()
                                                 }}
                                             </td>
                                             <td class="px-3 py-2">

@@ -293,24 +293,6 @@ fn RsvpManager(
         // Read location map once, before validation and spawn_local
         let current_location_map = guest_location_map.get_untracked();
 
-        // Validate that all guests have at least one location selected
-        let no_locations: Vec<_> = all_guests
-            .iter()
-            .filter(|g| {
-                current_location_map
-                    .get(&g.id)
-                    .map(|locs| locs.is_empty())
-                    .unwrap_or(true)
-            })
-            .collect();
-
-        if !no_locations.is_empty() {
-            set_saving.set(false);
-            set_error.set(Some("rsvp.error_no_locations".to_string()));
-            scroll_to_top();
-            return;
-        }
-
         let client = use_supabase_rpc();
         let group_id = guest_id_for_closures.get_value();
         let inv_code = guest.invitation_code.clone();
@@ -536,7 +518,8 @@ fn GuestCard(
         }
     };
 
-    let show_locations = available_locations.len() > 1;
+    let is_single_location = available_locations.len() == 1;
+    let show_locations = !available_locations.is_empty();
     let available_locations_stored = store_value(available_locations);
 
     view! {
@@ -562,48 +545,83 @@ fn GuestCard(
                     </button>
                 </div>
 
-                // Location selection (only show if multiple locations)
+                // Location selection
                 <Show when=move || show_locations>
                     <div class="bg-gradient-to-br from-primary-50/50 to-accent-50/50 p-4 rounded-lg border border-primary-200">
-                        <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.attending_label")}</p>
-                        <div class="flex flex-wrap gap-2">
-                            <For
-                                each=move || available_locations_stored.with_value(|v| v.clone())
-                                key=|loc| loc.as_str().to_string()
-                                children=move |location: Location| {
-                                    let loc_str = location.as_str().to_string();
-                                    let loc_str_for_click = loc_str.clone();
-                                    let guest_id_val = guest_id_for_locations.get_value();
+                        {if is_single_location {
+                            // Single location: plain yes/no, no location name shown
+                            let loc_str = available_locations_stored.with_value(|v| {
+                                v.first().map(|l| l.as_str().to_string()).unwrap_or_default()
+                            });
+                            let loc_str_for_click = loc_str.clone();
+                            let guest_id_val = guest_id_for_locations.get_value();
+                            let is_attending = move || {
+                                guest_location_map
+                                    .get()
+                                    .get(&guest_id_val)
+                                    .map(|locs| locs.contains(&loc_str))
+                                    .unwrap_or(false)
+                            };
+                            view! {
+                                <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.attending_single_label")}</p>
+                                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm w-fit">
+                                    <input
+                                        type="checkbox"
+                                        class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
+                                        prop:checked=is_attending
+                                        on:change=move |_| {
+                                            on_toggle_location.call((guest_id_for_locations.get_value(), loc_str_for_click.clone()))
+                                        }
+                                    />
+                                    <span class="text-sm font-light text-secondary-700">
+                                        {move || translations().t("rsvp.yes")}
+                                    </span>
+                                </label>
+                            }.into_view()
+                        } else {
+                            // Multiple locations: show each location as a chip
+                            view! {
+                                <p class="text-xs font-medium text-secondary-700 mb-3">{move || translations().t("rsvp.attending_label")}</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <For
+                                        each=move || available_locations_stored.with_value(|v| v.clone())
+                                        key=|loc| loc.as_str().to_string()
+                                        children=move |location: Location| {
+                                            let loc_str = location.as_str().to_string();
+                                            let loc_str_for_click = loc_str.clone();
+                                            let guest_id_val = guest_id_for_locations.get_value();
 
-                                    let is_selected = move || {
-                                        guest_location_map
-                                            .get()
-                                            .get(&guest_id_val)
-                                            .map(|locs| locs.contains(&loc_str))
-                                            .unwrap_or(false)
-                                    };
+                                            let is_selected = move || {
+                                                guest_location_map
+                                                    .get()
+                                                    .get(&guest_id_val)
+                                                    .map(|locs| locs.contains(&loc_str))
+                                                    .unwrap_or(false)
+                                            };
 
-                                    let i18n_key = format!("location.{}", location.as_str());
-                                    let flag = location.flag_emoji();
+                                            let i18n_key = format!("location.{}", location.as_str());
+                                            let flag = location.flag_emoji();
 
-                                    view! {
-                                        <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
-                                            <input
-                                                type="checkbox"
-                                                class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
-                                                prop:checked=is_selected
-                                                on:change=move |_| {
-                                                    on_toggle_location.call((guest_id_for_locations.get_value(), loc_str_for_click.clone()))
-                                                }
-                                            />
-                                            <span class="text-sm font-light text-secondary-700">
-                                                {flag} " " {move || translations().t(&i18n_key)}
-                                            </span>
-                                        </label>
-                                    }
-                                }
-                            />
-                        </div>
+                                            view! {
+                                                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-white hover:bg-primary-50 rounded-lg border border-primary-200 transition-all duration-200 hover:shadow-sm">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="w-4 h-4 text-secondary-600 rounded focus:ring-2 focus:ring-primary-400"
+                                                        prop:checked=is_selected
+                                                        on:change=move |_| {
+                                                            on_toggle_location.call((guest_id_for_locations.get_value(), loc_str_for_click.clone()))
+                                                        }
+                                                    />
+                                                    <span class="text-sm font-light text-secondary-700">
+                                                        {flag} " " {move || translations().t(&i18n_key)}
+                                                    </span>
+                                                </label>
+                                            }
+                                        }
+                                    />
+                                </div>
+                            }.into_view()
+                        }}
                     </div>
                 </Show>
 

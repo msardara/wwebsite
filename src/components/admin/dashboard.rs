@@ -175,9 +175,15 @@ pub fn AdminDashboard() -> impl IntoView {
                                 />
                                 <StatCard
                                     icon="⏳"
-                                    title="Pending Guests"
+                                    title="Pending (est.)"
                                     value=s.pending_rsvps
                                     color="yellow"
+                                />
+                                <StatCard
+                                    icon="✗"
+                                    title="Declined"
+                                    value=s.declined_guests
+                                    color="red"
                                 />
                                 <StatCard
                                     icon="👥"

@@ -20,6 +20,8 @@ pub struct GuestGroup {
     #[serde(default)]
     pub invitation_sent: bool,
     #[serde(default)]
+    pub rsvp_submitted: bool,
+    #[serde(default)]
     pub invited_by: Vec<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,

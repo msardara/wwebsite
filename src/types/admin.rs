@@ -10,8 +10,10 @@ pub struct AdminStats {
     pub total_guests: i32,
     /// Total number of guests who confirmed attendance (guests with location selections)
     pub total_confirmed: i32,
-    /// Total number of pending guests (guests with no location selections)
+    /// Groups that haven't submitted yet (sum of their party_size)
     pub pending_rsvps: i32,
+    /// Guests who submitted but selected no locations (declined)
+    pub declined_guests: i32,
     /// Total guests attending Sardinia
     pub sardinia_guests: i32,
     /// Total guests attending Tunisia

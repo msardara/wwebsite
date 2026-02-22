@@ -216,6 +216,8 @@ impl SupabaseAdminClient {
             #[serde(default)]
             invitation_sent: bool,
             #[serde(default)]
+            rsvp_submitted: bool,
+            #[serde(default)]
             invited_by: Vec<String>,
             created_at: Option<String>,
             updated_at: Option<String>,
@@ -242,6 +244,7 @@ impl SupabaseAdminClient {
                         default_language: raw.default_language,
                         additional_notes: None,
                         invitation_sent: raw.invitation_sent,
+                        rsvp_submitted: raw.rsvp_submitted,
                         invited_by: raw.invited_by,
                         created_at: raw.created_at.and_then(|s| {
                             DateTime::parse_from_rfc3339(&s)
@@ -442,7 +445,21 @@ impl SupabaseAdminClient {
         let total_guests = all_guests.len() as i32;
         let total_guest_groups = guest_groups.len() as i32;
 
+        // Build lookup: group_id -> rsvp_submitted
+        let rsvp_submitted_lookup: std::collections::HashMap<String, bool> = guest_groups
+            .iter()
+            .map(|g| (g.id.clone(), g.rsvp_submitted))
+            .collect();
+
+        // Pending = groups that haven't submitted yet; use party_size as estimate
+        let pending_rsvps: i32 = guest_groups
+            .iter()
+            .filter(|g| !g.rsvp_submitted)
+            .map(|g| g.party_size)
+            .sum();
+
         let mut total_confirmed = 0i32;
+        let mut declined_guests = 0i32;
         let mut sardinia_guests = 0i32;
         let mut tunisia_guests = 0i32;
         let mut nice_guests = 0i32;
@@ -455,9 +472,15 @@ impl SupabaseAdminClient {
 
         for guest in &all_guests {
             let confirmed = !guest.attending_locations.is_empty();
+            let submitted = rsvp_submitted_lookup
+                .get(&guest.guest_group_id)
+                .copied()
+                .unwrap_or(false);
 
             if confirmed {
                 total_confirmed += 1;
+            } else if submitted {
+                declined_guests += 1;
             }
 
             for loc in &guest.attending_locations {
@@ -494,7 +517,8 @@ impl SupabaseAdminClient {
         Ok(AdminStats {
             total_guests,
             total_confirmed,
-            pending_rsvps: total_guests - total_confirmed,
+            pending_rsvps,
+            declined_guests,
             sardinia_guests,
             tunisia_guests,
             nice_guests,

@@ -221,6 +221,7 @@ pub fn translations() -> HashMap<&'static str, &'static str> {
         "Any special requests or messages?",
     );
     map.insert("rsvp.attending_label", "Attending:");
+    map.insert("rsvp.attending_single_label", "Attending:");
     map.insert("rsvp.age_category", "Age Category:");
     map.insert("rsvp.adult", "Adult");
     map.insert("rsvp.child_under_3", "< 3 years");
