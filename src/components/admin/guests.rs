@@ -627,6 +627,37 @@ pub fn GuestManagement() -> impl IntoView {
                                                     }}
                                                 </p>
                                             </div>
+                                            {move || {
+                                                let filter_sardinia = loc_sardinia.get();
+                                                let filter_tunisia = loc_tunisia.get();
+                                                let filter_nice = loc_nice.get();
+                                                let any_loc = filter_sardinia || filter_tunisia || filter_nice;
+                                                if any_loc {
+                                                    let filtered_group_ids: std::collections::HashSet<String> = filtered_guests()
+                                                        .iter()
+                                                        .map(|g| g.guest_group.id.clone())
+                                                        .collect();
+                                                    let confirmed = all_guests.get()
+                                                        .into_iter()
+                                                        .filter(|g| {
+                                                            filtered_group_ids.contains(&g.guest_group_id)
+                                                            && (
+                                                                (filter_sardinia && g.attending_locations.contains(&"sardinia".to_string()))
+                                                                || (filter_tunisia && g.attending_locations.contains(&"tunisia".to_string()))
+                                                                || (filter_nice && g.attending_locations.contains(&"nice".to_string()))
+                                                            )
+                                                        })
+                                                        .count();
+                                                    view! {
+                                                        <div class="bg-white rounded-lg px-6 py-4 shadow-sm border border-green-200">
+                                                            <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">"Confirmed"</p>
+                                                            <p class="text-3xl font-bold text-green-600">{confirmed}</p>
+                                                        </div>
+                                                    }.into_view()
+                                                } else {
+                                                    ().into_view()
+                                                }
+                                            }}
                                         </div>
                                         {move || {
                                             let total_groups = guests.get().len();
@@ -757,14 +788,14 @@ pub fn GuestManagement() -> impl IntoView {
 
                             let any_loc = filter_sardinia || filter_tunisia || filter_nice;
                             let matches_location = !any_loc
-                                || (filter_sardinia && group_locs.map_or(false, |l| l.contains(&"sardinia".to_string())))
-                                || (filter_tunisia  && group_locs.map_or(false, |l| l.contains(&"tunisia".to_string())))
-                                || (filter_nice     && group_locs.map_or(false, |l| l.contains(&"nice".to_string())));
+                                || (filter_sardinia && group_locs.is_some_and(|l| l.contains(&"sardinia".to_string())))
+                                || (filter_tunisia  && group_locs.is_some_and(|l| l.contains(&"tunisia".to_string())))
+                                || (filter_nice     && group_locs.is_some_and(|l| l.contains(&"nice".to_string())));
 
                             let matches_invitation = inv_filter.is_none_or(|sent| group_inv_sent == sent);
 
                             let matches_invited_by = invited_filter.as_ref()
-                                .is_none_or(|email| group_inv_by.map_or(false, |v| v.contains(email)));
+                                .is_none_or(|email| group_inv_by.is_some_and(|v| v.contains(email)));
 
                             matches_search && matches_location && matches_invitation && matches_invited_by
                         }).collect();
@@ -822,114 +853,205 @@ pub fn GuestManagement() -> impl IntoView {
                         if list.is_empty() {
                             view! { <p class="text-sm text-gray-400 italic py-4">"No guests found."</p> }.into_view()
                         } else {
-                            view! {
-                                {
-                                    let group_count = list.iter()
-                                        .map(|g| &g.guest_group_id)
-                                        .collect::<std::collections::HashSet<_>>()
-                                        .len();
-                                    let attending_count = list.iter()
-                                        .filter(|g| !g.attending_locations.is_empty())
-                                        .count();
-                                    view! {
-                                        <div class="text-xs text-gray-500 mb-2 flex flex-wrap gap-3">
-                                            <span>
-                                                <span class="font-semibold text-gray-700">{list.len()}</span>
-                                                " guests across "
-                                                <span class="font-semibold text-gray-700">{group_count}</span>
-                                                " groups"
-                                            </span>
-                                            <span class="text-green-700">
-                                                "✓ "
-                                                <span class="font-semibold">{attending_count}</span>
-                                                " confirmed"
-                                            </span>
-                                            <span class="text-gray-400">
-                                                "◌ "
-                                                <span class="font-semibold">{list.len() - attending_count}</span>
-                                                " pending"
-                                            </span>
-                                        </div>
-                                    }
-                                }
-                                <div class="overflow-x-auto">
-                                <table class="w-full text-xs border-collapse bg-white rounded-lg overflow-hidden shadow">
-                                    <thead>
-                                        <tr class="bg-gray-50 border-b border-gray-200 uppercase tracking-wide">
-                                            {th("Name", "name")}
-                                            {th("Group", "group")}
-                                            {th("Age", "age")}
-                                            {th("Attending", "attending")}
-                                            {th("Dietary", "dietary")}
-                                            {th("Invited By", "invited_by")}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {list.into_iter().map(|g| {
-                                            let group_name    = name_lookup.get(&g.guest_group_id).cloned().unwrap_or_default();
-                                            let invited_by_labels = inv_by_lookup
-                                                .get(&g.guest_group_id)
-                                                .map(|v| v.iter().map(|e| match e.as_str() {
-                                                    "mauro.sardara@gmail.com" => "Mauro",
-                                                    "munaamamu0@gmail.com"    => "Muna",
-                                                    other                     => other,
-                                                }).collect::<Vec<_>>().join(", "))
-                                                .unwrap_or_default();
-                                            let dietary_badges = g.dietary_preferences.as_badges();
-                                            let other_badge    = g.dietary_preferences.other_badge();
-                                            let has_dietary    = g.dietary_preferences.has_any();
-                                            let attending_locs = g.attending_locations.clone();
-                                            let has_attending  = !attending_locs.is_empty();
-                                            let age_display    = g.age_category.display_name().to_string();
+                            let any_loc = filter_sardinia || filter_tunisia || filter_nice;
+                            let group_count = list.iter()
+                                .map(|g| &g.guest_group_id)
+                                .collect::<std::collections::HashSet<_>>()
+                                .len();
 
-                                            view! {
-                                                <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                                                    <td class="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">{g.name}</td>
-                                                    <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{group_name}</td>
-                                                    <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{age_display}</td>
-                                                    <td class="px-3 py-2">
-                                                        {if has_attending {
-                                                            view! {
-                                                                <div class="flex flex-wrap gap-1">
-                                                                    {attending_locs.iter().filter_map(|loc| {
-                                                                        Location::from_str(loc).map(|l| view! { <LocationBadge location=l /> })
-                                                                    }).collect::<Vec<_>>()}
-                                                                </div>
-                                                            }.into_view()
-                                                        } else {
-                                                            view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
-                                                        }}
-                                                    </td>
-                                                    <td class="px-3 py-2">
-                                                        {if has_dietary {
-                                                            view! {
-                                                                <div class="flex flex-wrap gap-1">
-                                                                    {dietary_badges.iter().map(|(label, css)| view! {
-                                                                        <span class={format!("px-1.5 py-0.5 text-xs font-semibold rounded-full border {}", css)}>{*label}</span>
-                                                                    }).collect::<Vec<_>>()}
-                                                                    {other_badge.map(|(label, css)| view! {
-                                                                        <span class={format!("px-1.5 py-0.5 text-xs font-semibold rounded-full border {}", css)}>{label}</span>
-                                                                    })}
-                                                                </div>
-                                                            }.into_view()
-                                                        } else {
-                                                            view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
-                                                        }}
-                                                    </td>
-                                                    <td class="px-3 py-2 text-gray-500 whitespace-nowrap">
-                                                        {if invited_by_labels.is_empty() {
-                                                            view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
-                                                        } else {
-                                                            view! { <span>{invited_by_labels}</span> }.into_view()
-                                                        }}
-                                                    </td>
+                            // Shared row-builder — borrows lookups from this block
+                            let build_rows = |guests: Vec<Guest>| {
+                                guests.into_iter().map(|g| {
+                                    let group_name = name_lookup.get(&g.guest_group_id).cloned().unwrap_or_default();
+                                    let invited_by_labels = inv_by_lookup
+                                        .get(&g.guest_group_id)
+                                        .map(|v| v.iter().map(|e| match e.as_str() {
+                                            "mauro.sardara@gmail.com" => "Mauro",
+                                            "munaamamu0@gmail.com"    => "Muna",
+                                            other                     => other,
+                                        }).collect::<Vec<_>>().join(", "))
+                                        .unwrap_or_default();
+                                    let dietary_badges = g.dietary_preferences.as_badges();
+                                    let other_badge    = g.dietary_preferences.other_badge();
+                                    let has_dietary    = g.dietary_preferences.has_any();
+                                    let attending_locs = g.attending_locations.clone();
+                                    let has_attending  = !attending_locs.is_empty();
+                                    let age_display    = g.age_category.display_name().to_string();
+
+                                    view! {
+                                        <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                                            <td class="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">{g.name}</td>
+                                            <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{group_name}</td>
+                                            <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{age_display}</td>
+                                            <td class="px-3 py-2">
+                                                {if has_attending {
+                                                    view! {
+                                                        <div class="flex flex-wrap gap-1">
+                                                            {attending_locs.iter().filter_map(|loc| {
+                                                                Location::from_str(loc).map(|l| view! { <LocationBadge location=l /> })
+                                                            }).collect::<Vec<_>>()}
+                                                        </div>
+                                                    }.into_view()
+                                                } else {
+                                                    view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
+                                                }}
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                {if has_dietary {
+                                                    view! {
+                                                        <div class="flex flex-wrap gap-1">
+                                                            {dietary_badges.iter().map(|(label, css)| view! {
+                                                                <span class={format!("px-1.5 py-0.5 text-xs font-semibold rounded-full border {}", css)}>{*label}</span>
+                                                            }).collect::<Vec<_>>()}
+                                                            {other_badge.map(|(label, css)| view! {
+                                                                <span class={format!("px-1.5 py-0.5 text-xs font-semibold rounded-full border {}", css)}>{label}</span>
+                                                            })}
+                                                        </div>
+                                                    }.into_view()
+                                                } else {
+                                                    view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
+                                                }}
+                                            </td>
+                                            <td class="px-3 py-2 text-gray-500 whitespace-nowrap">
+                                                {if invited_by_labels.is_empty() {
+                                                    view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
+                                                } else {
+                                                    view! { <span>{invited_by_labels}</span> }.into_view()
+                                                }}
+                                            </td>
+                                        </tr>
+                                    }.into_view()
+                                }).collect::<Vec<_>>()
+                            };
+
+                            if any_loc {
+                                // Split into confirmed-for-location / invited-but-not-confirmed
+                                let (confirmed, not_confirmed): (Vec<_>, Vec<_>) = list.into_iter().partition(|g| {
+                                    (filter_sardinia && g.attending_locations.contains(&"sardinia".to_string()))
+                                    || (filter_tunisia && g.attending_locations.contains(&"tunisia".to_string()))
+                                    || (filter_nice    && g.attending_locations.contains(&"nice".to_string()))
+                                });
+                                let confirmed_count     = confirmed.len();
+                                let not_confirmed_count = not_confirmed.len();
+                                let confirmed_rows      = build_rows(confirmed);
+                                let not_confirmed_rows  = build_rows(not_confirmed);
+
+                                view! {
+                                    <div class="text-xs text-gray-500 mb-4 flex flex-wrap gap-3">
+                                        <span>
+                                            <span class="font-semibold text-gray-700">{confirmed_count + not_confirmed_count}</span>
+                                            " guests across "
+                                            <span class="font-semibold text-gray-700">{group_count}</span>
+                                            " groups"
+                                        </span>
+                                        <span class="text-green-700">
+                                            "✓ "
+                                            <span class="font-semibold">{confirmed_count}</span>
+                                            " confirmed for this location"
+                                        </span>
+                                        <span class="text-gray-400">
+                                            "◌ "
+                                            <span class="font-semibold">{not_confirmed_count}</span>
+                                            " not confirmed here"
+                                        </span>
+                                    </div>
+
+                                    // ── Section 1: Confirmed ──
+                                    <div class="mb-6">
+                                        <h4 class="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
+                                            "✓ Confirmed"
+                                            <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-0.5 rounded-full">{confirmed_count}</span>
+                                        </h4>
+                                        <div class="overflow-x-auto">
+                                        <table class="w-full text-xs border-collapse bg-white rounded-lg overflow-hidden shadow">
+                                            <thead>
+                                                <tr class="bg-green-50 border-b border-green-200 uppercase tracking-wide">
+                                                    {th("Name", "name")}
+                                                    {th("Group", "group")}
+                                                    {th("Age", "age")}
+                                                    {th("Attending", "attending")}
+                                                    {th("Dietary", "dietary")}
+                                                    {th("Invited By", "invited_by")}
                                                 </tr>
-                                            }
-                                        }).collect::<Vec<_>>()}
-                                    </tbody>
-                                </table>
-                                </div>
-                            }.into_view()
+                                            </thead>
+                                            <tbody>{confirmed_rows}</tbody>
+                                        </table>
+                                        </div>
+                                    </div>
+
+                                    // ── Section 2: Invited but not confirmed here ──
+                                    {if !not_confirmed_rows.is_empty() {
+                                        view! {
+                                            <div>
+                                                <h4 class="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-2">
+                                                    "◌ Invited but not confirmed here"
+                                                    <span class="bg-gray-100 text-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">{not_confirmed_count}</span>
+                                                </h4>
+                                                <div class="overflow-x-auto opacity-60">
+                                                <table class="w-full text-xs border-collapse bg-white rounded-lg overflow-hidden shadow">
+                                                    <thead>
+                                                        <tr class="bg-gray-50 border-b border-gray-200 uppercase tracking-wide">
+                                                            {th("Name", "name")}
+                                                            {th("Group", "group")}
+                                                            {th("Age", "age")}
+                                                            {th("Attending", "attending")}
+                                                            {th("Dietary", "dietary")}
+                                                            {th("Invited By", "invited_by")}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>{not_confirmed_rows}</tbody>
+                                                </table>
+                                                </div>
+                                            </div>
+                                        }.into_view()
+                                    } else {
+                                        ().into_view()
+                                    }}
+                                }.into_view()
+                            } else {
+                                // No location filter — flat list with overall stats
+                                let total = list.len();
+                                let attending_count = list.iter()
+                                    .filter(|g| !g.attending_locations.is_empty())
+                                    .count();
+                                let rows = build_rows(list);
+
+                                view! {
+                                    <div class="text-xs text-gray-500 mb-2 flex flex-wrap gap-3">
+                                        <span>
+                                            <span class="font-semibold text-gray-700">{total}</span>
+                                            " guests across "
+                                            <span class="font-semibold text-gray-700">{group_count}</span>
+                                            " groups"
+                                        </span>
+                                        <span class="text-green-700">
+                                            "✓ "
+                                            <span class="font-semibold">{attending_count}</span>
+                                            " confirmed"
+                                        </span>
+                                        <span class="text-gray-400">
+                                            "◌ "
+                                            <span class="font-semibold">{total - attending_count}</span>
+                                            " pending"
+                                        </span>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                    <table class="w-full text-xs border-collapse bg-white rounded-lg overflow-hidden shadow">
+                                        <thead>
+                                            <tr class="bg-gray-50 border-b border-gray-200 uppercase tracking-wide">
+                                                {th("Name", "name")}
+                                                {th("Group", "group")}
+                                                {th("Age", "age")}
+                                                {th("Attending", "attending")}
+                                                {th("Dietary", "dietary")}
+                                                {th("Invited By", "invited_by")}
+                                            </tr>
+                                        </thead>
+                                        <tbody>{rows}</tbody>
+                                    </table>
+                                    </div>
+                                }.into_view()
+                            }
                         }
                     }}
                     </div>
