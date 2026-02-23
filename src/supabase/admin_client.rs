@@ -213,6 +213,7 @@ impl SupabaseAdminClient {
             party_size: i32,
             locations: Vec<String>,
             default_language: String,
+            additional_notes: Option<String>,
             #[serde(default)]
             invitation_sent: bool,
             #[serde(default)]
@@ -242,7 +243,7 @@ impl SupabaseAdminClient {
                         party_size: raw.party_size,
                         locations: raw.locations,
                         default_language: raw.default_language,
-                        additional_notes: None,
+                        additional_notes: raw.additional_notes,
                         invitation_sent: raw.invitation_sent,
                         rsvp_submitted: raw.rsvp_submitted,
                         invited_by: raw.invited_by,

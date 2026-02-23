@@ -19,6 +19,8 @@ pub fn GuestManagement() -> impl IntoView {
     let (loc_tunisia, set_loc_tunisia) = create_signal(false);
     let (loc_nice, set_loc_nice) = create_signal(false);
     let (invitation_filter, set_invitation_filter) = create_signal::<Option<bool>>(None);
+    let (rsvp_filter, set_rsvp_filter) = create_signal::<Option<bool>>(None);
+    let (notes_filter, set_notes_filter) = create_signal(false);
     let (invited_by_filter, set_invited_by_filter) = create_signal::<Option<String>>(None);
     let (expanded_guest, set_expanded_guest) = create_signal::<Option<String>>(None);
     let (guest_invitees, set_guest_invitees) = create_signal::<Vec<Guest>>(Vec::new());
@@ -29,14 +31,6 @@ pub fn GuestManagement() -> impl IntoView {
     // All-guests flat list
     let (all_guests, set_all_guests) = create_signal::<Vec<Guest>>(Vec::new());
     let (all_guests_loading, set_all_guests_loading) = create_signal(false);
-    let (all_guests_search, set_all_guests_search) = create_signal(String::new());
-
-    // Filters for All Guests tab (independent from Guest Groups tab)
-    let (ag_loc_sardinia, set_ag_loc_sardinia) = create_signal(false);
-    let (ag_loc_tunisia, set_ag_loc_tunisia) = create_signal(false);
-    let (ag_loc_nice, set_ag_loc_nice) = create_signal(false);
-    let (ag_invitation_filter, set_ag_invitation_filter) = create_signal::<Option<bool>>(None);
-    let (ag_invited_by_filter, set_ag_invited_by_filter) = create_signal::<Option<String>>(None);
 
     // Load guests
     let load_guests = {
@@ -111,6 +105,20 @@ pub fn GuestManagement() -> impl IntoView {
             .map(|g| (g.guest_group.id.clone(), g.guest_group.rsvp_submitted))
             .collect::<std::collections::HashMap<_, _>>()
     };
+    let group_has_notes_lookup = move || {
+        guests
+            .get()
+            .into_iter()
+            .map(|g| {
+                let has_notes = g
+                    .guest_group
+                    .additional_notes
+                    .as_ref()
+                    .is_some_and(|n| !n.trim().is_empty());
+                (g.guest_group.id.clone(), has_notes)
+            })
+            .collect::<std::collections::HashMap<_, _>>()
+    };
 
     // Sort state for All Guests tab
     let (sort_col, set_sort_col) = create_signal("name");
@@ -129,6 +137,8 @@ pub fn GuestManagement() -> impl IntoView {
         let filter_tunisia = loc_tunisia.get();
         let filter_nice = loc_nice.get();
         let inv_filter = invitation_filter.get();
+        let rsvp_filter_val = rsvp_filter.get();
+        let only_with_notes = notes_filter.get();
         let invited_filter = invited_by_filter.get();
 
         guests
@@ -156,11 +166,25 @@ pub fn GuestManagement() -> impl IntoView {
                 let matches_invitation =
                     inv_filter.is_none_or(|sent| guest.invitation_sent == sent);
 
+                let matches_rsvp =
+                    rsvp_filter_val.is_none_or(|submitted| guest.rsvp_submitted == submitted);
+
+                let matches_notes = !only_with_notes
+                    || guest
+                        .additional_notes
+                        .as_ref()
+                        .is_some_and(|n| !n.trim().is_empty());
+
                 let matches_invited_by = invited_filter
                     .as_ref()
                     .is_none_or(|email| guest.invited_by.contains(email));
 
-                matches_search && matches_location && matches_invitation && matches_invited_by
+                matches_search
+                    && matches_location
+                    && matches_invitation
+                    && matches_rsvp
+                    && matches_notes
+                    && matches_invited_by
             })
             .collect::<Vec<_>>()
     };
@@ -187,18 +211,12 @@ pub fn GuestManagement() -> impl IntoView {
                 <h2 class=PAGE_HEADER>
                     "Guest Management"
                 </h2>
-                {move || if active_tab.get() == "groups" {
-                    view! {
-                        <button
-                            on:click=move |_| set_show_add_modal.set(true)
-                            class=BUTTON_SECONDARY_INLINE
-                        >
-                            <span>"+ Add Guest Group"</span>
-                        </button>
-                    }.into_view()
-                } else {
-                    ().into_view()
-                }}
+                <button
+                    on:click=move |_| set_show_add_modal.set(true)
+                    class=BUTTON_SECONDARY_INLINE
+                >
+                    <span>"+ Add Guest Group"</span>
+                </button>
             </div>
 
             {/* Sub-tabs */}
@@ -231,84 +249,87 @@ pub fn GuestManagement() -> impl IntoView {
                 </div>
             })}
 
-            {/* ── Guest Groups tab ── */}
-            <Show when=move || active_tab.get() == "groups" fallback=|| ()>
-
-            {/* Search and Filter */}
+            {/* Shared Search and Filter (both tabs) */}
             <div class=FILTER_SECTION>
-                <div class=GRID_4_COLS>
-                    <div>
-                        <label class=FORM_LABEL>
-                            "Search"
-                        </label>
+                <div class="flex flex-wrap items-end gap-4">
+                    {/* Search */}
+                    <div class="flex flex-col gap-1 min-w-[180px] flex-1">
+                        <span class="text-xs font-medium text-gray-500">"Search"</span>
                         <input
                             type="text"
-                            placeholder="Search by name, email, or code..."
-                            class=FORM_INPUT
+                            placeholder="Name, email, code…"
+                            class="text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-primary-400 focus:border-primary-400 bg-white w-full"
                             on:input=move |ev| set_search_query.set(event_target_value(&ev))
                             prop:value=move || search_query.get()
                         />
                     </div>
-                    <div>
-                        <label class=FORM_LABEL>
-                            "Filter by Location"
-                        </label>
-                        <div class="flex flex-col gap-1 mt-1">
-                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                                <input
-                                    type="checkbox"
-                                    class="w-4 h-4 text-secondary-600 rounded"
+                    {/* Location */}
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-gray-500">"Location"</span>
+                        <div class="flex items-center gap-3 py-2">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-sm text-gray-700">
+                                <input type="checkbox" class="w-4 h-4 text-secondary-600 rounded"
                                     prop:checked=move || loc_sardinia.get()
-                                    on:change=move |ev| set_loc_sardinia.set(event_target_checked(&ev))
-                                />
+                                    on:change=move |ev| set_loc_sardinia.set(event_target_checked(&ev)) />
                                 "🇮🇹 Sardinia"
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                                <input
-                                    type="checkbox"
-                                    class="w-4 h-4 text-secondary-600 rounded"
+                            <label class="flex items-center gap-1.5 cursor-pointer text-sm text-gray-700">
+                                <input type="checkbox" class="w-4 h-4 text-secondary-600 rounded"
                                     prop:checked=move || loc_tunisia.get()
-                                    on:change=move |ev| set_loc_tunisia.set(event_target_checked(&ev))
-                                />
+                                    on:change=move |ev| set_loc_tunisia.set(event_target_checked(&ev)) />
                                 "🇹🇳 Tunisia"
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                                <input
-                                    type="checkbox"
-                                    class="w-4 h-4 text-secondary-600 rounded"
+                            <label class="flex items-center gap-1.5 cursor-pointer text-sm text-gray-700">
+                                <input type="checkbox" class="w-4 h-4 text-secondary-600 rounded"
                                     prop:checked=move || loc_nice.get()
-                                    on:change=move |ev| set_loc_nice.set(event_target_checked(&ev))
-                                />
+                                    on:change=move |ev| set_loc_nice.set(event_target_checked(&ev)) />
                                 "🇫🇷 Nice"
                             </label>
                         </div>
                     </div>
-                    <div>
-                        <label class=FORM_LABEL>
-                            "Filter by Invitation"
-                        </label>
+                    {/* Invitation */}
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-gray-500">"Invitation"</span>
                         <select
-                            class=FORM_SELECT
+                            class="text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-primary-400 bg-white"
                             on:change=move |ev| {
                                 let value = event_target_value(&ev);
                                 set_invitation_filter.set(match value.as_str() {
-                                    "sent" => Some(true),
+                                    "sent"     => Some(true),
                                     "not_sent" => Some(false),
-                                    _ => None,
+                                    _          => None,
                                 });
                             }
                         >
                             <option value="">"All"</option>
                             <option value="sent">"Sent"</option>
-                            <option value="not_sent">"Not Sent"</option>
+                            <option value="not_sent">"Not sent"</option>
                         </select>
                     </div>
-                    <div>
-                        <label class=FORM_LABEL>
-                            "Filter by Invited By"
-                        </label>
+                    {/* RSVP */}
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-gray-500">"RSVP"</span>
                         <select
-                            class=FORM_SELECT
+                            class="text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-primary-400 bg-white"
+                            on:change=move |ev| {
+                                let value = event_target_value(&ev);
+                                set_rsvp_filter.set(match value.as_str() {
+                                    "responded" => Some(true),
+                                    "pending"   => Some(false),
+                                    _           => None,
+                                });
+                            }
+                        >
+                            <option value="">"All"</option>
+                            <option value="responded">"Responded"</option>
+                            <option value="pending">"Pending"</option>
+                        </select>
+                    </div>
+                    {/* Invited by */}
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-gray-500">"Invited by"</span>
+                        <select
+                            class="text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-primary-400 bg-white"
                             on:change=move |ev| {
                                 let value = event_target_value(&ev);
                                 set_invited_by_filter.set(if value.is_empty() { None } else { Some(value) });
@@ -319,8 +340,24 @@ pub fn GuestManagement() -> impl IntoView {
                             <option value="munaamamu0@gmail.com">"Muna"</option>
                         </select>
                     </div>
+                    {/* Notes */}
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-medium text-gray-500 invisible">"x"</span>
+                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 py-2">
+                            <input
+                                type="checkbox"
+                                class="w-4 h-4 text-secondary-600 rounded"
+                                prop:checked=move || notes_filter.get()
+                                on:change=move |ev| set_notes_filter.set(event_target_checked(&ev))
+                            />
+                            "Has notes"
+                        </label>
+                    </div>
                 </div>
             </div>
+
+            {/* ── Guest Groups tab ── */}
+            <Show when=move || active_tab.get() == "groups" fallback=|| ()>
 
             {/* Guest Cards */}
             {move || {
@@ -529,27 +566,22 @@ pub fn GuestManagement() -> impl IntoView {
                                                         {if guest.rsvp_submitted { "✓ Responded" } else { "⏳ Pending" }}
                                                     </span>
                                                 </div>
+
+                                                {/* Additional Notes (always visible when present) */}
+                                                {guest.additional_notes.as_ref().and_then(|notes| {
+                                                    if notes.trim().is_empty() { return None; }
+                                                    Some(view! {
+                                                        <div class="ml-8 px-3 py-2 border-l-4 border-amber-300 bg-amber-50/60 rounded-r-lg">
+                                                            <p class="text-xs text-secondary-600 italic leading-relaxed whitespace-pre-wrap">{notes.clone()}</p>
+                                                        </div>
+                                                    })
+                                                })}
                                             </div>
 
                                             {/* Expanded Guest List */}
                                             {move || if expanded_guest.get().as_ref() == Some(&guest_id_for_expand2) {
-                                                let guest_notes = guest.additional_notes.clone();
                                                 view! {
                                                     <div class="bg-gray-50 border-t border-gray-200 px-4 py-3">
-                                                        {/* Additional Notes */}
-                                                        {guest_notes.as_ref().and_then(|notes| {
-                                                            if !notes.trim().is_empty() {
-                                                                Some(view! {
-                                                                    <div class="flex items-start gap-2 mb-3 bg-amber-50 border border-amber-200 rounded p-2">
-                                                                        <span class="text-sm flex-shrink-0">"📝"</span>
-                                                                        <p class="text-xs text-amber-800 whitespace-pre-wrap">{notes.clone()}</p>
-                                                                    </div>
-                                                                })
-                                                            } else {
-                                                                None
-                                                            }
-                                                        })}
-
                                                         {move || {
                                                             let invitees_list = guest_invitees.get();
                                                             if invitees_list.is_empty() {
@@ -701,75 +733,6 @@ pub fn GuestManagement() -> impl IntoView {
             {/* ── All Guests tab ── */}
             <Show when=move || active_tab.get() == "all" fallback=|| ()>
                 <div>
-                    {/* Filters */}
-                    <div class=FILTER_SECTION>
-                        <div class=GRID_4_COLS>
-                            <div>
-                                <label class=FORM_LABEL>"Search"</label>
-                                <input
-                                    type="text"
-                                    placeholder="Search by name or group..."
-                                    class=FORM_INPUT
-                                    on:input=move |ev| set_all_guests_search.set(event_target_value(&ev))
-                                    prop:value=move || all_guests_search.get()
-                                />
-                            </div>
-                            <div>
-                                <label class=FORM_LABEL>"Filter by Location"</label>
-                                <div class="flex flex-col gap-1 mt-1">
-                                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                                        <input type="checkbox" class="w-4 h-4 text-secondary-600 rounded"
-                                            prop:checked=move || ag_loc_sardinia.get()
-                                            on:change=move |ev| set_ag_loc_sardinia.set(event_target_checked(&ev)) />
-                                        "🇮🇹 Sardinia"
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                                        <input type="checkbox" class="w-4 h-4 text-secondary-600 rounded"
-                                            prop:checked=move || ag_loc_tunisia.get()
-                                            on:change=move |ev| set_ag_loc_tunisia.set(event_target_checked(&ev)) />
-                                        "🇹🇳 Tunisia"
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                                        <input type="checkbox" class="w-4 h-4 text-secondary-600 rounded"
-                                            prop:checked=move || ag_loc_nice.get()
-                                            on:change=move |ev| set_ag_loc_nice.set(event_target_checked(&ev)) />
-                                        "🇫🇷 Nice"
-                                    </label>
-                                </div>
-                            </div>
-                            <div>
-                                <label class=FORM_LABEL>"Filter by Invitation"</label>
-                                <select class=FORM_SELECT
-                                    on:change=move |ev| {
-                                        let value = event_target_value(&ev);
-                                        set_ag_invitation_filter.set(match value.as_str() {
-                                            "sent"     => Some(true),
-                                            "not_sent" => Some(false),
-                                            _          => None,
-                                        });
-                                    }
-                                >
-                                    <option value="">"All"</option>
-                                    <option value="sent">"Sent"</option>
-                                    <option value="not_sent">"Not Sent"</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class=FORM_LABEL>"Filter by Invited By"</label>
-                                <select class=FORM_SELECT
-                                    on:change=move |ev| {
-                                        let value = event_target_value(&ev);
-                                        set_ag_invited_by_filter.set(if value.is_empty() { None } else { Some(value) });
-                                    }
-                                >
-                                    <option value="">"All"</option>
-                                    <option value="mauro.sardara@gmail.com">"Mauro"</option>
-                                    <option value="munaamamu0@gmail.com">"Muna"</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="mt-4">
                     {move || if all_guests_loading.get() {
                         view! {
@@ -783,20 +746,25 @@ pub fn GuestManagement() -> impl IntoView {
                         let locs_lookup    = group_locations_lookup();
                         let inv_sent_lookup = group_invitation_sent_lookup();
                         let rsvp_submitted_lookup = group_rsvp_submitted_lookup();
-                        let query          = all_guests_search.get().to_lowercase();
+                        let has_notes_lookup = group_has_notes_lookup();
+                        let query          = search_query.get().to_lowercase();
                         let col            = sort_col.get();
                         let asc            = sort_asc.get();
 
-                        let filter_sardinia  = ag_loc_sardinia.get();
-                        let filter_tunisia   = ag_loc_tunisia.get();
-                        let filter_nice      = ag_loc_nice.get();
-                        let inv_filter       = ag_invitation_filter.get();
-                        let invited_filter   = ag_invited_by_filter.get();
+                        let filter_sardinia  = loc_sardinia.get();
+                        let filter_tunisia   = loc_tunisia.get();
+                        let filter_nice      = loc_nice.get();
+                        let inv_filter       = invitation_filter.get();
+                        let rsvp_filter_val  = rsvp_filter.get();
+                        let only_with_notes  = notes_filter.get();
+                        let invited_filter   = invited_by_filter.get();
 
                         let mut list: Vec<_> = all_guests.get().into_iter().filter(|g| {
                             let group_name = name_lookup.get(&g.guest_group_id).map(|s| s.as_str()).unwrap_or("");
                             let group_locs = locs_lookup.get(&g.guest_group_id);
                             let group_inv_sent = inv_sent_lookup.get(&g.guest_group_id).copied().unwrap_or(false);
+                            let group_rsvp_submitted = rsvp_submitted_lookup.get(&g.guest_group_id).copied().unwrap_or(false);
+                            let group_notes = has_notes_lookup.get(&g.guest_group_id).copied().unwrap_or(false);
                             let group_inv_by = inv_by_lookup.get(&g.guest_group_id);
 
                             let matches_search = query.is_empty()
@@ -811,10 +779,14 @@ pub fn GuestManagement() -> impl IntoView {
 
                             let matches_invitation = inv_filter.is_none_or(|sent| group_inv_sent == sent);
 
+                            let matches_rsvp = rsvp_filter_val.is_none_or(|submitted| group_rsvp_submitted == submitted);
+
+                            let matches_notes = !only_with_notes || group_notes;
+
                             let matches_invited_by = invited_filter.as_ref()
                                 .is_none_or(|email| group_inv_by.is_some_and(|v| v.contains(email)));
 
-                            matches_search && matches_location && matches_invitation && matches_invited_by
+                            matches_search && matches_location && matches_invitation && matches_rsvp && matches_notes && matches_invited_by
                         }).collect();
 
                         // Sort
