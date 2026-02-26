@@ -21,6 +21,7 @@ pub fn GuestManagement() -> impl IntoView {
     let (invitation_filter, set_invitation_filter) = create_signal::<Option<bool>>(None);
     let (rsvp_filter, set_rsvp_filter) = create_signal::<Option<bool>>(None);
     let (notes_filter, set_notes_filter) = create_signal(false);
+    let (self_added_filter, set_self_added_filter) = create_signal(false);
     let (invited_by_filter, set_invited_by_filter) = create_signal::<Option<String>>(None);
     let (expanded_guest, set_expanded_guest) = create_signal::<Option<String>>(None);
     let (guest_invitees, set_guest_invitees) = create_signal::<Vec<Guest>>(Vec::new());
@@ -119,6 +120,20 @@ pub fn GuestManagement() -> impl IntoView {
             })
             .collect::<std::collections::HashMap<_, _>>()
     };
+    // Maps group_id -> true if any guest in the group is self_added
+    let group_has_self_added_lookup = move || {
+        all_guests.get().into_iter().fold(
+            std::collections::HashMap::<String, bool>::new(),
+            |mut map, g| {
+                if g.self_added {
+                    map.insert(g.guest_group_id.clone(), true);
+                } else {
+                    map.entry(g.guest_group_id.clone()).or_insert(false);
+                }
+                map
+            },
+        )
+    };
 
     // Sort state for All Guests tab
     let (sort_col, set_sort_col) = create_signal("name");
@@ -139,7 +154,9 @@ pub fn GuestManagement() -> impl IntoView {
         let inv_filter = invitation_filter.get();
         let rsvp_filter_val = rsvp_filter.get();
         let only_with_notes = notes_filter.get();
+        let only_self_added = self_added_filter.get();
         let invited_filter = invited_by_filter.get();
+        let self_added_lookup = group_has_self_added_lookup();
 
         guests
             .get()
@@ -175,6 +192,9 @@ pub fn GuestManagement() -> impl IntoView {
                         .as_ref()
                         .is_some_and(|n| !n.trim().is_empty());
 
+                let matches_self_added =
+                    !only_self_added || self_added_lookup.get(&guest.id).copied().unwrap_or(false);
+
                 let matches_invited_by = invited_filter
                     .as_ref()
                     .is_none_or(|email| guest.invited_by.contains(email));
@@ -184,6 +204,7 @@ pub fn GuestManagement() -> impl IntoView {
                     && matches_invitation
                     && matches_rsvp
                     && matches_notes
+                    && matches_self_added
                     && matches_invited_by
             })
             .collect::<Vec<_>>()
@@ -340,18 +361,29 @@ pub fn GuestManagement() -> impl IntoView {
                             <option value="munaamamu0@gmail.com">"Muna"</option>
                         </select>
                     </div>
-                    {/* Notes */}
+                    {/* Notes + Self added */}
                     <div class="flex flex-col gap-1">
                         <span class="text-xs font-medium text-gray-500 invisible">"x"</span>
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 py-2">
-                            <input
-                                type="checkbox"
-                                class="w-4 h-4 text-secondary-600 rounded"
-                                prop:checked=move || notes_filter.get()
-                                on:change=move |ev| set_notes_filter.set(event_target_checked(&ev))
-                            />
-                            "Has notes"
-                        </label>
+                        <div class="flex flex-col gap-1 py-1">
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    class="w-4 h-4 text-secondary-600 rounded"
+                                    prop:checked=move || notes_filter.get()
+                                    on:change=move |ev| set_notes_filter.set(event_target_checked(&ev))
+                                />
+                                "Has notes"
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    class="w-4 h-4 text-secondary-600 rounded"
+                                    prop:checked=move || self_added_filter.get()
+                                    on:change=move |ev| set_self_added_filter.set(event_target_checked(&ev))
+                                />
+                                "Self added"
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -757,6 +789,7 @@ pub fn GuestManagement() -> impl IntoView {
                         let inv_filter       = invitation_filter.get();
                         let rsvp_filter_val  = rsvp_filter.get();
                         let only_with_notes  = notes_filter.get();
+                        let only_self_added  = self_added_filter.get();
                         let invited_filter   = invited_by_filter.get();
 
                         let mut list: Vec<_> = all_guests.get().into_iter().filter(|g| {
@@ -783,10 +816,12 @@ pub fn GuestManagement() -> impl IntoView {
 
                             let matches_notes = !only_with_notes || group_notes;
 
+                            let matches_self_added = !only_self_added || g.self_added;
+
                             let matches_invited_by = invited_filter.as_ref()
                                 .is_none_or(|email| group_inv_by.is_some_and(|v| v.contains(email)));
 
-                            matches_search && matches_location && matches_invitation && matches_rsvp && matches_notes && matches_invited_by
+                            matches_search && matches_location && matches_invitation && matches_rsvp && matches_notes && matches_self_added && matches_invited_by
                         }).collect();
 
                         // Sort
@@ -860,6 +895,7 @@ pub fn GuestManagement() -> impl IntoView {
                                             other                     => other,
                                         }).collect::<Vec<_>>().join(", "))
                                         .unwrap_or_default();
+                                    let is_self_added = g.self_added;
                                     let dietary_badges = g.dietary_preferences.as_badges();
                                     let other_badge    = g.dietary_preferences.other_badge();
                                     let has_dietary    = g.dietary_preferences.has_any();
@@ -905,11 +941,20 @@ pub fn GuestManagement() -> impl IntoView {
                                                 }}
                                             </td>
                                             <td class="px-3 py-2 text-gray-500 whitespace-nowrap">
-                                                {if invited_by_labels.is_empty() {
-                                                    view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
-                                                } else {
-                                                    view! { <span>{invited_by_labels}</span> }.into_view()
-                                                }}
+                                                <div class="flex items-center gap-1.5">
+                                                    {if invited_by_labels.is_empty() {
+                                                        view! { <span class="text-gray-300 italic">"—"</span> }.into_view()
+                                                    } else {
+                                                        view! { <span>{invited_by_labels}</span> }.into_view()
+                                                    }}
+                                                    {if is_self_added {
+                                                        view! {
+                                                            <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-teal-50 text-teal-700 border border-teal-200">"Self"</span>
+                                                        }.into_view()
+                                                    } else {
+                                                        ().into_view()
+                                                    }}
+                                                </div>
                                             </td>
                                         </tr>
                                     }.into_view()
