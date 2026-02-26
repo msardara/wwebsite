@@ -107,12 +107,23 @@ fn RsvpManager(
                         }
                     }
                 }
-                // Build location map from guest attending_locations arrays.
-                // Use DB values directly — empty means the guest explicitly declined.
+                // Build location map.
+                // If the group has never submitted, pre-select all available locations
+                // so guests see themselves as attending by default.
+                // If already submitted, use the DB values directly (respects explicit choices).
+                let all_locations: HashSet<String> = available_locations
+                    .get_untracked()
+                    .iter()
+                    .map(|l| l.as_str().to_string())
+                    .collect();
                 let mut guest_loc_map: HashMap<String, HashSet<String>> = HashMap::new();
-                for guest in &invitees_list {
-                    let locs: HashSet<String> = guest.attending_locations.iter().cloned().collect();
-                    guest_loc_map.insert(guest.id.clone(), locs);
+                for g in &invitees_list {
+                    let locs = if !guest.rsvp_submitted {
+                        all_locations.clone()
+                    } else {
+                        g.attending_locations.iter().cloned().collect()
+                    };
+                    guest_loc_map.insert(g.id.clone(), locs);
                 }
 
                 set_guests.set(invitees_list.clone());
@@ -197,6 +208,7 @@ fn RsvpManager(
             attending_locations: selected_locs.clone(),
             dietary_preferences: DietaryPreferences::default(),
             age_category: crate::types::AgeCategory::default(),
+            self_added: true,
             created_at: None,
             updated_at: None,
         };
@@ -436,11 +448,12 @@ fn GuestCard(
 ) -> impl IntoView {
     let guest_id = guest.id.clone();
     let guest_id_for_locations = store_value(guest.id.clone());
+    let is_self_added = guest.self_added || guest.id.starts_with("temp_");
     let (name, set_name) = create_signal(guest.name.clone());
 
     // Auto-focus the name input for new guests
     let input_ref = create_node_ref::<html::Input>();
-    let is_new_guest = guest.name.is_empty() && guest.id.starts_with("temp_");
+    let is_new_guest = guest.name.is_empty() && is_self_added;
 
     if is_new_guest {
         request_animation_frame(move || {
@@ -482,6 +495,7 @@ fn GuestCard(
                     other: other.get(),
                 },
                 age_category: age_category.get(),
+                self_added: guest.self_added,
                 created_at: None,
                 updated_at: None,
             };
@@ -516,14 +530,20 @@ fn GuestCard(
                         on:input=move |ev| set_name.set(event_target_value(&ev))
                         on:blur=move |_| save_changes.with_value(|f| f())
                     />
-                    <button
-                        type="button"
-                        class="flex-shrink-0 w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
-                        on:click=delete_guest
-                        title=move || translations().t("rsvp.delete_invitee")
-                    >
-                        "✕"
-                    </button>
+                    {if is_self_added {
+                        view! {
+                            <button
+                                type="button"
+                                class="flex-shrink-0 w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                                on:click=delete_guest
+                                title=move || translations().t("rsvp.delete_invitee")
+                            >
+                                "✕"
+                            </button>
+                        }.into_view()
+                    } else {
+                        ().into_view()
+                    }}
                 </div>
 
                 // Location selection

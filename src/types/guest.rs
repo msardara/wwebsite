@@ -74,6 +74,8 @@ pub struct Guest {
     pub dietary_preferences: DietaryPreferences,
     #[serde(default)]
     pub age_category: AgeCategory,
+    #[serde(default)]
+    pub self_added: bool,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
